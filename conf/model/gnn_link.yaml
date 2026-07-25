@@ -1,0 +1,11 @@
+# M5b — optional, only if time permits (Could, 21 points).
+name: gnn_link
+id: M5b
+family: graph
+requires_labels: false
+window_days: 7
+hidden_dim: 64
+num_layers: 2
+epochs: 20
+learning_rate: 1.0e-3
+seed: 42

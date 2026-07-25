@@ -1,0 +1,5 @@
+name: pca
+id: M2b
+family: statistical
+requires_labels: false
+n_components: 0.95  # fraction of explained variance

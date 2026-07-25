@@ -1,0 +1,7 @@
+name: lof
+id: M3c
+family: classical
+requires_labels: false
+n_neighbors: 35
+subsample_size: 100000  # LOF does not scale — sensitivity to this is part of the analysis
+seed: 42

@@ -1,0 +1,35 @@
+# M1 — heuristic rule engine (section 5.1). The real competitor, not a strawman.
+name: rules
+id: M1
+family: rules
+requires_labels: false
+
+rules:
+  - id: R1_new_pair
+    mitre: T1078
+    enabled: true
+  - id: R2_host_burst
+    mitre: T1078
+    enabled: true
+    percentile_threshold: 99.9
+  - id: R3_fail_then_success
+    mitre: T1110
+    enabled: true
+  - id: R4_offhours
+    mitre: T1078
+    enabled: true
+  - id: R5_machine_account_anomaly
+    mitre: T1550
+    enabled: true
+  - id: R6_new_auth_type
+    mitre: T1550
+    enabled: true
+  - id: R7_lateral_chain
+    mitre: T1021
+    enabled: true
+    chain_window_minutes: 30
+
+weight_search:
+  method: random_search
+  n_trials: 200
+  seed: 42

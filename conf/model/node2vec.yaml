@@ -1,0 +1,12 @@
+name: node2vec
+id: M5a
+family: graph
+requires_labels: false
+window_days: 7
+dim: 64
+walk_length: 40
+num_walks: 10
+p: 1.0
+q: 1.0
+downstream: iforest  # node2vec embeddings scored by Isolation Forest
+seed: 42

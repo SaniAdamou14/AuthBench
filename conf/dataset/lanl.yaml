@@ -1,0 +1,45 @@
+# LANL — Comprehensive, Multi-Source Cyber-Security Events (Kent, 2015)
+# https://csr.lanl.gov/data/cyber1/
+name: lanl
+
+urls:
+  auth: https://csr.lanl.gov/data/cyber1/auth.txt.gz
+  redteam: https://csr.lanl.gov/data/cyber1/redteam.txt.gz
+
+# Recorded once from the vendor's published checksums / first successful download.
+# A mismatch aborts the pipeline (US-101) — fill in after the first verified download.
+sha256:
+  auth: null
+  redteam: null
+
+expected_rows:
+  auth: 1_051_430_459
+  redteam_raw: 749
+  redteam_unique: 737
+
+n_days: 58
+time_resolution_seconds: 1
+
+# auth.txt schema (9 comma-separated fields), source of truth in parse/schema.py
+auth_columns:
+  - time
+  - src_user_at_domain
+  - dst_user_at_domain
+  - src_computer
+  - dst_computer
+  - auth_type
+  - logon_type
+  - auth_orientation
+  - success_failure
+
+redteam_columns:
+  - time
+  - user_at_domain
+  - src_computer
+  - dst_computer
+
+label_join_keys: [time, user_at_domain, src_computer, dst_computer]
+
+positive_rate_bounds: [5.0e-7, 1.0e-6]
+
+campaign_gap_hours: 24

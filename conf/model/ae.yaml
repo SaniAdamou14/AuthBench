@@ -1,0 +1,9 @@
+name: ae
+id: M4a
+family: deep
+requires_labels: false
+hidden_dims: [64, 16, 64]
+epochs: 30
+batch_size: 512
+learning_rate: 1.0e-3
+seed: 42

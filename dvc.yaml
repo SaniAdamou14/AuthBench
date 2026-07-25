@@ -1,0 +1,56 @@
+stages:
+  download:
+    cmd: authbench data download --dataset ${dataset}
+    params:
+      - dataset
+    outs:
+      - data/raw:
+          persist: true
+
+  to_parquet:
+    cmd: >-
+      authbench data to-parquet data/raw/auth.txt.gz
+      --out-dir data/interim/auth
+      --expected-rows 1051430459
+    deps:
+      - data/raw
+    outs:
+      - data/interim/auth
+
+  label_split_features:
+    cmd: python -m authbench.pipeline.build_features
+    deps:
+      - data/interim/auth
+      - src/authbench/label
+      - src/authbench/split
+      - src/authbench/features
+    params:
+      - split
+      - features
+    outs:
+      - data/processed/features
+
+  train_eval:
+    cmd: python -m authbench.pipeline.train_eval
+    deps:
+      - data/processed/features
+      - src/authbench/models
+      - src/authbench/evaluate
+    params:
+      - seed
+      - evaluate
+    outs:
+      - reports/tables
+      - reports/figures
+    metrics:
+      - reports/tables/metrics_summary.json:
+          cache: false
+
+  report:
+    cmd: latexmk -pdf -cd reports/paper/main.tex
+    deps:
+      - reports/tables
+      - reports/figures
+      - reports/paper/main.tex
+    outs:
+      - reports/paper/main.pdf

@@ -1,0 +1,26 @@
+# F1-F4: event, history, novelty, temporal — the default feature set (no graph, no sequence).
+name: base
+
+f1_event:
+  enabled: true
+  categorical_encoding: frequency  # not one-hot — high cardinality
+
+f2_history:
+  enabled: true
+  windows_hours: [1, 24, 168]  # 1h / 24h / 7d
+  entities: [src_user, src_computer, dst_computer]
+
+f3_novelty:
+  enabled: true
+  new_pair_sentinel_days: .inf  # documented sentinel; never imputed as 0 (US-111)
+
+f4_temporal:
+  enabled: true
+  night_window_calibration: empirical  # calibrated on the activity trough, not assumed
+
+f5_graph:
+  enabled: false
+
+f6_sequence:
+  enabled: false
+  context_length: 32

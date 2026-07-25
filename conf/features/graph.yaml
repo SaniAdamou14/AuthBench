@@ -1,0 +1,12 @@
+defaults:
+  - base
+
+name: graph
+
+f5_graph:
+  enabled: true
+  window_days: 7  # rebuilt per window — never over the full 58 days (RQ2 leakage guard)
+  node2vec_dim: 64
+  node2vec_walk_length: 40
+  node2vec_num_walks: 10
+  community_algorithm: louvain

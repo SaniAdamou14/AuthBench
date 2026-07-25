@@ -1,0 +1,8 @@
+name: iforest
+id: M3a
+family: classical
+requires_labels: false
+n_estimators: 200
+max_samples: 256
+contamination: auto
+seed: 42

@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Create venv and install dependencies
+        run: |
+          uv venv --python 3.11 .venv
+          uv pip install -e ".[classical,dev]" --python .venv
+
+      - name: Lint (ruff)
+        run: .venv/bin/python -m ruff check src tests
+
+      - name: Format check (ruff)
+        run: .venv/bin/python -m ruff format --check src tests
+
+      - name: Type check (mypy)
+        run: .venv/bin/python -m mypy src
+
+      - name: Unit + integration tests (with coverage gate on evaluate/ and features/)
+        run: |
+          .venv/bin/python -m pytest --cov=authbench --cov-report=xml --cov-report=term-missing
+          # features/graph.py (F5) requires the optional `graph` extra (networkx/node2vec),
+          # not installed in this job — omitted from the gate, not from the test suite.
+          .venv/bin/python -m coverage report \
+            --include="src/authbench/evaluate/*,src/authbench/features/*" \
+            --omit="src/authbench/features/graph.py" \
+            --fail-under=85
+
+      - name: Full pipeline on demo sample (US-103, NFR-04: must finish well under 5 minutes)
+        run: |
+          .venv/bin/python -m authbench.cli demo
+        timeout-minutes: 5
+
+      - name: Upload report artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-reports
+          path: reports/

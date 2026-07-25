@@ -1,0 +1,32 @@
+defaults:
+  - dataset: lanl
+  - features: base
+  - split: temporal
+  - eval: default
+  - model: rules
+  - _self_
+
+seed: 42
+
+paths:
+  raw_dir: data/raw
+  interim_dir: data/interim
+  processed_dir: data/processed
+  demo_dir: data/demo
+  reports_dir: reports
+  figures_dir: reports/figures
+  tables_dir: reports/tables
+
+mlflow:
+  tracking_uri: file:./mlruns
+  experiment_name: authbench
+
+runtime:
+  max_rss_gb: 8.0
+  n_workers: 8
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  job:
+    chdir: false

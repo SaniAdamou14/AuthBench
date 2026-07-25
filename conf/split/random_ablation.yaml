@@ -1,0 +1,11 @@
+# Ablation-only split (section 6.5 / RQ2). Never used for headline results —
+# emits a visible warning on every run (US-107 acceptance criterion).
+name: random_ablation
+mode: random
+warn_on_use: true
+warning_message: >-
+  split=random_ablation is active. This split leaks future information into
+  training and exists ONLY for the temporal-vs-random ablation. Do not report
+  these numbers as headline results.
+test_fraction: 0.30
+val_fraction: 0.15

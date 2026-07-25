@@ -1,0 +1,4 @@
+name: always_fail
+id: M0b
+family: floor
+requires_labels: false

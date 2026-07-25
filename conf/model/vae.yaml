@@ -1,0 +1,11 @@
+name: vae
+id: M4b
+family: deep
+requires_labels: false
+hidden_dims: [64, 16]
+latent_dim: 8
+epochs: 30
+batch_size: 512
+learning_rate: 1.0e-3
+kl_weight: 1.0
+seed: 42

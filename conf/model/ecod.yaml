@@ -1,0 +1,5 @@
+name: ecod
+id: M3b
+family: classical
+requires_labels: false
+variant: ecod  # or hbos — both hyperparameter-free, via PyOD

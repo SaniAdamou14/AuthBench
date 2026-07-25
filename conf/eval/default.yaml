@@ -1,0 +1,24 @@
+name: default
+
+budgets: [10, 50, 100, 500]  # alerts/day
+fpr_targets: [1.0e-4, 1.0e-5]
+
+bootstrap:
+  n_resamples: 1000
+  stratify_by: campaign
+  confidence: 0.95
+  seed: 42
+
+pairwise_test:
+  method: permutation
+  n_permutations: 10000
+  correction: holm_bonferroni
+  seed: 42
+
+roc_auc:
+  report: true
+  warn: true
+  warning_message: >-
+    ROC-AUC is reported for literature comparability only. At a positive rate
+    near 1e-7, ROC-AUC stays high even for operationally useless models — see
+    docs/limitations.md. Do not use it to rank models.

@@ -1,0 +1,15 @@
+# CERT Insider Threat Test Dataset (SEI, Carnegie Mellon University)
+# Synthetic data — used only for generalization checks, out of scope for LANL's primary claims.
+name: cert
+
+variant: r4.2  # r4.2 (dense-needle) or r6.2 (sparse, harder)
+
+# AuthBench scope is authentication only — file/email/http/psychometric are ignored.
+files:
+  - logon.csv
+  - ldap.csv
+
+n_employees_r42: 1000
+scenario_count_r42: 3
+
+campaign_gap_hours: 24

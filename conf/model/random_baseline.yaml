@@ -1,0 +1,5 @@
+name: random_baseline
+id: M0a
+family: floor
+requires_labels: false
+seed: 42

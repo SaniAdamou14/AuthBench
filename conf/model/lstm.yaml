@@ -1,0 +1,12 @@
+name: lstm
+id: M4c
+family: deep_sequential
+requires_labels: false
+context_length: 32
+embedding_dim: 16
+hidden_dim: 64
+num_layers: 1
+epochs: 20
+batch_size: 256
+learning_rate: 1.0e-3
+seed: 42

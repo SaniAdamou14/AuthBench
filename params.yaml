@@ -1,0 +1,21 @@
+# Top-level knobs DVC stages depend on — mirrors the Hydra defaults in
+# conf/config.yaml so a `dvc repro` and a bare `authbench` CLI invocation
+# never silently disagree.
+seed: 42
+
+dataset: lanl
+
+split:
+  train_days: [0, 29]
+  val_days: [30, 39]
+  test_days: [40, 57]
+
+features:
+  windows_hours: [1, 24, 168]
+  graph_window_days: 7
+  sequence_context_length: 32
+
+evaluate:
+  budgets: [10, 50, 100, 500]
+  bootstrap_resamples: 1000
+  campaign_gap_hours: 24

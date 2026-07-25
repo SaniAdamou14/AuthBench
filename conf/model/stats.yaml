@@ -1,0 +1,5 @@
+name: stats
+id: M2a
+family: statistical
+requires_labels: false
+variant: pair_rarity  # -log frequency of (user, dst_computer) pair
