@@ -25,8 +25,17 @@ def auc_pr(y_true: np.ndarray, scores: np.ndarray) -> float:
     return float(average_precision_score(y_true, scores))
 
 
-def roc_auc(y_true: np.ndarray, scores: np.ndarray) -> float:
-    warnings.warn(ROC_AUC_WARNING, stacklevel=2)
+def roc_auc(y_true: np.ndarray, scores: np.ndarray, *, warn: bool = True) -> float:
+    """ROC-AUC, never without its caveat.
+
+    `warn=False` is for callers that scan a whole model catalog and surface
+    `ROC_AUC_WARNING` themselves, once — repeating it per model buries the
+    message it exists to deliver. The caveat still has to appear somewhere:
+    the point of it is that at this positive rate ROC-AUC stays high for
+    models no SOC could use, which is exactly what the demo's own table shows.
+    """
+    if warn:
+        warnings.warn(ROC_AUC_WARNING, stacklevel=2)
     return float(roc_auc_score(y_true, scores))
 
 

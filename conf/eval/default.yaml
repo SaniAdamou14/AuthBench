@@ -4,14 +4,36 @@ budgets: [10, 50, 100, 500]  # alerts/day
 fpr_targets: [1.0e-4, 1.0e-5]
 
 bootstrap:
-  n_resamples: 1000
+  # 2000, not 1000. A percentile bootstrap cannot report a p-value below
+  # 2/(R+1); Holm-Bonferroni over the catalog's 8 models (28 pairs) demands
+  # 0.05/28 = 0.00179. At R=1000 the floor is 0.00200 — above the threshold,
+  # so every comparison would come back non-significant by arithmetic and
+  # read exactly like a real null result. See
+  # `stats_tests.minimum_resamples_for_family`, which warns if this is ever
+  # set too low for the number of models actually in the catalog.
+  n_resamples: 2000
+  # The only supported value. Events inside a campaign are anything but
+  # independent, so an event-level resample would understate variance by a
+  # wide margin; `stats_tests.build_campaign_blocks` moves each campaign as
+  # one block. Anything else here is rejected rather than silently ignored.
   stratify_by: campaign
   confidence: 0.95
   seed: 42
 
 pairwise_test:
-  method: permutation
-  n_permutations: 10000
+  # `paired_campaign_bootstrap` reuses the bootstrap pass above: every model
+  # is evaluated on the same resamples, so the per-model CIs and the pairwise
+  # differences come from one consistent sampling distribution, and the cost
+  # is O(n_resamples x n_models) rather than O(n_permutations x n_pairs).
+  #
+  # `permutation` is the exact per-event paired test. It assumes the two
+  # models' scores are exchangeable event by event — which ignores exactly
+  # the campaign-level dependence the bootstrap respects — and it costs
+  # n_permutations x n_pairs metric evaluations, so it is only usable on
+  # small splits. Kept available; not the default.
+  method: paired_bootstrap  # paired_bootstrap | permutation
+  n_permutations: 10000     # method=permutation only
+  alpha: 0.05
   correction: holm_bonferroni
   seed: 42
 

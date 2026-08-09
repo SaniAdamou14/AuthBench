@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
 from pathlib import Path
 
 import polars as pl
@@ -16,9 +17,11 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from authbench.evaluate.budget import DEFAULT_BUDGETS, compute_budget_curve
-from authbench.evaluate.metrics import auc_pr
+from authbench.evaluate.budget import DEFAULT_BUDGETS
+from authbench.evaluate.metrics import ROC_AUC_WARNING, auc_pr
 from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
+from authbench.evaluate.stats_tests import paired_campaign_bootstrap, render_comparison_sentence
+from authbench.evaluate.summary import EVAL_COLUMNS, evaluate_model, score_column
 from authbench.features.event import compute_f1, fit_frequency_encoding
 from authbench.features.history import compute_f2
 from authbench.features.novelty import compute_f3
@@ -48,6 +51,15 @@ from authbench.split.temporal import (
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("authbench.cli")
 
+# A legacy Windows console reports cp1252, and Python then raises
+# UnicodeEncodeError on the first character it cannot map — which for this
+# CLI means a full crash at the very end of a completed run, on a report
+# sentence containing "Δ". CI is Linux/UTF-8 and never sees it, so the whole
+# class of failure is invisible until someone runs `make demo` on Windows.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+
 app = typer.Typer(
     help="AuthBench — leak-free, alert-budget-constrained auth-log anomaly benchmark."
 )
@@ -55,6 +67,17 @@ data_app = typer.Typer(help="Data acquisition and conversion.")
 app.add_typer(data_app, name="data")
 
 console = Console()
+
+# The demo's own evaluation knobs. The full pipeline reads these from
+# `conf/eval/default.yaml`; the demo is a fixed, self-contained smoke test
+# with a five-minute CI ceiling (NFR-04), so it pins smaller values rather
+# than pulling in the Hydra config it does not otherwise need.
+# Enough to resolve a p-value below Holm's strictest threshold for the demo
+# catalog's 7 models (21 pairs → 0.05/21 = 0.00238; 2/(1000+1) = 0.00200).
+# Below that, no comparison could ever be significant however good a model
+# was — see `stats_tests.minimum_resamples_for_family`.
+DEMO_BOOTSTRAP_RESAMPLES = 1000
+DEMO_FPR_TARGETS = [1.0e-4, 1.0e-3]
 
 F1_TO_F4_MODEL_FEATURES = [
     "is_success",
@@ -261,16 +284,8 @@ def demo(
     ]
 
     console.print("[bold]6/7[/] Scoring and evaluating on the test split...")
-    y_test = test_feat["is_malicious"].to_numpy()
-
-    results_table = Table(title="AuthBench demo — test-split results")
-    results_table.add_column("Model")
-    results_table.add_column("AUC-PR")
-    for k in DEFAULT_BUDGETS:
-        results_table.add_column(f"Campaign recall@{k}")
-
-    all_rows = []
-    curves = []
+    model_names: list[str] = [m.name for m in models]  # type: ignore[attr-defined]
+    scored = test_feat.select(EVAL_COLUMNS)
     for model in models:
         model.fit(train_feat.lazy())  # type: ignore[attr-defined]
         # M1 alone has a second, label-aware fitting step, and it must run
@@ -280,37 +295,124 @@ def demo(
             model.calibrate_weights(val_feat.lazy(), val_feat["is_malicious"], n_trials=50)
 
         scores = model.score(test_feat.lazy())  # type: ignore[attr-defined]
-        ap = auc_pr(y_test, scores.to_numpy())
-        scored_frame = test_feat.with_columns(pl.Series("_score", scores))
-        curve = compute_budget_curve(scored_frame, "_score", model.name)  # type: ignore[attr-defined]
-        curves.append(curve)
+        scored = scored.with_columns(pl.Series(score_column(model.name), scores))  # type: ignore[attr-defined]
 
-        results_table.add_row(
-            model.name,  # type: ignore[attr-defined]
-            f"{ap:.4f}",
-            *[f"{r:.2%}" for r in curve.campaign_recall],
+    # One campaign-stratified resampling pass serves every model: the
+    # per-model CIs and the pairwise differences then come from the same
+    # sampling distribution. Fewer resamples than the full pipeline's 1000 —
+    # the demo is a smoke test under a five-minute CI ceiling (NFR-04).
+    bootstrap = paired_campaign_bootstrap(
+        scored,
+        lambda frame, col: auc_pr(frame["is_malicious"].to_numpy(), frame[col].to_numpy()),
+        {name: score_column(name) for name in model_names},
+        n_resamples=DEMO_BOOTSTRAP_RESAMPLES,
+        seed=42,
+    )
+
+    # Two tables, because they are two different claims. The operational one
+    # is what a SOC would live with; the literature-comparable one exists so
+    # these numbers can sit next to published ones — and, on this sample,
+    # to show how far apart the two registers can drift.
+    operational = Table(title="Operational — what an analyst at this budget actually gets")
+    operational.add_column("Model")
+    operational.add_column("AUC-PR [95% CI]")
+    for k in DEFAULT_BUDGETS:
+        operational.add_column(f"Camp.rec@{k}", justify="right")
+    operational.add_column("TTD@100", justify="right")
+
+    comparable = Table(title="Literature-comparable — reported for placement, not for ranking")
+    comparable.add_column("Model")
+    comparable.add_column("ROC-AUC", justify="right")
+    for k in DEFAULT_BUDGETS:
+        comparable.add_column(f"P@{k}", justify="right")
+    for fpr in DEMO_FPR_TARGETS:
+        comparable.add_column(f"Rec@FPR{fpr:g}", justify="right")
+
+    all_rows = []
+    curves = []
+    for name in model_names:
+        evaluation = evaluate_model(
+            scored,
+            score_column(name),
+            name,
+            budgets=DEFAULT_BUDGETS,
+            fpr_targets=DEMO_FPR_TARGETS,
+            # Emitted once, under the table it applies to, rather than seven
+            # times into the middle of the run.
+            warn_roc_auc=False,
+            auc_pr_ci=bootstrap.ci(name),
         )
-        all_rows.append(
-            {
-                "model": model.name,  # type: ignore[attr-defined]
-                "auc_pr": ap,
-                "budgets": curve.budgets,
-                "campaign_recall": curve.campaign_recall,
-            }
+        curves.append(evaluation.curve)
+        all_rows.append(evaluation.to_dict())
+
+        ci = bootstrap.ci(name)
+        ttd = next(t for t in evaluation.time_to_detection if t.budget == 100)
+        operational.add_row(
+            name,
+            f"{evaluation.auc_pr:.4f} [{ci.ci_low:.4f}, {ci.ci_high:.4f}]",
+            *[f"{r:.0%}" for r in evaluation.curve.campaign_recall],
+            (
+                f"{ttd.median_delay_seconds / 60:.0f}min"
+                if ttd.median_delay_seconds is not None
+                else f"none {ttd.n_never_detected}/{ttd.n_total_campaigns}"
+            ),
         )
+        comparable.add_row(
+            name,
+            f"{evaluation.roc_auc:.4f}" if evaluation.roc_auc is not None else "—",
+            *[f"{evaluation.precision_at_k_global[k]:.3f}" for k in DEFAULT_BUDGETS],
+            *[f"{evaluation.recall_at_fixed_fpr.get(fpr, 0.0):.3f}" for fpr in DEMO_FPR_TARGETS],
+        )
+
+    comparisons = bootstrap.comparisons("auc_pr", alpha=0.05)
 
     console.print("[bold]7/7[/] Writing report artifacts...")
     (reports_dir / "tables" / "demo_results.json").write_text(json.dumps(all_rows, indent=2))
+    (reports_dir / "tables" / "pairwise_comparisons.json").write_text(
+        json.dumps([c.to_dict() for c in comparisons], indent=2)
+    )
+    # The figure plots campaign recall over the campaigns present *in the
+    # test split*, so that is the count the subtitle has to carry. Printing
+    # the demo's total (3, one per partition) next to a curve computed over
+    # 1 would misstate the denominator of every point on it.
+    n_test_campaigns = scored.filter(pl.col("campaign_id").is_not_null())["campaign_id"].n_unique()
     figure_path = plot_campaign_recall_vs_budget(
         curves,
         reports_dir / "figures" / CAMPAIGN_RECALL_FIGURE,
         subtitle=(
-            f"Demo sample — {label_report.n_campaigns} campaigns, "
-            f"{test_feat.height:,} test events. Not a LANL result."
+            f"Demo sample — {n_test_campaigns} campaign(s) in the test split of "
+            f"{label_report.n_campaigns} total, {test_feat.height:,} test events. "
+            "Not a LANL result."
         ),
     )
-    console.print(results_table)
+    console.print(operational)
+    console.print(comparable)
+    console.print(f"[yellow]{ROC_AUC_WARNING}[/]")
     console.print(f"Figure: {figure_path}")
+
+    # US-128: the comparison is only allowed to say "outperforms" on the
+    # significant branch, and on three campaigns almost nothing is. Printing
+    # the significant ones plus a count of the rest is the honest summary.
+    console.print("\n[bold]Pairwise AUC-PR comparisons[/] (Holm-Bonferroni, alpha=0.05):")
+    significant = [c for c in comparisons if c.significant]
+    for comparison in significant:
+        console.print(f"  {render_comparison_sentence(comparison)}")
+    n_undecided = len(comparisons) - len(significant)
+    console.print(
+        f"  {len(significant)}/{len(comparisons)} pairs significant"
+        + (
+            f"; the remaining {n_undecided} are indistinguishable at this sample size."
+            if n_undecided
+            else "."
+        )
+    )
+    if bootstrap.n_degenerate_discarded:
+        # Not noise: it says the test split is thin on campaigns, which is
+        # the thing that most limits what any of these intervals can mean.
+        console.print(
+            f"  ({bootstrap.n_degenerate_discarded} resamples drew no positive at all and "
+            f"were redrawn — {n_test_campaigns} campaign(s) in the test split.)"
+        )
 
     elapsed = time.time() - t0
     console.print(f"\n[bold green]Demo pipeline completed in {elapsed:.1f}s.[/]")

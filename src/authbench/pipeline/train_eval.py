@@ -6,6 +6,12 @@ classical) end to end and writes the comparison tables. Deep (M4) and graph
 `authbench train model=ae` (Hydra model group) once `authbench[deep]` /
 `authbench[graph]` are installed, rather than bundling them into the default
 stage that every contributor's machine must be able to run.
+
+Scoring is separated from evaluation on purpose. Every model scores the test
+split first, all scores land on one slim frame, and a single
+campaign-stratified resampling pass then produces both the per-model
+confidence intervals and every pairwise comparison — see
+`evaluate.stats_tests.paired_campaign_bootstrap`.
 """
 
 from __future__ import annotations
@@ -19,10 +25,15 @@ import mlflow
 import polars as pl
 from omegaconf import DictConfig
 
-from authbench.evaluate.budget import compute_budget_curve
-from authbench.evaluate.metrics import auc_pr
+from authbench.evaluate.metrics import ROC_AUC_WARNING, auc_pr
 from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
-from authbench.evaluate.stats_tests import bootstrap_ci
+from authbench.evaluate.stats_tests import paired_campaign_bootstrap
+from authbench.evaluate.summary import (
+    EVAL_COLUMNS,
+    evaluate_model,
+    pairwise_comparisons,
+    score_column,
+)
 from authbench.models.classical import ECODScorer, HBOSScorer, IsolationForestScorer
 from authbench.models.floors import AlwaysFailScorer, RandomScorer
 from authbench.models.rules import RulesScorer
@@ -67,8 +78,42 @@ def build_model_catalog() -> list[object]:
     ]
 
 
+def fit_and_score_all(
+    models: list[object], train: pl.DataFrame, val: pl.DataFrame, test: pl.DataFrame
+) -> pl.DataFrame:
+    """Fit every model and return the slim evaluation frame carrying one
+    score column per model.
+
+    Holding all scores on a single frame is what lets the bootstrap below
+    resample once for every model instead of once per model.
+    """
+    scored = test.select(EVAL_COLUMNS)
+    for model in models:
+        name: str = model.name  # type: ignore[attr-defined]
+        logger.info("Fitting %s", name)
+        model.fit(train.lazy())  # type: ignore[attr-defined]
+        # M1 alone has a second, label-aware fitting step. It runs after
+        # `fit` (which re-derives the thresholds its rules are built on)
+        # and against the validation split only — never train, never test.
+        if isinstance(model, RulesScorer):
+            model.calibrate_weights(val.lazy(), val["is_malicious"], n_trials=200)
+
+        scores = model.score(test.lazy())  # type: ignore[attr-defined]
+        scored = scored.with_columns(pl.Series(score_column(name), scores))
+
+    return scored
+
+
 @hydra.main(version_base=None, config_path=str(CONF_DIR), config_name="config")
 def main(cfg: DictConfig) -> None:
+    stratify_by = str(cfg.eval.bootstrap.stratify_by)
+    if stratify_by != "campaign":
+        raise ValueError(
+            f"eval.bootstrap.stratify_by={stratify_by!r} is not supported. Only 'campaign' is: "
+            "events within a campaign are strongly dependent, and resampling them "
+            "independently would understate every confidence interval in the report."
+        )
+
     processed_dir = Path(cfg.paths.processed_dir) / "features"
     version = feature_store_version(cfg.features)
     version_dir = processed_dir / version
@@ -80,66 +125,104 @@ def main(cfg: DictConfig) -> None:
     mlflow.set_tracking_uri(cfg.mlflow.tracking_uri)
     mlflow.set_experiment(cfg.mlflow.experiment_name)
 
-    models = build_model_catalog()
-    y_test = test["is_malicious"].to_numpy()
-
     tables_dir = Path(cfg.paths.tables_dir)
     tables_dir.mkdir(parents=True, exist_ok=True)
     figures_dir = Path(cfg.paths.figures_dir)
     figures_dir.mkdir(parents=True, exist_ok=True)
 
+    budgets = list(cfg.eval.budgets)
+    fpr_targets = list(cfg.eval.fpr_targets)
+    report_roc_auc = bool(cfg.eval.roc_auc.report)
+    if report_roc_auc and bool(cfg.eval.roc_auc.warn):
+        logger.warning("%s", str(cfg.eval.roc_auc.warning_message).strip() or ROC_AUC_WARNING)
+
+    models = build_model_catalog()
+    model_names: list[str] = [m.name for m in models]  # type: ignore[attr-defined]
+    scored = fit_and_score_all(models, train, val, test)
+
+    logger.info(
+        "Campaign-stratified bootstrap: %d resamples x %d models over %d test events",
+        cfg.eval.bootstrap.n_resamples,
+        len(models),
+        scored.height,
+    )
+    bootstrap = paired_campaign_bootstrap(
+        scored,
+        lambda frame, col: auc_pr(frame["is_malicious"].to_numpy(), frame[col].to_numpy()),
+        {name: score_column(name) for name in model_names},
+        n_resamples=int(cfg.eval.bootstrap.n_resamples),
+        confidence=float(cfg.eval.bootstrap.confidence),
+        seed=int(cfg.eval.bootstrap.seed),
+    )
+
     summary_rows = []
     curves = []
-    for model in models:
-        with mlflow.start_run(run_name=model.name):  # type: ignore[attr-defined]
+    for name in model_names:
+        evaluation = evaluate_model(
+            scored,
+            score_column(name),
+            name,
+            budgets=budgets,
+            fpr_targets=fpr_targets,
+            report_roc_auc=report_roc_auc,
+            # The caveat is logged once above, from the config's own text —
+            # repeating it per model would bury it.
+            warn_roc_auc=False,
+            auc_pr_ci=bootstrap.ci(name),
+        )
+        curves.append(evaluation.curve)
+        summary_rows.append(evaluation.to_dict())
+
+        with mlflow.start_run(run_name=name):
             mlflow.log_param("feature_store_version", version)
             mlflow.log_param("seed", cfg.seed)
-
-            model.fit(train.lazy())  # type: ignore[attr-defined]
-            # M1 alone has a second, label-aware fitting step. It runs after
-            # `fit` (which re-derives the thresholds its rules are built on)
-            # and against the validation split only — never train, never test.
-            if isinstance(model, RulesScorer):
-                model.calibrate_weights(val.lazy(), val["is_malicious"], n_trials=200)
-
-            scores = model.score(test.lazy())  # type: ignore[attr-defined]
-
-            ap = auc_pr(y_test, scores.to_numpy())
-            scored = test.with_columns(pl.Series("_score", scores))
-            curve = compute_budget_curve(
-                scored,
-                "_score",
-                model.name,  # type: ignore[attr-defined]
-                budgets=list(cfg.eval.budgets),
-            )
-            curves.append(curve)
-
-            ci = bootstrap_ci(
-                scored,
-                lambda f: auc_pr(f["is_malicious"].to_numpy(), f["_score"].to_numpy()),
-                n_resamples=cfg.eval.bootstrap.n_resamples,
-                confidence=cfg.eval.bootstrap.confidence,
-                seed=cfg.eval.bootstrap.seed,
-            )
-
-            mlflow.log_metric("auc_pr", ap)
-            for k, recall in zip(curve.budgets, curve.campaign_recall, strict=True):
+            mlflow.log_metric("auc_pr", evaluation.auc_pr)
+            assert evaluation.auc_pr_ci is not None
+            mlflow.log_metric("auc_pr_ci_low", evaluation.auc_pr_ci.ci_low)
+            mlflow.log_metric("auc_pr_ci_high", evaluation.auc_pr_ci.ci_high)
+            if evaluation.roc_auc is not None:
+                mlflow.log_metric("roc_auc", evaluation.roc_auc)
+            for k, recall in zip(
+                evaluation.curve.budgets, evaluation.curve.campaign_recall, strict=True
+            ):
                 mlflow.log_metric(f"campaign_recall_at_{k}", recall)
+            for ttd in evaluation.time_to_detection:
+                mlflow.log_metric(f"campaigns_never_detected_at_{ttd.budget}", ttd.n_never_detected)
+                if ttd.median_delay_seconds is not None:
+                    mlflow.log_metric(
+                        f"median_ttd_seconds_at_{ttd.budget}", ttd.median_delay_seconds
+                    )
 
-            summary_rows.append(
-                {
-                    "model": model.name,  # type: ignore[attr-defined]
-                    "auc_pr": ap,
-                    "auc_pr_ci_low": ci.ci_low,
-                    "auc_pr_ci_high": ci.ci_high,
-                    "budgets": curve.budgets,
-                    "campaign_recall": curve.campaign_recall,
-                    "event_recall": curve.event_recall,
-                }
-            )
-            logger.info("%s: AUC-PR=%.4f [%.4f, %.4f]", model.name, ap, ci.ci_low, ci.ci_high)  # type: ignore[attr-defined]
+        logger.info(
+            "%s: AUC-PR=%.4f [%.4f, %.4f]",
+            name,
+            evaluation.auc_pr,
+            bootstrap.ci(name).ci_low,
+            bootstrap.ci(name).ci_high,
+        )
 
     (tables_dir / "metrics_summary.json").write_text(json.dumps(summary_rows, indent=2))
+
+    comparisons = pairwise_comparisons(
+        scored,
+        model_names,
+        bootstrap,
+        method=str(cfg.eval.pairwise_test.method),
+        alpha=float(cfg.eval.pairwise_test.alpha),
+        n_permutations=int(cfg.eval.pairwise_test.n_permutations),
+        seed=int(cfg.eval.pairwise_test.seed),
+    )
+    (tables_dir / "pairwise_comparisons.json").write_text(
+        json.dumps([c.to_dict() for c in comparisons], indent=2)
+    )
+    n_significant = sum(1 for c in comparisons if c.significant)
+    logger.info(
+        "%d/%d pairwise AUC-PR differences significant at alpha=%s after %s correction.",
+        n_significant,
+        len(comparisons),
+        cfg.eval.pairwise_test.alpha,
+        cfg.eval.pairwise_test.correction,
+    )
 
     n_campaigns = test.filter(pl.col("campaign_id").is_not_null())["campaign_id"].n_unique()
     figure_path = plot_campaign_recall_vs_budget(

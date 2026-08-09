@@ -27,7 +27,7 @@ complete red-team lateral-movement campaigns.
 
 ```bash
 make install     # uv venv + uv pip install -e ".[classical,dev]"
-make demo        # ~20 s
+make demo        # ~40 s
 ```
 
 Or without `make`:
@@ -43,7 +43,8 @@ M0/M1/M2/M3 → evaluation, and writes to `reports/`:
 
 | Artifact | What it is |
 |---|---|
-| `reports/tables/demo_results.json` | AUC-PR and campaign recall per model |
+| `reports/tables/demo_results.json` | every metric, per model |
+| `reports/tables/pairwise_comparisons.json` | pairwise AUC-PR tests, Holm-Bonferroni corrected |
 | `reports/tables/campaign_summary.csv` | one row per red-team campaign |
 | `reports/figures/campaign_recall_vs_budget.png` | the headline figure |
 | `reports/data_quality.json` | null rates, cardinalities, counted drops |
@@ -119,6 +120,29 @@ numbers better. `tests/unit/test_frequency_encoding.py` holds that line.
 Full design rationale: [`AuthBench_Specification.md`](AuthBench_Specification.md).
 Implemented protocol: [`docs/methodology.md`](docs/methodology.md).
 
+## Saying "outperforms" only when it is earned
+
+Confidence intervals and pairwise tests come from **one** campaign-stratified
+resampling pass shared by every model, so the intervals and the comparisons
+sit on the same sampling distribution and each difference is paired.
+
+Two floors sit under this and both produce results that look exactly like a
+genuine "no difference" finding while having nothing to do with the models:
+
+- **Degenerate resamples.** A ranking metric over zero positives is
+  undefined, but scikit-learn returns 0.0 — so on such a resample every model
+  ties, and those ties land in both tails of a two-sided test. With one
+  campaign in the test split, ~37% of resamples are degenerate and every
+  p-value is floored near 0.74. They are discarded and redrawn;
+  `n_degenerate_discarded` is reported, because a high count is itself a
+  finding about the split.
+- **Bootstrap resolution vs. Holm.** A percentile bootstrap cannot report a
+  p-value below `2/(R+1)`, and Holm's strictest threshold is `alpha/n_pairs`.
+  For the 8-model catalog that needs `R ≥ 1119`; the config's original 1000
+  could never have produced a single significant result.
+  `stats_tests.minimum_resamples_for_family` computes the bound and warns
+  when it is not met.
+
 ## State of the project
 
 Being explicit about this is part of the point of the benchmark.
@@ -130,14 +154,18 @@ Being explicit about this is part of the point of the benchmark.
 - Models M0a random, M0b always-fail, M1 rules (7 rules, weights calibrated
   on validation), M2a pair-rarity, M2b PCA reconstruction, M3a Isolation
   Forest, M3b ECOD/HBOS.
-- Evaluation: AUC-PR, event and campaign recall at daily alert budgets,
-  campaign-stratified bootstrap CIs, the headline figure.
+- Evaluation, in two registers the report keeps separate:
+  - *operational* — event and campaign recall at daily alert budgets,
+    time-to-detection per campaign, AUC-PR with campaign-stratified CIs;
+  - *literature-comparable* — ROC-AUC, global precision@k, recall at a fixed
+    FPR, each reported for placement against published numbers, not ranking.
+- Pairwise AUC-PR comparisons across the whole model family, Holm-Bonferroni
+  corrected. The report generator can only emit the word "outperforms" on the
+  significant branch (`render_comparison_sentence`).
 
 **Implemented and unit-tested, but not yet wired into the reported tables**
 
-- Time-to-detection (`evaluate.campaign`), pairwise permutation tests with
-  Holm-Bonferroni (`evaluate.stats_tests.compare_models`), ROC-AUC,
-  precision@k, recall at fixed FPR, SHAP alert cards (`explain/`).
+- SHAP alert cards (`explain/`) — needs the `explain` extra.
 - F5 graph / F6 sequence features and the M4 deep / M5a graph models — these
   need the `deep` / `graph` extras and are not part of the default DVC stage.
 

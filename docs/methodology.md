@@ -70,21 +70,57 @@ Both are to be reported; most published work silently uses R2 only, which inflat
 
 ## Evaluation (US-125 to US-128)
 
-Computed and written into `reports/tables/` by the `train_eval` stage and by `authbench demo`:
+`authbench.evaluate.summary.evaluate_model` assembles every reported metric, and both the
+`train_eval` stage and `authbench demo` go through it — so the two cannot drift into
+reporting different things. Metrics stay in two registers, kept under separate keys in
+`metrics_summary.json` / `demo_results.json`:
 
-- **AUC-PR**, the headline ranking metric.
-- **Recall at alert budget** (`authbench.evaluate.budget`) — top-k scored events **per day**,
-  never top-k over the whole period. Reported per event and per campaign.
-- **Confidence intervals** (`authbench.evaluate.stats_tests.bootstrap_ci`) resample at the
-  **campaign** level (each campaign is one block), not the event level.
+**Operational** — what a SOC at this budget actually gets:
 
-Implemented and unit-tested, but not yet called by either pipeline — the functions are
-usable from a notebook, they simply do not appear in the generated tables:
+- **AUC-PR**, the headline ranking metric, with a campaign-stratified CI.
+- **Recall at alert budget** (`evaluate.budget`) — top-k scored events **per day**, never
+  top-k over the whole period. Reported per event and per campaign.
+- **Time-to-detection** (`evaluate.campaign`) — campaigns never detected at a given budget
+  are counted in `n_never_detected`, never dropped from the denominator and never folded in
+  as a delay of zero.
 
-- **ROC-AUC** (`evaluate.metrics.roc_auc`), which always emits `ROC_AUC_WARNING`;
-  **precision@k**; **recall at fixed FPR**.
-- **Time-to-detection** (`authbench.evaluate.campaign`) — campaigns never detected at a given
-  budget are counted in `n_never_detected`, never dropped from the denominator.
-- **Pairwise comparisons** (`evaluate.stats_tests.compare_models`) — paired permutation test
-  with Holm-Bonferroni correction; `render_comparison_sentence` can only emit "outperforms"
-  on the `significant` branch.
+**Literature-comparable** — reported so results can be placed next to published ones, never
+to rank models:
+
+- **ROC-AUC** (`evaluate.metrics.roc_auc`), which always emits `ROC_AUC_WARNING`.
+- **Global precision@k** — the top-k over the whole period, as the literature reports it,
+  which is *not* the per-day operating point above.
+- **Recall at fixed FPR**.
+
+The gap between the registers is the project's whole thesis, and the demo sample already
+shows it: M2b reaches ROC-AUC 0.98 while catching nothing at a budget of 10 or 50 alerts/day.
+
+## Uncertainty and pairwise comparisons (US-128)
+
+`stats_tests.paired_campaign_bootstrap` runs **one** campaign-stratified resampling pass and
+evaluates every model on each resample. That single pass yields both the per-model CIs and
+every pairwise difference, which means the intervals and the comparisons come from the same
+sampling distribution, each difference is paired (campaign-composition noise cancels between
+two models rather than being counted twice), and the cost is `O(n_resamples x n_models)`
+instead of `O(n_permutations x n_pairs)`.
+
+`eval.bootstrap.stratify_by` accepts only `campaign`; any other value is rejected rather than
+silently ignored.
+
+Two artifacts of the method can manufacture a "no significant difference" result that is
+indistinguishable from a real one. Both are handled explicitly:
+
+| Floor | Cause | Handling |
+|---|---|---|
+| Degenerate resamples | A ranking metric over zero positives is undefined, but scikit-learn returns 0.0, so every model ties — and ties count in both tails. With 1 campaign in the test split ~37% of resamples are degenerate, flooring p near 0.74. | Discarded and redrawn; `n_degenerate_discarded` reported. A frame with no positives at all raises. |
+| Bootstrap resolution vs. Holm | A percentile bootstrap cannot report p below `2/(R+1)`; Holm's strictest threshold is `alpha/n_pairs`. The 8-model catalog needs `R >= 1119`, so the original `n_resamples: 1000` could never yield a significant result. | `minimum_resamples_for_family` computes the bound; `comparisons()` warns when it is not met. `conf/eval/default.yaml` now sets 2000. |
+
+`eval.pairwise_test.method` also accepts `permutation` — the exact per-event paired test
+(`compare_models`). It assumes the two models' scores are exchangeable event by event, which
+is precisely the independence campaign structure violates, and it costs
+`n_permutations x n_pairs` metric evaluations. Kept available for small splits; not the
+default.
+
+`render_comparison_sentence` can only emit "outperforms" on the `significant` branch, and
+reflects the reported interval through zero whenever it swaps the pair into
+`better - worse` order.
