@@ -22,6 +22,13 @@ from authbench.features.causal import causal_first_occurrence, sort_for_causal
 from authbench.models.base import BaseAnomalyScorer
 
 
+class NoPositivesInValidationError(ValueError):
+    """Raised when M1's weight calibration is asked to optimize AUC-PR against
+    a validation period containing no malicious events — a degenerate objective
+    that would otherwise return arbitrary weights while looking successful.
+    """
+
+
 @dataclass(frozen=True)
 class RuleSpec:
     id: str
@@ -150,7 +157,17 @@ class RulesScorer(BaseAnomalyScorer):
             ]
         )
 
-        return base.join(new_auth_type, on="event_id").join(chain, on="event_id")
+        # `maintain_order="left"` is load-bearing, not cosmetic. R6 and R7 are
+        # computed on frames re-sorted by (group key, time), and every caller
+        # attaches `score()`'s output back onto its input frame *by position*
+        # (`frame.with_columns(pl.Series("_score", scores))`). A join that
+        # reordered rows would silently attribute each event's score to a
+        # different event — the results table would still look entirely
+        # plausible. Polars does not guarantee row order on a join unless it
+        # is asked to, so it is asked to.
+        return base.join(new_auth_type, on="event_id", how="left", maintain_order="left").join(
+            chain, on="event_id", how="left", maintain_order="left"
+        )
 
     def rule_scores(self, features: pl.LazyFrame) -> pl.DataFrame:
         """Rank-normalized per-rule scores — published as its own table
@@ -174,6 +191,13 @@ class RulesScorer(BaseAnomalyScorer):
         """Random search over the weight simplex, maximizing AUC-PR on the
         validation period only (US-118). The seed is stored so the search is
         reproducible bit-for-bit (NFR-02).
+
+        Raises `NoPositivesInValidationError` if the validation period holds no
+        malicious events: `average_precision_score` returns 0.0 for every
+        candidate in that case, so the search would keep its first arbitrary
+        draw and report a "calibrated" M1 that was never calibrated at all.
+        A validation window with no positives is a split/data-generation bug,
+        and it must not be able to hide behind a plausible-looking result.
         """
         from sklearn.metrics import average_precision_score
 
@@ -181,6 +205,16 @@ class RulesScorer(BaseAnomalyScorer):
         scores_df = self.rule_scores(val_features)
         matrix = scores_df.select(rule_ids).to_numpy()
         y = val_labels.to_numpy()
+
+        n_positives = int(np.count_nonzero(y))
+        if n_positives == 0:
+            raise NoPositivesInValidationError(
+                f"M1 weight calibration needs malicious events in the validation period, "
+                f"but all {y.size} validation labels are negative. AUC-PR is identically 0 "
+                "for every weight vector, so the random search would silently return its "
+                "first arbitrary draw. Check the val_days window of your split config "
+                "against the red-team event timestamps."
+            )
 
         rng = np.random.default_rng(seed)
         best_weights, best_ap = None, -1.0

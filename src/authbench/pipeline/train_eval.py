@@ -21,6 +21,7 @@ from omegaconf import DictConfig
 
 from authbench.evaluate.budget import compute_budget_curve
 from authbench.evaluate.metrics import auc_pr
+from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
 from authbench.evaluate.stats_tests import bootstrap_ci
 from authbench.models.classical import ECODScorer, HBOSScorer, IsolationForestScorer
 from authbench.models.floors import AlwaysFailScorer, RandomScorer
@@ -48,11 +49,12 @@ NUMERIC_FEATURE_COLUMNS = [
 ]
 
 
-def build_model_catalog(train: pl.DataFrame, val: pl.DataFrame) -> list[object]:
-    rules = RulesScorer()
-    rules.fit(train.lazy())
-    rules.calibrate_weights(val.lazy(), val["is_malicious"], n_trials=200)
-
+def build_model_catalog() -> list[object]:
+    """The catalog, *unfitted*. `main` is the single place that fits — an
+    earlier version fitted M1 here and then refit every model in the loop,
+    which at LANL scale meant paying for M1's per-user aggregation twice and
+    left the calibrated weights one stray `fit()` away from being discarded.
+    """
     return [
         RandomScorer(),
         AlwaysFailScorer(),
@@ -61,7 +63,7 @@ def build_model_catalog(train: pl.DataFrame, val: pl.DataFrame) -> list[object]:
         IsolationForestScorer(NUMERIC_FEATURE_COLUMNS),
         ECODScorer(NUMERIC_FEATURE_COLUMNS),
         HBOSScorer(NUMERIC_FEATURE_COLUMNS),
-        rules,
+        RulesScorer(),
     ]
 
 
@@ -78,19 +80,28 @@ def main(cfg: DictConfig) -> None:
     mlflow.set_tracking_uri(cfg.mlflow.tracking_uri)
     mlflow.set_experiment(cfg.mlflow.experiment_name)
 
-    models = build_model_catalog(train, val)
+    models = build_model_catalog()
     y_test = test["is_malicious"].to_numpy()
 
     tables_dir = Path(cfg.paths.tables_dir)
     tables_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir = Path(cfg.paths.figures_dir)
+    figures_dir.mkdir(parents=True, exist_ok=True)
 
     summary_rows = []
+    curves = []
     for model in models:
         with mlflow.start_run(run_name=model.name):  # type: ignore[attr-defined]
             mlflow.log_param("feature_store_version", version)
             mlflow.log_param("seed", cfg.seed)
 
             model.fit(train.lazy())  # type: ignore[attr-defined]
+            # M1 alone has a second, label-aware fitting step. It runs after
+            # `fit` (which re-derives the thresholds its rules are built on)
+            # and against the validation split only — never train, never test.
+            if isinstance(model, RulesScorer):
+                model.calibrate_weights(val.lazy(), val["is_malicious"], n_trials=200)
+
             scores = model.score(test.lazy())  # type: ignore[attr-defined]
 
             ap = auc_pr(y_test, scores.to_numpy())
@@ -101,6 +112,7 @@ def main(cfg: DictConfig) -> None:
                 model.name,  # type: ignore[attr-defined]
                 budgets=list(cfg.eval.budgets),
             )
+            curves.append(curve)
 
             ci = bootstrap_ci(
                 scored,
@@ -128,6 +140,16 @@ def main(cfg: DictConfig) -> None:
             logger.info("%s: AUC-PR=%.4f [%.4f, %.4f]", model.name, ap, ci.ci_low, ci.ci_high)  # type: ignore[attr-defined]
 
     (tables_dir / "metrics_summary.json").write_text(json.dumps(summary_rows, indent=2))
+
+    n_campaigns = test.filter(pl.col("campaign_id").is_not_null())["campaign_id"].n_unique()
+    figure_path = plot_campaign_recall_vs_budget(
+        curves,
+        figures_dir / CAMPAIGN_RECALL_FIGURE,
+        subtitle=(
+            f"{cfg.dataset.name} test split — {n_campaigns} campaigns, {test.height:,} events."
+        ),
+    )
+    logger.info("Wrote headline figure to %s", figure_path)
 
 
 if __name__ == "__main__":

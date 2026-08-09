@@ -11,7 +11,8 @@ meaningful to demo:
   something real to key on;
 - machine accounts (`$` suffix) with their own distinct pattern;
 - realistic null rates for `auth_type` (~55%) and `logon_type` (~14%);
-- at least two complete red-team lateral-movement campaigns (A→B→C chains),
+- three complete red-team lateral-movement campaigns (A→B→C chains), one in
+  each of the train/val/test partitions of `conf/split/demo_temporal.yaml`,
   with every campaign event's quadruplet duplicated verbatim into the
   redteam file, and the full history of the users/machines involved
   preserved — a naive random event sample would destroy exactly the
@@ -107,7 +108,11 @@ def generate(
                 hour = int(np.clip(rng.normal(preferred_hour, 1.5), 0, 23)) % 24
                 second_of_day = hour * 3600 + int(rng.integers(0, 3600))
                 time = day_start + second_of_day
-                dst = rng.choice(user_home_computers[u]) if rng.random() > 0.05 else rng.choice(computers)
+                dst = (
+                    rng.choice(user_home_computers[u])
+                    if rng.random() > 0.05
+                    else rng.choice(computers)
+                )
                 emit(
                     time,
                     u,
@@ -140,14 +145,31 @@ def generate(
                     True,
                 )
 
-    # --- Red-team campaigns: two complete lateral-movement chains -------------
-    # One lands early (inside the training partition), one lands in the last
-    # two days (inside the test partition of conf/split/demo_temporal.yaml) —
-    # a demo whose test split has zero positives would silently report an
-    # AUC-PR of 0 for every model and look "broken" for the wrong reason.
+    # --- Red-team campaigns: three complete lateral-movement chains -----------
+    # One campaign per partition of conf/split/demo_temporal.yaml (train
+    # [0, 7], val [8, 10], test [11, 13] at the default n_days=14). Every
+    # partition needs its own positives, for a different reason each time:
+    #
+    #   train — so the semi-supervised regime (r2) has anything to learn from;
+    #   val   — M1's weight calibration maximizes AUC-PR on validation only.
+    #           With zero positives there, average_precision_score returns
+    #           0.0 for *every* trial, so the random search silently keeps its
+    #           first arbitrary draw and "calibration" becomes a no-op;
+    #   test  — otherwise every model reports AUC-PR 0 and the demo looks
+    #           broken for the wrong reason.
+    #
+    # The day offsets are expressed as fractions of n_days so that a demo
+    # regenerated with a different --n-days keeps landing one campaign in
+    # each partition.
     campaign_specs = [
         {"user": users[0], "day": max(2, n_days // 4), "chain": computers[:4], "start_hour": 3},
-        {"user": users[1], "day": max(3, n_days - 2), "chain": computers[4:8], "start_hour": 2},
+        {
+            "user": users[1],
+            "day": max(3, int(n_days * 0.64)),
+            "chain": computers[4:8],
+            "start_hour": 5,
+        },
+        {"user": users[2], "day": max(4, n_days - 2), "chain": computers[8:12], "start_hour": 2},
     ]
 
     for spec in campaign_specs:
@@ -185,7 +207,9 @@ def main() -> None:
     parser.add_argument("--n-computers", type=int, default=100)
     parser.add_argument("--events-per-user-per-day", type=float, default=6.0)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--gzip", action="store_true", help="Write .gz to mirror LANL's own format.")
+    parser.add_argument(
+        "--gzip", action="store_true", help="Write .gz to mirror LANL's own format."
+    )
     args = parser.parse_args()
 
     auth_lines, redteam_lines = generate(

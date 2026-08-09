@@ -17,7 +17,7 @@ import hydra
 import polars as pl
 from omegaconf import DictConfig, OmegaConf
 
-from authbench.features.event import compute_f1
+from authbench.features.event import FrequencyEncoding, compute_f1, fit_frequency_encoding
 from authbench.features.history import compute_f2
 from authbench.features.novelty import compute_f3
 from authbench.features.temporal import NightWindow, calibrate_night_window, compute_f4
@@ -51,10 +51,13 @@ def feature_store_version(features_cfg: DictConfig) -> str:
 
 
 def featurize(
-    frame: pl.LazyFrame, features_cfg: DictConfig, night_window: NightWindow
+    frame: pl.LazyFrame,
+    features_cfg: DictConfig,
+    night_window: NightWindow,
+    frequency_encoding: FrequencyEncoding,
 ) -> pl.LazyFrame:
     if features_cfg.f1_event.enabled:
-        frame = compute_f1(frame)
+        frame = compute_f1(frame, frequency_encoding)
     if features_cfg.f2_history.enabled:
         frame = compute_f2(frame, windows_hours=list(features_cfg.f2_history.windows_hours))
     if features_cfg.f3_novelty.enabled:
@@ -97,7 +100,11 @@ def main(cfg: DictConfig) -> None:
     verify_temporal_order(train, val, test)
     logger.info("Temporal split verified: no leakage between train/val/test.")
 
+    # Both of these are *fitted* quantities, and both are fitted on the
+    # training split alone — a night window or a category frequency taken
+    # from the full period is a leak that no downstream check would catch.
     night_window = calibrate_night_window(train)
+    frequency_encoding = fit_frequency_encoding(train)
 
     version = feature_store_version(cfg.features)
     version_dir = processed_dir / version
@@ -107,7 +114,7 @@ def main(cfg: DictConfig) -> None:
     )
 
     for split_name, split_frame in [("train", train), ("val", val), ("test", test)]:
-        out = featurize(split_frame, cfg.features, night_window)
+        out = featurize(split_frame, cfg.features, night_window, frequency_encoding)
         out_path = version_dir / f"{split_name}.parquet"
         out.sink_parquet(out_path, compression="zstd")
         logger.info("Wrote %s features to %s", split_name, out_path)

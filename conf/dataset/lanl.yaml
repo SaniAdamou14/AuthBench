@@ -2,12 +2,19 @@
 # https://csr.lanl.gov/data/cyber1/
 name: lanl
 
-urls:
-  auth: https://csr.lanl.gov/data/cyber1/auth.txt.gz
-  redteam: https://csr.lanl.gov/data/cyber1/redteam.txt.gz
+# The site gates the raw files behind a click-through data-use form (email +
+# usage statement) rather than serving them at a stable static URL — see
+# `ingest.download.fetch_lanl_fence_token`. `email`/`usage` are supplied via
+# CLI flags or environment, never committed here.
+fence:
+  filenames:
+    auth: auth.txt.gz
+    redteam: redteam.txt.gz
 
-# Recorded once from the vendor's published checksums / first successful download.
-# A mismatch aborts the pipeline (US-101) — fill in after the first verified download.
+# Recorded from the first verified download's own SHA-256 (LANL does not
+# publish per-file checksums) — a mismatch on any later run aborts the
+# pipeline (US-101), catching a corrupted or silently-changed file. Filled in
+# by `authbench data download` after the first successful, size-verified run.
 sha256:
   auth: null
   redteam: null

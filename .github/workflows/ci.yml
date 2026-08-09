@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
 
 jobs:
@@ -22,11 +22,14 @@ jobs:
           uv venv --python 3.11 .venv
           uv pip install -e ".[classical,dev]" --python .venv
 
+      # scripts/ is in scope: generate_demo_data.py produces the sample the
+      # whole demo pipeline and two test modules run against, so it is
+      # project code, not a scratch file.
       - name: Lint (ruff)
-        run: .venv/bin/python -m ruff check src tests
+        run: .venv/bin/python -m ruff check src tests scripts
 
       - name: Format check (ruff)
-        run: .venv/bin/python -m ruff format --check src tests
+        run: .venv/bin/python -m ruff format --check src tests scripts
 
       - name: Type check (mypy)
         run: .venv/bin/python -m mypy src

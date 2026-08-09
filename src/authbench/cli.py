@@ -18,11 +18,12 @@ from rich.table import Table
 
 from authbench.evaluate.budget import DEFAULT_BUDGETS, compute_budget_curve
 from authbench.evaluate.metrics import auc_pr
-from authbench.features.event import compute_f1
+from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
+from authbench.features.event import compute_f1, fit_frequency_encoding
 from authbench.features.history import compute_f2
 from authbench.features.novelty import compute_f3
 from authbench.features.temporal import calibrate_night_window, compute_f4
-from authbench.ingest.download import download_with_resume
+from authbench.ingest.download import download_with_resume, fetch_lanl_fence_token, lanl_file_url
 from authbench.ingest.to_parquet import to_parquet_partitioned, verify_row_count
 from authbench.label.redteam_join import (
     attach_campaign_id,
@@ -84,18 +85,53 @@ F1_TO_F4_MODEL_FEATURES = [
 def data_download(
     dataset: str = typer.Option("lanl", help="Dataset name (currently: lanl)."),
     out_dir: Path = typer.Option(Path("data/raw"), help="Destination directory."),
+    email: str | None = typer.Option(
+        None,
+        envvar="AUTHBENCH_LANL_EMAIL",
+        help="Email for LANL's data-use form (csr.lanl.gov). Also read from AUTHBENCH_LANL_EMAIL.",
+    ),
+    usage: str = typer.Option(
+        "Academic research: anomaly detection benchmark on authentication logs (AuthBench project).",
+        envvar="AUTHBENCH_LANL_USAGE",
+        help="Usage statement for LANL's data-use form.",
+    ),
 ) -> None:
-    """US-101: resumable, checksum-verified download of the raw LANL files."""
+    """US-101: resumable, checksum-verified download of the raw LANL files.
+
+    LANL gates the raw files behind a click-through data-use form rather than
+    a stable static URL (`ingest.download.fetch_lanl_fence_token`); `email`
+    and `usage` are submitted to that form, never stored in `conf/`.
+
+    `email` is an env-var-backed option rather than a required flag so that
+    `dvc repro` and CI can run the stage unattended without an address being
+    committed into `dvc.yaml`.
+    """
     from omegaconf import OmegaConf
 
+    if not email:
+        raise typer.BadParameter(
+            "LANL's data-use form requires an email address. Pass --email, or set "
+            "AUTHBENCH_LANL_EMAIL in your environment (what `dvc repro` expects).",
+            param_hint="--email",
+        )
+
     cfg = OmegaConf.load(f"conf/dataset/{dataset}.yaml")
-    for key, url in cfg.urls.items():
-        dest = out_dir / Path(url).name
+    token = fetch_lanl_fence_token(email, usage)
+
+    for key, filename in cfg.fence.filenames.items():
+        url = lanl_file_url(token, filename)
+        dest = out_dir / filename
         expected = cfg.sha256.get(key)
         result = download_with_resume(url, dest, expected)
         console.print(
-            f"[green]{key}[/]: {dest} (skipped={result.skipped}, resumed={result.resumed})"
+            f"[green]{key}[/]: {dest} (skipped={result.skipped}, resumed={result.resumed}, "
+            f"sha256={result.sha256})"
         )
+        if expected is None:
+            console.print(
+                f"  [yellow]No checksum recorded yet for '{key}' — add sha256.{key}: "
+                f"{result.sha256} to conf/dataset/{dataset}.yaml to verify future runs.[/]"
+            )
 
 
 @data_app.command("to-parquet")
@@ -195,10 +231,15 @@ def demo(
     console.print("  [green]No temporal leakage detected.[/]")
 
     console.print("[bold]4/7[/] Computing F1-F4 features...")
+    # Everything fitted is fitted on `train` and only on `train` — the night
+    # window and the F1 category frequencies alike. Refitting either one per
+    # split is a leak, and it also makes the same category mean a different
+    # number in train and in test.
     night_window = calibrate_night_window(train)
+    frequency_encoding = fit_frequency_encoding(train)
 
     def featurize(frame: pl.LazyFrame) -> pl.LazyFrame:
-        frame = compute_f1(frame)
+        frame = compute_f1(frame, frequency_encoding)
         frame = compute_f2(frame)
         frame = compute_f3(frame)
         frame = compute_f4(frame, night_window)
@@ -216,12 +257,8 @@ def demo(
         PCAReconstructionScorer(F1_TO_F4_MODEL_FEATURES),
         IsolationForestScorer(F1_TO_F4_MODEL_FEATURES),
         ECODScorer(F1_TO_F4_MODEL_FEATURES),
+        RulesScorer(),
     ]
-
-    rules = RulesScorer()
-    rules.fit(train_feat.lazy())
-    rules.calibrate_weights(val_feat.lazy(), val_feat["is_malicious"], n_trials=50)
-    models.append(rules)
 
     console.print("[bold]6/7[/] Scoring and evaluating on the test split...")
     y_test = test_feat["is_malicious"].to_numpy()
@@ -233,12 +270,20 @@ def demo(
         results_table.add_column(f"Campaign recall@{k}")
 
     all_rows = []
+    curves = []
     for model in models:
         model.fit(train_feat.lazy())  # type: ignore[attr-defined]
+        # M1 alone has a second, label-aware fitting step, and it must run
+        # after `fit` (which re-derives the per-user R2 thresholds the rule
+        # scores are built from) and against the validation split only.
+        if isinstance(model, RulesScorer):
+            model.calibrate_weights(val_feat.lazy(), val_feat["is_malicious"], n_trials=50)
+
         scores = model.score(test_feat.lazy())  # type: ignore[attr-defined]
         ap = auc_pr(y_test, scores.to_numpy())
         scored_frame = test_feat.with_columns(pl.Series("_score", scores))
         curve = compute_budget_curve(scored_frame, "_score", model.name)  # type: ignore[attr-defined]
+        curves.append(curve)
 
         results_table.add_row(
             model.name,  # type: ignore[attr-defined]
@@ -256,7 +301,16 @@ def demo(
 
     console.print("[bold]7/7[/] Writing report artifacts...")
     (reports_dir / "tables" / "demo_results.json").write_text(json.dumps(all_rows, indent=2))
+    figure_path = plot_campaign_recall_vs_budget(
+        curves,
+        reports_dir / "figures" / CAMPAIGN_RECALL_FIGURE,
+        subtitle=(
+            f"Demo sample — {label_report.n_campaigns} campaigns, "
+            f"{test_feat.height:,} test events. Not a LANL result."
+        ),
+    )
     console.print(results_table)
+    console.print(f"Figure: {figure_path}")
 
     elapsed = time.time() - t0
     console.print(f"\n[bold green]Demo pipeline completed in {elapsed:.1f}s.[/]")

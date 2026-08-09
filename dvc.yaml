@@ -1,4 +1,7 @@
 stages:
+  # Requires AUTHBENCH_LANL_EMAIL in the environment: LANL serves the raw
+  # files behind a click-through data-use form, not a static URL, and an
+  # address does not belong in a committed pipeline definition.
   download:
     cmd: authbench data download --dataset ${dataset}
     params:
@@ -21,6 +24,10 @@ stages:
     cmd: python -m authbench.pipeline.build_features
     deps:
       - data/interim/auth
+      # The labels come straight from the raw redteam.txt.gz, not from the
+      # Parquet dataset — without this dep a re-downloaded redteam file would
+      # never re-trigger labeling.
+      - data/raw
       - src/authbench/label
       - src/authbench/split
       - src/authbench/features
@@ -46,11 +53,6 @@ stages:
       - reports/tables/metrics_summary.json:
           cache: false
 
-  report:
-    cmd: latexmk -pdf -cd reports/paper/main.tex
-    deps:
-      - reports/tables
-      - reports/figures
-      - reports/paper/main.tex
-    outs:
-      - reports/paper/main.pdf
+# There is deliberately no `report` (latexmk) stage yet: reports/paper/ does
+# not exist, and a stage depending on a missing main.tex breaks `dvc repro`
+# for everyone at the last step. Add it back together with the paper source.

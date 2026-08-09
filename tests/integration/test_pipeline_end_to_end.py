@@ -13,7 +13,7 @@ import polars as pl
 
 from authbench.evaluate.budget import compute_budget_curve
 from authbench.evaluate.metrics import auc_pr
-from authbench.features.event import compute_f1
+from authbench.features.event import compute_f1, fit_frequency_encoding
 from authbench.features.history import compute_f2
 from authbench.features.novelty import compute_f3
 from authbench.features.temporal import calibrate_night_window, compute_f4
@@ -75,9 +75,10 @@ def test_full_pipeline_runs_end_to_end_on_small_sample(tmp_path: Path) -> None:
     verify_temporal_order(train, val, test)
 
     night_window = calibrate_night_window(train)
+    frequency_encoding = fit_frequency_encoding(train)
 
     def featurize(frame: pl.LazyFrame) -> pl.LazyFrame:
-        frame = compute_f1(frame)
+        frame = compute_f1(frame, frequency_encoding)
         frame = compute_f2(frame, entities=["src_user"], windows_hours=[1, 24])
         frame = compute_f3(frame)
         frame = compute_f4(frame, night_window)

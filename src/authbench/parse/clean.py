@@ -43,6 +43,32 @@ def _split_user_domain(col: str, user_out: str, domain_out: str) -> list[pl.Expr
     ]
 
 
+def _null_token_to_null(col: str) -> pl.Expr:
+    """LANL's `?` sentinel becomes a real null, keeping the typed column clean."""
+    return (
+        pl.when(pl.col(col) == LANL_NULL_TOKEN)
+        .then(None)
+        .otherwise(pl.col(col))
+        .cast(pl.Categorical)
+        .alias(col)
+    )
+
+
+def _is_null_indicator(col: str) -> pl.Expr:
+    """The `<col>_is_null` boolean — nullity is itself a signal (see `schema.py`).
+
+    A bare `col == LANL_NULL_TOKEN` is *null*, not False, whenever the source
+    field is already missing (an empty CSV field rather than a literal `?`).
+    That null then flows straight into the F1 model matrix as a NaN. Both
+    forms of "no value" have to answer True here.
+    """
+    return (
+        (pl.col(col).is_null() | (pl.col(col) == LANL_NULL_TOKEN))
+        .fill_null(True)
+        .alias(f"{col}_is_null")
+    )
+
+
 def is_machine_account(user_col: str | pl.Expr) -> pl.Expr:
     """LANL machine accounts end with `$` — flagged explicitly, never dropped."""
     expr = pl.col(user_col) if isinstance(user_col, str) else user_col
@@ -82,10 +108,16 @@ def clean_auth(raw: pl.LazyFrame, *, id_offset: int = 0) -> tuple[pl.LazyFrame, 
 
     n_after = well_formed.select(pl.len()).collect().item()
     n_dropped = n_before - n_after
-    # Attribute the drop: null time vs malformed user/domain split.
-    n_null_time = raw.filter(pl.col("time").is_null()).select(pl.len()).collect().item()
-    counts.null_time = n_null_time
-    counts.malformed_user_domain = n_dropped - n_null_time
+    # Attribute the drop to disjoint reasons. A row can be malformed *and*
+    # have a null time; counting each reason independently and subtracting
+    # would then double-count it and could drive `malformed_user_domain`
+    # negative — so `null_time` is claimed first and `malformed_user_domain`
+    # is whatever is left, which keeps `total` equal to `n_dropped` by
+    # construction (US-102's row-count reconciliation depends on that).
+    counts.null_time = min(
+        raw.filter(pl.col("time").is_null()).select(pl.len()).collect().item(), n_dropped
+    )
+    counts.malformed_user_domain = n_dropped - counts.null_time
 
     typed = well_formed.select(
         [
@@ -97,18 +129,10 @@ def clean_auth(raw: pl.LazyFrame, *, id_offset: int = 0) -> tuple[pl.LazyFrame, 
             pl.col("dst_domain").cast(pl.Categorical),
             pl.col("src_computer").cast(pl.Categorical),
             pl.col("dst_computer").cast(pl.Categorical),
-            pl.when(pl.col("auth_type") == LANL_NULL_TOKEN)
-            .then(None)
-            .otherwise(pl.col("auth_type"))
-            .cast(pl.Categorical)
-            .alias("auth_type"),
-            (pl.col("auth_type") == LANL_NULL_TOKEN).alias("auth_type_is_null"),
-            pl.when(pl.col("logon_type") == LANL_NULL_TOKEN)
-            .then(None)
-            .otherwise(pl.col("logon_type"))
-            .cast(pl.Categorical)
-            .alias("logon_type"),
-            (pl.col("logon_type") == LANL_NULL_TOKEN).alias("logon_type_is_null"),
+            _null_token_to_null("auth_type"),
+            _is_null_indicator("auth_type"),
+            _null_token_to_null("logon_type"),
+            _is_null_indicator("logon_type"),
             pl.col("auth_orientation").cast(pl.Categorical),
             (pl.col("success_failure") == "Success").alias("success"),
             is_machine_account("src_user").alias("src_user_is_machine"),

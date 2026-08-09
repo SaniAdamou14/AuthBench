@@ -12,8 +12,8 @@ install-all:
 	py -3.11 -m uv pip install -e ".[all]" --python $(VENV)
 
 lint:
-	$(PY) ruff check src tests
-	$(PY) ruff format --check src tests
+	$(PY) ruff check src tests scripts
+	$(PY) ruff format --check src tests scripts
 
 typecheck:
 	$(PY) mypy src
