@@ -2,6 +2,16 @@ stages:
   # Requires AUTHBENCH_LANL_EMAIL in the environment: LANL serves the raw
   # files behind a click-through data-use form, not a static URL, and an
   # address does not belong in a committed pipeline definition.
+  #
+  # `cache: false` on every large output below is a disk decision, not a
+  # correctness one. DVC's default is to copy each output into `.dvc/cache`,
+  # and on Windows reflinks and hardlinks are off by default — so a cached
+  # 5 GB `data/raw` and a cached ~15 GB `data/interim/auth` cost that much
+  # again. These are reproducible from `download` + `to_parquet` and verified
+  # by SHA-256 and an exact row count; keeping a second copy buys nothing and
+  # is the difference between the pipeline fitting on a laptop disk and not.
+  # If you have the space and want the cache back, drop the `cache: false`
+  # lines and run `dvc config cache.type hardlink,symlink,copy` first.
   download:
     cmd: authbench data download --dataset ${dataset}
     params:
@@ -9,16 +19,18 @@ stages:
     outs:
       - data/raw:
           persist: true
+          cache: false
 
   to_parquet:
     cmd: >-
       authbench data to-parquet data/raw/auth.txt.gz
       --out-dir data/interim/auth
-      --expected-rows 1051430459
+      --dataset ${dataset}
     deps:
       - data/raw
     outs:
-      - data/interim/auth
+      - data/interim/auth:
+          cache: false
 
   label_split_features:
     cmd: python -m authbench.pipeline.build_features
@@ -31,11 +43,18 @@ stages:
       - src/authbench/label
       - src/authbench/split
       - src/authbench/features
+      # The stage reads conf/, not params.yaml. Depending on the files it
+      # actually loads is what makes a config edit invalidate the stage;
+      # params.yaml only mirrors them for `dvc params diff`.
+      - conf/split/temporal.yaml
+      - conf/features/base.yaml
+      - conf/dataset/lanl.yaml
     params:
       - split
       - features
     outs:
-      - data/processed/features
+      - data/processed/features:
+          cache: false
 
   train_eval:
     cmd: python -m authbench.pipeline.train_eval
@@ -43,9 +62,10 @@ stages:
       - data/processed/features
       - src/authbench/models
       - src/authbench/evaluate
+      - conf/eval/default.yaml
     params:
       - seed
-      - evaluate
+      - eval
     outs:
       - reports/tables
       - reports/figures

@@ -20,7 +20,8 @@ they are not a finding about anything. See
 
 ## Try it in under a minute
 
-No 12 GB download required. `data/demo/` ships a small synthetic sample
+No 6 GB download and no 161 GB of disk required. `data/demo/` ships a small
+synthetic sample
 (versioned in git) shaped like LANL — same 9-column schema, same `?` null
 sentinel, machine accounts, per-user home machines — and carrying three
 complete red-team lateral-movement campaigns.
@@ -70,12 +71,25 @@ random draw — `tests/unit/test_demo_sample_integrity.py` is the guard, and
 ## The real dataset
 
 ```bash
+make install-lanl                             # adds dvc + mlflow; `make install` has neither
+authbench preflight                           # disk + RAM budget, before downloading anything
 export AUTHBENCH_LANL_EMAIL=you@example.org   # required, see below
 authbench data download --dataset lanl
-authbench data to-parquet data/raw/auth.txt.gz --out-dir data/interim/auth \
-  --expected-rows 1051430459
+authbench data to-parquet data/raw/auth.txt.gz --out-dir data/interim/auth
 dvc repro
 ```
+
+**Run `authbench preflight` first, and read what it says.** The download is
+about 6 GB; converting it and building features is about **161 GB of disk**,
+and `train_eval` as written needs far more RAM than a workstation has. On a
+laptop this run does not fit, and `preflight` exits non-zero with the event
+count that would. [`docs/scaling.md`](docs/scaling.md) has the measured
+per-stage budget and the three ways forward.
+
+The expected row count comes from `conf/dataset/lanl.yaml`, not from the
+command line — it is a published figure (1,051,430,459) and repeating it in
+`dvc.yaml`, in this README and in a shell history is how it eventually
+disagrees with itself.
 
 LANL serves `cyber1` from behind a click-through data-use form rather than a
 static URL, so `authbench data download` submits an email plus a usage
@@ -126,8 +140,9 @@ Confidence intervals and pairwise tests come from **one** campaign-stratified
 resampling pass shared by every model, so the intervals and the comparisons
 sit on the same sampling distribution and each difference is paired.
 
-Two floors sit under this and both produce results that look exactly like a
-genuine "no difference" finding while having nothing to do with the models:
+Three floors sit under this. Two of them produce results that look exactly
+like a genuine "no difference" finding, and one produces the opposite — a
+clean sweep of "outperforms" — while having nothing to do with the models:
 
 - **Degenerate resamples.** A ranking metric over zero positives is
   undefined, but scikit-learn returns 0.0 — so on such a resample every model
@@ -142,6 +157,16 @@ genuine "no difference" finding while having nothing to do with the models:
   could never have produced a single significant result.
   `stats_tests.minimum_resamples_for_family` computes the bound and warns
   when it is not met.
+- **One campaign is not a sample.** The sample size of a campaign-stratified
+  bootstrap is the number of *campaigns*, not the number of events. With a
+  single campaign in the test split, every resample is a re-weighting of the
+  same attack: no pairwise difference can change sign, the tail count is zero,
+  and every p-value lands on the resolution floor `2/(R+1)` — which is *below*
+  Holm's threshold, so all 21 demo comparisons came back "outperforms" off one
+  campaign. That is the bootstrap's resolution being reported as evidence
+  about the models. `stats_tests.MIN_CAMPAIGNS_FOR_SIGNIFICANCE` withholds the
+  verdict below two campaigns; the point estimates and intervals still stand,
+  and `authbench demo` now prints 0/21 with the reason.
 
 ## State of the project
 
@@ -171,6 +196,12 @@ Being explicit about this is part of the point of the benchmark.
 
 **Not implemented**
 
+- An out-of-core `train_eval`. It loads each split whole and the estimators
+  copy the design matrix, so at LANL scale it asks for hundreds of GB of RAM.
+  Fitting on a bounded sample and scoring in day-partitioned chunks is the
+  fix; [`docs/scaling.md`](docs/scaling.md) sets out the four steps. Until
+  that lands, the full dataset is not runnable on ordinary hardware, and
+  `authbench preflight` says so before anything is downloaded.
 - The R1 (unsupervised) / R2 (semi-supervised) training regimes. The key
   exists in `conf/split/*.yaml`; nothing reads it yet.
 - M5b GNN link prediction — raises `NotImplementedError` on purpose rather
@@ -186,6 +217,7 @@ make lint        # ruff check + ruff format --check, on src tests scripts
 make typecheck   # mypy --strict on src
 make test        # pytest with coverage
 make demo        # the full pipeline on the demo sample
+make preflight   # disk/RAM budget for a full LANL run on this machine
 ```
 
 CI runs all four on every push and PR, plus a coverage gate of 85% on

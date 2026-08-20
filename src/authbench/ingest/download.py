@@ -11,6 +11,7 @@ import hashlib
 import logging
 import os
 import re
+import shutil
 import time
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -29,9 +30,43 @@ _TRANSIENT_ERRORS = (
 )
 _CONTENT_RANGE_START_RE = re.compile(r"bytes (\d+)-")
 
+# 5xx and 429 are the server saying "not now", not "never" — on a multi-hour,
+# multi-GB transfer they are as routine as a dropped socket, and treating them
+# as fatal throws away everything already downloaded in this attempt.
+_RETRYABLE_STATUS_CODES = frozenset({408, 425, 429, 500, 502, 503, 504})
+
+# Headroom left on the destination volume after the download. Filling a system
+# disk to the last byte is its own failure mode, and the pipeline still has to
+# write Parquet next.
+DISK_SAFETY_MARGIN_BYTES = 2 * 1024**3  # 2 GiB
+
+# The fence token is an opaque path segment in the file URL, so it can only
+# be URL-safe characters and is never empty or HTML.
+_TOKEN_RE = re.compile(r"[A-Za-z0-9._~\-]{8,256}")
+
 
 class ChecksumMismatchError(RuntimeError):
     """Raised when a downloaded file's SHA-256 does not match the recorded value."""
+
+
+class InsufficientDiskSpaceError(RuntimeError):
+    """Raised before a download starts when the destination volume cannot hold
+    the file.
+
+    A multi-GB transfer that dies on `No space left on device` after two hours
+    leaves a partial file, a stale lock and no useful message. The size is
+    known from the server's `Content-Length` before the first byte is written,
+    so this is checkable up front — and it is, because on a laptop system
+    disk it is the most likely way this stage fails.
+    """
+
+
+class InvalidFenceTokenError(RuntimeError):
+    """Raised when LANL's data-use gate returns something that is not a token
+    (an HTML page, an empty body, an interstitial). Without this check the
+    non-token is pasted into every file URL and the run fails later with a
+    404 that points at the wrong cause.
+    """
 
 
 class ConcurrentDownloadError(RuntimeError):
@@ -50,6 +85,35 @@ class CorruptPartialDownloadError(RuntimeError):
     requested). Safer to stop and ask for the file to be removed than to
     guess how to repair it.
     """
+
+
+def free_space_bytes(path: Path) -> int:
+    """Free bytes on the volume that will hold `path`.
+
+    Walks up to the nearest existing ancestor, so this answers for a
+    destination directory that has not been created yet.
+    """
+    probe = path if path.exists() else path.parent
+    while not probe.exists() and probe != probe.parent:
+        probe = probe.parent
+    return shutil.disk_usage(probe).free
+
+
+def require_free_space(
+    path: Path, needed_bytes: int, *, margin_bytes: int = DISK_SAFETY_MARGIN_BYTES, what: str = ""
+) -> None:
+    """Raise `InsufficientDiskSpaceError` unless `path`'s volume has
+    `needed_bytes` plus `margin_bytes` free."""
+    available = free_space_bytes(path)
+    required = needed_bytes + margin_bytes
+    if available < required:
+        label = f"{what}: " if what else ""
+        raise InsufficientDiskSpaceError(
+            f"{label}{path} needs {required / 1e9:.1f} GB free "
+            f"({needed_bytes / 1e9:.1f} GB of data + {margin_bytes / 1e9:.1f} GB headroom) "
+            f"but the volume has {available / 1e9:.1f} GB. Free up space, or point the "
+            "destination at another drive with --out-dir."
+        )
 
 
 @contextlib.contextmanager
@@ -95,7 +159,23 @@ def fetch_lanl_fence_token(
         timeout=timeout_s,
     )
     response.raise_for_status()
-    return response.text.strip()
+    token = response.text.strip()
+
+    # A gate that has changed shape, an interstitial, or a captcha page all
+    # come back as HTTP 200 with a body. Pasted into a URL that body yields a
+    # 404 several layers down, and the user is left debugging the wrong thing.
+    # The token is an opaque URL path segment, so anything that cannot be one
+    # is rejected here, where the real cause is still visible.
+    if not _TOKEN_RE.fullmatch(token):
+        preview = " ".join(token[:200].split())
+        raise InvalidFenceTokenError(
+            f"{LANL_FENCE_BASE}/data-fence/token did not return a usable token for "
+            f"{email!r}. Got {len(token)} characters starting with: {preview!r}. "
+            "The data-use gate at https://csr.lanl.gov/data/cyber1/ has most likely "
+            "changed — open it in a browser, accept the form, and check the URL the "
+            "download links point at."
+        )
+    return token
 
 
 def lanl_file_url(token: str, filename: str) -> str:
@@ -137,6 +217,13 @@ def _download_attempt(
                 "resource (e.g. from a previous concurrent/corrupted download). Delete "
                 f"{dest} and restart."
             )
+        if response.status_code in _RETRYABLE_STATUS_CODES:
+            # Surfaced as a transient error so the caller's retry/backoff loop
+            # handles it exactly like a dropped socket, resuming from what is
+            # already on disk instead of discarding hours of transfer.
+            raise requests.exceptions.ConnectionError(
+                f"{dest.name}: HTTP {response.status_code} from {url} (retryable)"
+            )
         response.raise_for_status()  # a 404/error page is not valid file content
 
         resumed = response.status_code == 206
@@ -163,8 +250,15 @@ def _download_attempt(
             resume_from = 0
 
         mode = "ab" if resumed else "wb"
-        total = int(response.headers.get("content-length", 0)) + resume_from
+        remaining = int(response.headers.get("content-length", 0))
+        total = remaining + resume_from
         bytes_downloaded = 0
+
+        # Checked here rather than by the caller because this is the first
+        # point at which the size is known: LANL publishes none, and the
+        # server only reveals it in the response headers.
+        already_on_disk = resume_from if resumed else 0
+        require_free_space(dest, max(0, total - already_on_disk), what=f"downloading {dest.name}")
 
         with (
             dest.open(mode) as f,

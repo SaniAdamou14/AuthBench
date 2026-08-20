@@ -21,7 +21,6 @@ import logging
 from pathlib import Path
 
 import hydra
-import mlflow
 import polars as pl
 from omegaconf import DictConfig
 
@@ -34,30 +33,22 @@ from authbench.evaluate.summary import (
     pairwise_comparisons,
     score_column,
 )
+from authbench.features import MODEL_FEATURE_COLUMNS
 from authbench.models.classical import ECODScorer, HBOSScorer, IsolationForestScorer
 from authbench.models.floors import AlwaysFailScorer, RandomScorer
 from authbench.models.rules import RulesScorer
 from authbench.models.stats import PairRarityScorer, PCAReconstructionScorer
 from authbench.pipeline.build_features import CONF_DIR, feature_store_version
+from authbench.pipeline.tracking import open_tracker
 
 logger = logging.getLogger(__name__)
 
-NUMERIC_FEATURE_COLUMNS = [
-    "is_success",
-    "auth_type_is_null",
-    "logon_type_is_null",
-    "src_user_is_machine",
-    "src_dst_user_same",
-    "src_dst_computer_same",
-    "domain_crossing",
-    "pair_is_new",
-    "pair_global_rarity",
-    "user_new_host_count_24h",
-    "host_new_user_count_24h",
-    "hour_sin",
-    "hour_cos",
-    "hour_deviation_from_profile",
-]
+# The design matrix is `features.MODEL_FEATURE_COLUMNS`, shared with
+# `authbench demo`. It used to be redeclared here, and the two copies had
+# drifted: this stage was fitting M2b/M3a/M3b on 14 columns while the demo
+# used 21, silently dropping every F2 history feature and all three F1
+# frequency encodings — i.e. benchmarking different models under the same
+# names in the two places that are supposed to agree.
 
 
 def build_model_catalog() -> list[object]:
@@ -70,10 +61,10 @@ def build_model_catalog() -> list[object]:
         RandomScorer(),
         AlwaysFailScorer(),
         PairRarityScorer(),
-        PCAReconstructionScorer(NUMERIC_FEATURE_COLUMNS),
-        IsolationForestScorer(NUMERIC_FEATURE_COLUMNS),
-        ECODScorer(NUMERIC_FEATURE_COLUMNS),
-        HBOSScorer(NUMERIC_FEATURE_COLUMNS),
+        PCAReconstructionScorer(MODEL_FEATURE_COLUMNS),
+        IsolationForestScorer(MODEL_FEATURE_COLUMNS),
+        ECODScorer(MODEL_FEATURE_COLUMNS),
+        HBOSScorer(MODEL_FEATURE_COLUMNS),
         RulesScorer(),
     ]
 
@@ -122,8 +113,7 @@ def main(cfg: DictConfig) -> None:
     val = pl.read_parquet(version_dir / "val.parquet")
     test = pl.read_parquet(version_dir / "test.parquet")
 
-    mlflow.set_tracking_uri(cfg.mlflow.tracking_uri)
-    mlflow.set_experiment(cfg.mlflow.experiment_name)
+    tracker = open_tracker(str(cfg.mlflow.tracking_uri), str(cfg.mlflow.experiment_name))
 
     tables_dir = Path(cfg.paths.tables_dir)
     tables_dir.mkdir(parents=True, exist_ok=True)
@@ -173,23 +163,25 @@ def main(cfg: DictConfig) -> None:
         curves.append(evaluation.curve)
         summary_rows.append(evaluation.to_dict())
 
-        with mlflow.start_run(run_name=name):
-            mlflow.log_param("feature_store_version", version)
-            mlflow.log_param("seed", cfg.seed)
-            mlflow.log_metric("auc_pr", evaluation.auc_pr)
+        with tracker.run(name):
+            tracker.log_param("feature_store_version", version)
+            tracker.log_param("seed", cfg.seed)
+            tracker.log_metric("auc_pr", evaluation.auc_pr)
             assert evaluation.auc_pr_ci is not None
-            mlflow.log_metric("auc_pr_ci_low", evaluation.auc_pr_ci.ci_low)
-            mlflow.log_metric("auc_pr_ci_high", evaluation.auc_pr_ci.ci_high)
+            tracker.log_metric("auc_pr_ci_low", evaluation.auc_pr_ci.ci_low)
+            tracker.log_metric("auc_pr_ci_high", evaluation.auc_pr_ci.ci_high)
             if evaluation.roc_auc is not None:
-                mlflow.log_metric("roc_auc", evaluation.roc_auc)
+                tracker.log_metric("roc_auc", evaluation.roc_auc)
             for k, recall in zip(
                 evaluation.curve.budgets, evaluation.curve.campaign_recall, strict=True
             ):
-                mlflow.log_metric(f"campaign_recall_at_{k}", recall)
+                tracker.log_metric(f"campaign_recall_at_{k}", recall)
             for ttd in evaluation.time_to_detection:
-                mlflow.log_metric(f"campaigns_never_detected_at_{ttd.budget}", ttd.n_never_detected)
+                tracker.log_metric(
+                    f"campaigns_never_detected_at_{ttd.budget}", ttd.n_never_detected
+                )
                 if ttd.median_delay_seconds is not None:
-                    mlflow.log_metric(
+                    tracker.log_metric(
                         f"median_ttd_seconds_at_{ttd.budget}", ttd.median_delay_seconds
                     )
 

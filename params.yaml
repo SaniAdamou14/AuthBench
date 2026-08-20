@@ -1,21 +1,39 @@
-# Top-level knobs DVC stages depend on — mirrors the Hydra defaults in
-# conf/config.yaml so a `dvc repro` and a bare `authbench` CLI invocation
-# never silently disagree.
+# Knobs DVC tracks for cache invalidation.
+#
+# These MUST mirror the Hydra configs the pipeline actually reads — the stages
+# run `python -m authbench.pipeline.*`, which loads `conf/`, not this file. A
+# value here that disagrees with `conf/` does not change the run; it only makes
+# `dvc params diff` report something that never happened, and it did: this file
+# still said `bootstrap_resamples: 1000` long after `conf/eval/default.yaml`
+# moved to 2000 for the reason the README spells out (at 1000, Holm-Bonferroni
+# over the 8-model catalog's 28 pairs cannot return a single significant
+# result, whatever the models did).
+#
+# `tests/unit/test_params_match_conf.py` fails the build when the two drift.
 seed: 42
 
 dataset: lanl
 
+# conf/split/temporal.yaml
 split:
   train_days: [0, 29]
   val_days: [30, 39]
   test_days: [40, 57]
 
+# conf/features/base.yaml
 features:
-  windows_hours: [1, 24, 168]
-  graph_window_days: 7
-  sequence_context_length: 32
+  f2_windows_hours: [1, 24, 168]
+  f5_graph_enabled: false
+  f6_sequence_enabled: false
+  f6_context_length: 32
 
-evaluate:
+# conf/eval/default.yaml
+eval:
   budgets: [10, 50, 100, 500]
-  bootstrap_resamples: 1000
-  campaign_gap_hours: 24
+  fpr_targets: [1.0e-4, 1.0e-5]
+  bootstrap_resamples: 2000
+  bootstrap_confidence: 0.95
+  pairwise_alpha: 0.05
+
+# conf/dataset/lanl.yaml
+campaign_gap_hours: 24

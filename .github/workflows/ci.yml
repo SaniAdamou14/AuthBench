@@ -34,13 +34,18 @@ jobs:
       - name: Type check (mypy)
         run: .venv/bin/python -m mypy src
 
-      - name: Unit + integration tests (with coverage gate on evaluate/ and features/)
+      - name: Unit + integration tests (with coverage gate on evaluate/, features/ and ingest/)
         run: |
           .venv/bin/python -m pytest --cov=authbench --cov-report=xml --cov-report=term-missing
           # features/graph.py (F5) requires the optional `graph` extra (networkx/node2vec),
           # not installed in this job — omitted from the gate, not from the test suite.
+          #
+          # ingest/ is in the gate because it is the code that will run once,
+          # unattended, for hours, over 1.05 billion rows: the download and the
+          # Parquet conversion. It sat at 0% covered while the metrics it feeds
+          # were held to 85%.
           .venv/bin/python -m coverage report \
-            --include="src/authbench/evaluate/*,src/authbench/features/*" \
+            --include="src/authbench/evaluate/*,src/authbench/features/*,src/authbench/ingest/*" \
             --omit="src/authbench/features/graph.py" \
             --fail-under=85
 

@@ -19,6 +19,13 @@ import polars as pl
 
 logger = logging.getLogger(__name__)
 
+# The sample size of a campaign-stratified bootstrap is the number of
+# campaigns, not the number of events. With a single campaign every resample
+# is a re-weighting of the same attack, so no pairwise difference can change
+# sign and every p-value lands on the resolution floor — significance is not
+# estimable, and `PairedBootstrap.comparisons` says so instead of reporting it.
+MIN_CAMPAIGNS_FOR_SIGNIFICANCE = 2
+
 
 def minimum_resamples_for_family(n_comparisons: int, alpha: float = 0.05) -> int:
     """Resamples needed before a family of `n_comparisons` can produce *any*
@@ -36,20 +43,91 @@ def minimum_resamples_for_family(n_comparisons: int, alpha: float = 0.05) -> int
 def build_campaign_blocks(frame: pl.DataFrame) -> list[np.ndarray]:
     """Row-index blocks: one block per campaign (all its events together),
     plus one singleton block per benign (non-campaign) event.
+
+    The explicit, one-object-per-block form — readable, and what the causality
+    of the scheme actually is. It is *not* what the resampling loops use: at
+    LANL's test-split size that list is ~3x10^8 one-element NumPy arrays, tens
+    of gigabytes of Python objects before a single resample is drawn. Those go
+    through `CampaignBlocks`, which is the same scheme in two arrays.
     """
-    with_idx = frame.with_row_index("_idx")
+    blocks = CampaignBlocks.from_frame(frame)
+    return [*blocks.campaign_blocks, *(np.array([i]) for i in blocks.singleton_idx)]
 
-    campaign_blocks = [
-        np.array(idx_list)
-        for idx_list in with_idx.filter(pl.col("campaign_id").is_not_null())
-        .group_by("campaign_id")
-        .agg(pl.col("_idx"))["_idx"]
-        .to_list()
-    ]
-    singleton_idx = with_idx.filter(pl.col("campaign_id").is_null())["_idx"].to_numpy()
-    singleton_blocks = [np.array([i]) for i in singleton_idx]
 
-    return campaign_blocks + singleton_blocks
+@dataclass(frozen=True)
+class CampaignBlocks:
+    """The campaign-block resampling scheme, stored in the shape it is used in.
+
+    A block bootstrap over `n_blocks` blocks draws `n_blocks` of them with
+    replacement. Almost every one of those blocks is a single benign event, so
+    materializing them individually costs orders of magnitude more than the
+    resample itself. Here the campaigns — a handful of them — stay as explicit
+    index arrays and every benign event is one entry of `singleton_idx`.
+
+    Drawing is then done in two steps, which is *exactly* equivalent to drawing
+    uniformly from the combined list: each of the `n_blocks` draws lands in the
+    campaign set with probability `n_campaigns / n_blocks` (hence a binomial),
+    and, given that, is uniform over the campaigns.
+    """
+
+    campaign_blocks: list[np.ndarray]
+    singleton_idx: np.ndarray
+    has_malicious_singleton: bool
+
+    @classmethod
+    def from_frame(cls, frame: pl.DataFrame) -> CampaignBlocks:
+        with_idx = frame.with_row_index("_idx")
+        campaign_rows = with_idx.filter(pl.col("campaign_id").is_not_null())
+        campaign_blocks = [
+            np.asarray(idx_list, dtype=np.int64)
+            for idx_list in campaign_rows.group_by("campaign_id")
+            .agg(pl.col("_idx"))["_idx"]
+            .to_list()
+        ]
+        benign = with_idx.filter(pl.col("campaign_id").is_null())
+        # A malicious event with no campaign_id shouldn't happen — labeling and
+        # campaign attachment join on the same quadruplet — but if one did, the
+        # cheap "no campaign block drawn ⇒ no positives" shortcut below would be
+        # wrong, so the possibility is checked once rather than assumed away.
+        has_malicious_singleton = (
+            "is_malicious" in benign.columns and benign.filter(pl.col("is_malicious")).height > 0
+        )
+        return cls(
+            campaign_blocks=campaign_blocks,
+            singleton_idx=benign["_idx"].to_numpy().astype(np.int64, copy=False),
+            has_malicious_singleton=has_malicious_singleton,
+        )
+
+    @property
+    def n_campaign_blocks(self) -> int:
+        return len(self.campaign_blocks)
+
+    @property
+    def n_blocks(self) -> int:
+        return self.n_campaign_blocks + int(self.singleton_idx.size)
+
+    def draw(self, rng: np.random.Generator) -> tuple[np.ndarray, int]:
+        """One resample: the row indices it selects, and how many of the drawn
+        blocks were campaigns (0 means the resample holds no campaign event).
+        """
+        n_campaigns = self.n_campaign_blocks
+        n_singletons = int(self.singleton_idx.size)
+        n_blocks = self.n_blocks
+        if n_blocks == 0:
+            return np.empty(0, dtype=np.int64), 0
+
+        n_campaign_draws = int(rng.binomial(n_blocks, n_campaigns / n_blocks)) if n_campaigns else 0
+        parts: list[np.ndarray] = []
+        if n_campaign_draws:
+            chosen = rng.integers(0, n_campaigns, size=n_campaign_draws)
+            parts.extend(self.campaign_blocks[j] for j in chosen)
+        n_singleton_draws = n_blocks - n_campaign_draws
+        if n_singleton_draws and n_singletons:
+            parts.append(self.singleton_idx[rng.integers(0, n_singletons, size=n_singleton_draws)])
+
+        if not parts:
+            return np.empty(0, dtype=np.int64), n_campaign_draws
+        return np.concatenate(parts), n_campaign_draws
 
 
 @dataclass
@@ -69,16 +147,14 @@ def bootstrap_ci(
     seed: int = 42,
 ) -> BootstrapResult:
     """Campaign-stratified bootstrap confidence interval for `metric_fn(frame)`."""
-    blocks = build_campaign_blocks(frame)
-    n_blocks = len(blocks)
+    blocks = CampaignBlocks.from_frame(frame)
     rng = np.random.default_rng(seed)
 
     point_estimate = metric_fn(frame)
 
     stats = np.empty(n_resamples)
     for i in range(n_resamples):
-        chosen = rng.integers(0, n_blocks, size=n_blocks)
-        idx = np.concatenate([blocks[j] for j in chosen])
+        idx, _ = blocks.draw(rng)
         resampled = frame[idx]
         stats[i] = metric_fn(resampled)
 
@@ -108,6 +184,11 @@ class PairedBootstrap:
     confidence: float
     n_resamples: int
     n_degenerate_discarded: int = 0
+    # How many campaigns the resampled split actually contained. This is the
+    # sample size of a campaign-stratified bootstrap — not the event count —
+    # and `comparisons` refuses to call anything significant below
+    # `MIN_CAMPAIGNS_FOR_SIGNIFICANCE`.
+    n_campaign_blocks: int = 0
 
     @property
     def minimum_resolvable_p_value(self) -> float:
@@ -168,6 +249,28 @@ class PairedBootstrap:
 
         significances = holm_bonferroni(raw_p_values, alpha=alpha)
 
+        # A campaign-stratified bootstrap has as many independent observations
+        # as the split has campaigns. Below two, resampling cannot vary the
+        # campaign composition at all: every resample contains copies of the
+        # same campaign, so each model's Δ* keeps one sign across the whole
+        # pass, the tail count is 0, and *every* pair comes back at exactly
+        # the resolution floor 2/(R+1) — printed as "outperforms", 21 times
+        # out of 21, from a single attack. That is the resolution of the
+        # bootstrap being reported as evidence about the models, and it is
+        # precisely the claim this project exists to refuse to make.
+        if self.n_campaign_blocks < MIN_CAMPAIGNS_FOR_SIGNIFICANCE:
+            logger.warning(
+                "%d campaign(s) in the resampled split: a campaign-stratified bootstrap has "
+                "no campaign-level variation to draw on, so every pairwise p-value collapses "
+                "onto its own resolution floor (%.5f). All %d comparisons are reported as "
+                "not significant — the point estimates and intervals still stand, the "
+                "significance verdict does not.",
+                self.n_campaign_blocks,
+                self.minimum_resolvable_p_value,
+                len(pairs),
+            )
+            significances = [False] * len(pairs)
+
         return [
             PairwiseComparison(
                 model_a=a,
@@ -224,8 +327,7 @@ def paired_campaign_bootstrap(
             "ranking metric on it is undefined. This is a split bug, not a result."
         )
 
-    blocks = build_campaign_blocks(frame)
-    n_blocks = len(blocks)
+    blocks = CampaignBlocks.from_frame(frame)
     rng = np.random.default_rng(seed)
 
     model_names = list(score_columns)
@@ -235,8 +337,14 @@ def paired_campaign_bootstrap(
     accepted, attempts, max_attempts = 0, 0, n_resamples * max_attempts_factor
     while accepted < n_resamples and attempts < max_attempts:
         attempts += 1
-        chosen = rng.integers(0, n_blocks, size=n_blocks)
-        idx = np.concatenate([blocks[j] for j in chosen])
+        idx, n_campaign_draws = blocks.draw(rng)
+        # A resample that drew no campaign block holds no positive, unless the
+        # frame has malicious events outside every campaign. Deciding that from
+        # the draw itself skips gathering a full-size frame for a resample that
+        # is about to be discarded — and with one campaign in the split that is
+        # roughly every third draw.
+        if n_campaign_draws == 0 and not blocks.has_malicious_singleton:
+            continue
         resample = frame[idx]
         if resample.filter(pl.col("is_malicious")).height == 0:
             continue
@@ -259,6 +367,7 @@ def paired_campaign_bootstrap(
         confidence=confidence,
         n_resamples=n_resamples,
         n_degenerate_discarded=attempts - accepted,
+        n_campaign_blocks=blocks.n_campaign_blocks,
     )
 
 

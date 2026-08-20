@@ -107,13 +107,31 @@ instead of `O(n_permutations x n_pairs)`.
 `eval.bootstrap.stratify_by` accepts only `campaign`; any other value is rejected rather than
 silently ignored.
 
-Two artifacts of the method can manufacture a "no significant difference" result that is
-indistinguishable from a real one. Both are handled explicitly:
+Three artifacts of the method can manufacture a verdict that is indistinguishable from a real
+one — two of them a spurious "no difference", the third a spurious clean sweep. All are
+handled explicitly:
 
 | Floor | Cause | Handling |
 |---|---|---|
 | Degenerate resamples | A ranking metric over zero positives is undefined, but scikit-learn returns 0.0, so every model ties — and ties count in both tails. With 1 campaign in the test split ~37% of resamples are degenerate, flooring p near 0.74. | Discarded and redrawn; `n_degenerate_discarded` reported. A frame with no positives at all raises. |
-| Bootstrap resolution vs. Holm | A percentile bootstrap cannot report p below `2/(R+1)`; Holm's strictest threshold is `alpha/n_pairs`. The 8-model catalog needs `R >= 1119`, so the original `n_resamples: 1000` could never yield a significant result. | `minimum_resamples_for_family` computes the bound; `comparisons()` warns when it is not met. `conf/eval/default.yaml` now sets 2000. |
+| Bootstrap resolution vs. Holm | A percentile bootstrap cannot report p below `2/(R+1)`; Holm's strictest threshold is `alpha/n_pairs`. The 8-model catalog needs `R >= 1119`, so the original `n_resamples: 1000` could never yield a significant result. | `minimum_resamples_for_family` computes the bound; `comparisons()` warns when it is not met. `conf/eval/default.yaml` sets 2000. |
+| A single campaign | The sample size of a campaign-stratified bootstrap is the number of campaigns. With one, every resample re-weights the same attack: no pairwise difference changes sign, the tail count is 0, and every p-value lands on `2/(R+1)` — *below* Holm's threshold, so **every** comparison reads "outperforms". The demo produced 21/21 this way. | `MIN_CAMPAIGNS_FOR_SIGNIFICANCE = 2`. Below it `comparisons()` logs the reason and reports every pair as not significant. Point estimates and intervals are unchanged; only the verdict is withheld. |
+
+The resampling itself is `stats_tests.CampaignBlocks`: campaigns as explicit index arrays,
+every benign event as one entry of a single array. Each draw picks `n_blocks` blocks with
+replacement — a binomial split between the campaign set and the singleton set, then uniform
+within each — which is exactly the uniform draw over the combined list, at a cost that does
+not involve materializing one Python object per benign event. `build_campaign_blocks` keeps
+the explicit form as the readable reference the tests check against.
+
+## Scale
+
+The protocol above is written against 1.05 billion auth events; the implementation is not yet.
+`train_eval` loads each split whole and the estimators copy the design matrix.
+[`scaling.md`](scaling.md) has the measured per-stage disk and memory budget, and
+`authbench preflight` prints it for the machine it runs on and exits non-zero when the run
+does not fit. Nothing about the protocol changes; what changes is which of it can be executed
+where.
 
 `eval.pairwise_test.method` also accepts `permutation` — the exact per-event paired test
 (`compare_models`). It assumes the two models' scores are exchangeable event by event, which

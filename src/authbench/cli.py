@@ -14,20 +14,44 @@ from pathlib import Path
 
 import polars as pl
 import typer
+from omegaconf import DictConfig, OmegaConf
 from rich.console import Console
 from rich.table import Table
 
 from authbench.evaluate.budget import DEFAULT_BUDGETS
 from authbench.evaluate.metrics import ROC_AUC_WARNING, auc_pr
 from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
-from authbench.evaluate.stats_tests import paired_campaign_bootstrap, render_comparison_sentence
+from authbench.evaluate.stats_tests import (
+    MIN_CAMPAIGNS_FOR_SIGNIFICANCE,
+    paired_campaign_bootstrap,
+    render_comparison_sentence,
+)
 from authbench.evaluate.summary import EVAL_COLUMNS, evaluate_model, score_column
+from authbench.features import MODEL_FEATURE_COLUMNS
 from authbench.features.event import compute_f1, fit_frequency_encoding
 from authbench.features.history import compute_f2
 from authbench.features.novelty import compute_f3
 from authbench.features.temporal import calibrate_night_window, compute_f4
-from authbench.ingest.download import download_with_resume, fetch_lanl_fence_token, lanl_file_url
-from authbench.ingest.to_parquet import to_parquet_partitioned, verify_row_count
+from authbench.ingest.budget import (
+    available_disk_bytes,
+    available_memory_bytes,
+    lanl_budget,
+    max_events_for_disk,
+    max_events_for_memory,
+    peak_rss_bytes,
+    total_disk_bytes,
+)
+from authbench.ingest.download import (
+    download_with_resume,
+    fetch_lanl_fence_token,
+    free_space_bytes,
+    lanl_file_url,
+)
+from authbench.ingest.to_parquet import (
+    estimate_parquet_bytes,
+    to_parquet_partitioned,
+    verify_row_count,
+)
 from authbench.label.redteam_join import (
     attach_campaign_id,
     campaign_summary,
@@ -40,6 +64,7 @@ from authbench.models.floors import AlwaysFailScorer, RandomScorer
 from authbench.models.rules import RulesScorer
 from authbench.models.stats import PairRarityScorer, PCAReconstructionScorer
 from authbench.parse.clean import clean_auth, clean_redteam, data_quality_report
+from authbench.pipeline.build_features import CONF_DIR
 from authbench.split.temporal import (
     TemporalSplitConfig,
     get_test_split,
@@ -79,29 +104,32 @@ console = Console()
 DEMO_BOOTSTRAP_RESAMPLES = 1000
 DEMO_FPR_TARGETS = [1.0e-4, 1.0e-3]
 
-F1_TO_F4_MODEL_FEATURES = [
-    "is_success",
-    "auth_type_is_null",
-    "logon_type_is_null",
-    "src_user_is_machine",
-    "src_dst_user_same",
-    "src_dst_computer_same",
-    "domain_crossing",
-    "auth_type_freq",
-    "logon_type_freq",
-    "auth_orientation_freq",
-    "src_user_1h_n_events",
-    "src_user_1h_failure_ratio",
-    "src_user_1d_n_events",
-    "src_user_1d_failure_ratio",
-    "pair_is_new",
-    "pair_global_rarity",
-    "user_new_host_count_24h",
-    "host_new_user_count_24h",
-    "hour_sin",
-    "hour_cos",
-    "hour_deviation_from_profile",
-]
+
+def load_dataset_config(dataset: str) -> DictConfig:
+    """Load `conf/dataset/<dataset>.yaml`, from the working directory if it is
+    a checkout and from the installed package's `conf/` otherwise.
+
+    The previous `OmegaConf.load(f"conf/dataset/{dataset}.yaml")` silently
+    depended on the process's working directory, so `authbench data download`
+    worked from the repository root and failed everywhere else with a bare
+    `FileNotFoundError` naming a relative path.
+    """
+    candidates = [
+        Path("conf") / "dataset" / f"{dataset}.yaml",
+        CONF_DIR / "dataset" / f"{dataset}.yaml",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            loaded = OmegaConf.load(candidate)
+            assert isinstance(loaded, DictConfig)
+            return loaded
+    raise typer.BadParameter(
+        f"No config for dataset {dataset!r}. Looked in: "
+        + ", ".join(str(c) for c in candidates)
+        + ". Available: "
+        + ", ".join(sorted(p.stem for p in (CONF_DIR / "dataset").glob("*.yaml"))),
+        param_hint="--dataset",
+    )
 
 
 @data_app.command("download")
@@ -129,8 +157,6 @@ def data_download(
     `dvc repro` and CI can run the stage unattended without an address being
     committed into `dvc.yaml`.
     """
-    from omegaconf import OmegaConf
-
     if not email:
         raise typer.BadParameter(
             "LANL's data-use form requires an email address. Pass --email, or set "
@@ -138,7 +164,9 @@ def data_download(
             param_hint="--email",
         )
 
-    cfg = OmegaConf.load(f"conf/dataset/{dataset}.yaml")
+    cfg = load_dataset_config(dataset)
+    console.print(f"Destination {out_dir}: {free_space_bytes(out_dir) / 1e9:.1f} GB free.")
+
     token = fetch_lanl_fence_token(email, usage)
 
     for key, filename in cfg.fence.filenames.items():
@@ -161,17 +189,151 @@ def data_download(
 def data_to_parquet(
     src: Path = typer.Argument(..., help="Path to auth.txt(.gz)."),
     out_dir: Path = typer.Option(Path("data/interim/auth"), help="Output Parquet directory."),
-    expected_rows: int | None = typer.Option(None, help="Abort if converted row count mismatches."),
+    dataset: str = typer.Option(
+        "lanl", help="Dataset whose conf/dataset/<name>.yaml supplies the expected row count."
+    ),
+    expected_rows: int | None = typer.Option(
+        None,
+        help="Abort if the converted row count mismatches. Defaults to the dataset config's "
+        "expected_rows.auth; pass 0 to skip the check entirely.",
+    ),
+    block_bytes: int | None = typer.Option(
+        None, help="Decompressed bytes held in memory per block. Lower it on a small machine."
+    ),
 ) -> None:
-    """US-102: stream raw text into day-partitioned, ZSTD-compressed Parquet."""
-    report = to_parquet_partitioned(src, out_dir)
+    """US-102: stream raw text into day-partitioned, ZSTD-compressed Parquet.
+
+    The row-count target comes from `conf/dataset/<dataset>.yaml` rather than
+    from the caller. A published constant repeated in `dvc.yaml`, in the
+    README and in a shell history is a constant that will eventually
+    disagree with itself, and the whole point of the check is that it is the
+    published figure (US-102).
+    """
+    if expected_rows is None:
+        cfg = load_dataset_config(dataset)
+        configured = cfg.get("expected_rows", {}).get("auth")
+        expected_rows = int(configured) if configured is not None else None
+
+    console.print(
+        f"Source {src.name}: {src.stat().st_size / 1e9:.2f} GB on disk. "
+        f"Estimated Parquet output ~{estimate_parquet_bytes(src) / 1e9:.1f} GB, "
+        f"{free_space_bytes(out_dir) / 1e9:.1f} GB free on the destination volume."
+    )
+
+    kwargs = {} if block_bytes is None else {"block_bytes": block_bytes}
+    report = to_parquet_partitioned(src, out_dir, **kwargs)  # type: ignore[arg-type]
     console.print(
         f"Converted {report.n_rows_out:,}/{report.n_rows_in:,} rows in {report.n_batches} "
-        f"batches, peak RSS {report.peak_rss_bytes / 1e9:.2f} GB."
+        f"blocks, peak RSS {report.peak_rss_bytes / 1e9:.2f} GB "
+        f"(dropped {report.drop_counts.total:,}: "
+        f"{report.drop_counts.null_time:,} null time, "
+        f"{report.drop_counts.malformed_user_domain:,} malformed user@domain)."
     )
-    if expected_rows is not None:
+    if expected_rows:
         verify_row_count(report, expected_rows)
-        console.print("[green]Row count verified.[/]")
+        console.print(f"[green]Row count verified against {expected_rows:,}.[/]")
+    else:
+        console.print("[yellow]Row-count verification skipped.[/]")
+
+
+@app.command()
+def preflight(
+    data_dir: Path = typer.Option(Path("data"), help="Where the pipeline will write its data."),
+    dataset: str = typer.Option("lanl", help="Dataset to budget for."),
+    events: int | None = typer.Option(
+        None, help="Budget for this many auth events instead of the dataset's published total."
+    ),
+) -> None:
+    """Disk, memory and dependency budget for a full run — before downloading.
+
+    Prints what each stage costs on this machine and exits non-zero if it does
+    not fit, together with the event count that would. A 1.05-billion-event
+    conversion has no business discovering it is out of disk five hours in.
+    """
+    import importlib.util
+
+    cfg = load_dataset_config(dataset)
+    n_events = events or int(cfg.get("expected_rows", {}).get("auth") or 0)
+    if not n_events:
+        raise typer.BadParameter(
+            f"conf/dataset/{dataset}.yaml declares no expected_rows.auth; pass --events.",
+            param_hint="--events",
+        )
+
+    budget = lanl_budget(n_events)
+    disk_needed = total_disk_bytes(budget)
+    rss_needed = peak_rss_bytes(budget)
+    disk_free = available_disk_bytes(data_dir)
+    ram_total = available_memory_bytes()
+
+    table = Table(title=f"Budget for {dataset} — {n_events:,} auth events")
+    table.add_column("Stage")
+    table.add_column("Disk added", justify="right")
+    table.add_column("Peak RAM", justify="right")
+    table.add_column("Note")
+    for stage in budget:
+        table.add_row(
+            stage.stage,
+            f"{stage.disk_bytes / 1e9:.1f} GB",
+            f"{stage.peak_rss_bytes / 1e9:.1f} GB",
+            stage.note,
+        )
+    table.add_section()
+    table.add_row(
+        "[bold]TOTAL[/]",
+        f"[bold]{disk_needed / 1e9:.1f} GB[/]",
+        f"[bold]{rss_needed / 1e9:.1f} GB[/]",
+        "disk is cumulative, RAM is the largest single stage",
+    )
+    console.print(table)
+
+    console.print(
+        f"\nThis machine: {disk_free / 1e9:.1f} GB free under {data_dir.resolve()}, "
+        f"{ram_total / 1e9:.1f} GB RAM."
+    )
+
+    missing = [
+        name
+        for module, name in [
+            ("dvc", "dvc (extra: tracking)"),
+            ("mlflow", "mlflow (extra: tracking, optional)"),
+            ("pyod", "pyod (extra: classical)"),
+        ]
+        if importlib.util.find_spec(module) is None
+    ]
+    if missing:
+        console.print(
+            f"[yellow]Not installed: {', '.join(missing)}. `make install-lanl` covers them.[/]"
+        )
+
+    problems: list[str] = []
+    if disk_free < disk_needed:
+        fits = max_events_for_disk(disk_free)
+        problems.append(
+            f"Disk: need {disk_needed / 1e9:.1f} GB, have {disk_free / 1e9:.1f} GB. "
+            f"At this free space the pipeline fits about {fits:,} events "
+            f"({100 * fits / n_events:.1f}% of {dataset})."
+        )
+    if ram_total and ram_total < rss_needed:
+        fits = max_events_for_memory(ram_total)
+        problems.append(
+            f"Memory: train_eval needs about {rss_needed / 1e9:.1f} GB for the design matrix, "
+            f"this machine has {ram_total / 1e9:.1f} GB. That caps the run at roughly "
+            f"{fits:,} events."
+        )
+
+    if problems:
+        console.print("\n[bold red]This run does not fit on this machine.[/]")
+        for problem in problems:
+            console.print(f"  - {problem}")
+        console.print(
+            "\nOptions: free space / use another drive (every path is a CLI flag or a "
+            "conf/ value), or run a documented subset and say so in the report. "
+            "See docs/scaling.md."
+        )
+        raise typer.Exit(code=1)
+
+    console.print("\n[bold green]Budget fits.[/]")
 
 
 @data_app.command("generate-demo")
@@ -201,7 +363,6 @@ def demo(
     import time
 
     t0 = time.time()
-    from omegaconf import OmegaConf
 
     dataset_cfg = OmegaConf.load(conf_dir / "dataset" / "demo.yaml")
     split_cfg = OmegaConf.load(conf_dir / "split" / "demo_temporal.yaml")
@@ -277,9 +438,9 @@ def demo(
         RandomScorer(),
         AlwaysFailScorer(),
         PairRarityScorer(),
-        PCAReconstructionScorer(F1_TO_F4_MODEL_FEATURES),
-        IsolationForestScorer(F1_TO_F4_MODEL_FEATURES),
-        ECODScorer(F1_TO_F4_MODEL_FEATURES),
+        PCAReconstructionScorer(MODEL_FEATURE_COLUMNS),
+        IsolationForestScorer(MODEL_FEATURE_COLUMNS),
+        ECODScorer(MODEL_FEATURE_COLUMNS),
         RulesScorer(),
     ]
 
@@ -406,6 +567,16 @@ def demo(
             else "."
         )
     )
+    if bootstrap.n_campaign_blocks < MIN_CAMPAIGNS_FOR_SIGNIFICANCE:
+        # Distinguish "we looked and found no difference" from "this split
+        # cannot answer the question" — they print the same way otherwise, and
+        # only one of them is a result.
+        console.print(
+            f"  [yellow]Not that they are close: with {bootstrap.n_campaign_blocks} campaign(s) "
+            "in the test split a campaign-stratified bootstrap has no campaign-level variation "
+            "to resample, so significance is not estimable at all here. The AUC-PR point "
+            "estimates and their intervals stand; the verdict is withheld.[/]"
+        )
     if bootstrap.n_degenerate_discarded:
         # Not noise: it says the test split is thin on campaigns, which is
         # the thing that most limits what any of these intervals can mean.
