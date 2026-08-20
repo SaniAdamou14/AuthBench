@@ -235,3 +235,54 @@ class RulesScorer(BaseAnomalyScorer):
         for rid in rule_ids:
             combined += scores_df[rid].to_numpy() * self.weights.get(rid, 0.0)
         return pl.Series(self.name, combined)
+
+
+def rule_discrimination(model: RulesScorer, features: pl.DataFrame) -> pl.DataFrame:
+    """Per-rule mean score on benign vs malicious events, next to the weight M1
+    actually gave that rule.
+
+    US-118 asks for individual rule performance *before* aggregation, because
+    that is what a security audience reads first. It is also the only honest
+    way to read M1's headline number: a rule separating the classes by orders
+    of magnitude is either a good rule or a rule that was handed the answer,
+    and the aggregate score cannot tell those apart.
+
+    On the committed demo run it says the latter — R7 (lateral chain) separates
+    113-fold and carries 0.52 of the weight, because the sample generator emits
+    campaigns as A→B→C chains and R7 tests for A→B→C chains: the same predicate
+    on both sides of the experiment. See `reports/demo/RUN.md`.
+    """
+    raw = model._raw_rule_scores(features.lazy()).collect()
+    labelled = raw.join(features.select(["event_id", "is_malicious"]), on="event_id")
+    benign_rows = labelled.filter(~pl.col("is_malicious"))
+    malicious_rows = labelled.filter(pl.col("is_malicious"))
+
+    def _mean(frame: pl.DataFrame, column: str) -> float:
+        if not frame.height:
+            return 0.0
+        # Aggregated through a `select`, not `Series.mean()`: the latter is
+        # typed as a union covering every dtype Polars can hold a mean of,
+        # which no cast on a Float64 column can narrow.
+        mean = frame.select(pl.col(column).cast(pl.Float64).mean()).item()
+        return float(mean) if mean is not None else 0.0
+
+    rows = [
+        {
+            "rule": rule.id,
+            "mitre": rule.mitre,
+            "description": rule.description,
+            "mean_score_benign": _mean(benign_rows, rule.id),
+            "mean_score_malicious": _mean(malicious_rows, rule.id),
+            # A rule that never fires on benign events has no finite ratio;
+            # an explicit null beats an infinity that renders as an error in
+            # every spreadsheet this table will be opened in.
+            "separation_ratio": (
+                _mean(malicious_rows, rule.id) / _mean(benign_rows, rule.id)
+                if _mean(benign_rows, rule.id)
+                else None
+            ),
+            "calibrated_weight": model.weights.get(rule.id, 0.0),
+        }
+        for rule in RULES
+    ]
+    return pl.DataFrame(rows).sort("calibrated_weight", descending=True)

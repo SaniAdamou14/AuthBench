@@ -1,0 +1,8 @@
+rule,mitre,description,mean_score_benign,mean_score_malicious,separation_ratio,calibrated_weight
+R7_lateral_chain,T1021,"A→B then B→C chain, same user, short window",0.005598407564070664,0.6363636363636364,113.66868686868688,0.5210343675488927
+R3_fail_then_success,T1110,Failure burst on a destination followed by success,0.032595172928589204,0.0,0.0,0.15726895234367752
+R1_new_pair,T1078,"First-ever (user, destination) pair",0.39499875590943023,1.0,2.5316535433070864,0.15655935886027084
+R4_offhours,T1078,Authentication outside the user's usual hours,0.7236764322958229,0.6405730820445338,0.8851650453951521,0.08580551490905693
+R6_new_auth_type,T1550,Auth type never used before by this user,0.15389400348345358,0.5454545454545454,3.544352171676343,0.041048243297441285
+R2_host_burst,T1078,Distinct hosts in 1h beyond user's 99.9th percentile,0.012689723811893506,0.0,0.0,0.02102544960975377
+R5_machine_account_anomaly,T1550,Machine account behaving atypically,2.554729780245654,0.0,0.0,0.017258113430907024

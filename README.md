@@ -39,13 +39,47 @@ synthetic events, 10 red-team campaigns, 4 of them in the test split.
 pass without comment in a paper — and it catches **nothing** at 10, 50 or 100
 alerts a day. The two registers do not merely differ in scale; they rank
 differently and they disagree about whether the model works at all. That gap is
-the entire point of the benchmark, and it is the reason M1 — seven hand-written
-rules with weights fitted on validation — is the model to beat here, not the
-strawman it is usually cast as.
+what the benchmark exists to measure, and it does not depend on the sample being
+realistic: it is a property of the operating point.
 
 8 of the 21 pairwise comparisons are significant after Holm-Bonferroni; the
 other 13 are not, and are reported as not. Four campaigns in a test split is a
 small sample and the intervals say so.
+
+### M1's 100% is partly circular, and here is the measurement
+
+The rules do not win this sample on merit alone. `scripts/generate_demo_data.py`
+emits each campaign as a chain — the user authenticates A→B, then B→C — and M1's
+rule R7 tests for exactly that: *previous destination equals current source,
+within 30 minutes*. The generator and the rule implement **the same predicate**,
+so R7 was handed the answer:
+
+| Rule | mean score, benign | mean score, malicious | ratio |
+|---|---:|---:|---:|
+| **R7 lateral chain** | 0.0056 | 0.6364 | **113×** |
+| R6 new auth type | 0.1539 | 0.5455 | 3.5× |
+| R1 new pair | 0.3950 | 1.0000 | 2.5× |
+| R4 off-hours | 0.7237 | 0.6406 | 0.9× *(no discrimination)* |
+| R2 / R3 / R5 | — | 0.0000 | never fire |
+
+That table is generated output, not prose: `reports/demo/tables/rule_discrimination.csv`,
+rewritten by every `make demo` and covered by the reproducibility check, so
+the caveat cannot quietly stop matching the run it describes.
+
+M1's validation-fitted weights then put **0.521 on R7** — more than half its
+score. So "well-built heuristics beat every ML model at every budget" is, on
+this sample, largely one tautological rule doing the work. R1 contributes
+genuinely (real lateral movement does create new user→host pairs); R4 turns out
+not to discriminate at all once the night window is calibrated from data rather
+than assumed.
+
+This is a property of a **synthetic sample written by the same author as the
+rules**, not a finding about heuristics, and no amount of statistical care fixes
+it — the campaign-stratified bootstrap will faithfully report a circular result
+with correct confidence intervals. It is the reason the LANL run
+([`docs/scaling.md`](docs/scaling.md)) is the project's next milestone rather
+than a nice-to-have: on LANL the attacks were carried out by a red team that had
+never heard of R7.
 
 ## Try it in under a minute
 
@@ -76,6 +110,7 @@ M0/M1/M2/M3 → evaluation, and writes to `reports/demo/`:
 | `reports/demo/tables/demo_results.json` | every metric, per model |
 | `reports/demo/tables/pairwise_comparisons.json` | pairwise AUC-PR tests, Holm-Bonferroni corrected |
 | `reports/demo/tables/campaign_summary.csv` | one row per red-team campaign |
+| `reports/demo/tables/rule_discrimination.csv` | per-rule separation and calibrated weight, before aggregation (US-118) |
 | `reports/demo/figures/campaign_recall_vs_budget.png` | the headline figure |
 | `reports/demo/data_quality.json` | null rates, cardinalities, counted drops |
 

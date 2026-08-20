@@ -30,6 +30,24 @@ out of 21 "significant" — off a single attack, at the bootstrap's own resoluti
 floor. See `_CAMPAIGNS_PER_PARTITION` in the generator and
 `stats_tests.MIN_CAMPAIGNS_FOR_SIGNIFICANCE`.
 
+## The result on this sample is partly circular
+
+Stated here as well as in the README, because this directory is where someone
+lands who wants to quote a number.
+
+The generator emits campaigns as chains (user authenticates A→B, then B→C) and
+M1's rule R7 tests for "previous destination equals current source within 30
+minutes" — the same predicate. Measured on the test split, R7 scores 113× higher
+on malicious events than benign ones, and M1's validation-fitted weights put
+0.521 of their mass on it. R1 (new user→host pair) contributes genuinely at 2.5×;
+R4 (off-hours) does not discriminate at all; R2, R3 and R5 never fire.
+
+So "M1 catches every campaign at 10 alerts/day" is, here, mostly one rule that
+was handed the generator's own definition of an attack. The
+alert-budget-versus-ROC-AUC gap in the same table does **not** depend on this —
+it is a property of the operating point, not of the sample — but the model
+*ranking* does. Do not quote the ranking as a finding.
+
 ## Files
 
 | File | What it holds |

@@ -61,7 +61,7 @@ from authbench.label.redteam_join import (
 )
 from authbench.models.classical import ECODScorer, IsolationForestScorer
 from authbench.models.floors import AlwaysFailScorer, RandomScorer
-from authbench.models.rules import RulesScorer
+from authbench.models.rules import RulesScorer, rule_discrimination
 from authbench.models.stats import PairRarityScorer, PCAReconstructionScorer
 from authbench.parse.clean import clean_auth, clean_redteam, data_quality_report
 from authbench.pipeline.build_features import CONF_DIR
@@ -461,6 +461,11 @@ def demo(
 
         scores = model.score(test_feat.lazy())  # type: ignore[attr-defined]
         scored = scored.with_columns(pl.Series(score_column(model.name), scores))  # type: ignore[attr-defined]
+
+        if isinstance(model, RulesScorer):
+            rule_discrimination(model, test_feat).write_csv(
+                reports_dir / "tables" / "rule_discrimination.csv"
+            )
 
     # One campaign-stratified resampling pass serves every model: the
     # per-model CIs and the pairwise differences then come from the same
