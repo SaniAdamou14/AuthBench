@@ -50,6 +50,49 @@ def test_the_compact_and_explicit_block_forms_describe_the_same_scheme() -> None
     ) == list(range(frame.height))
 
 
+def test_blocks_are_ordered_by_campaign_id_so_a_seeded_bootstrap_repeats() -> None:
+    """NFR-02: the same seed must give the same intervals, run after run.
+
+    Polars' `group_by` gives no ordering guarantee — it is a multi-threaded
+    hash aggregation, and the group order genuinely varies between runs. Block
+    index `j` then addressed a different campaign each time, so a *seeded*
+    bootstrap drew a different sampling distribution on every run: point
+    estimates stayed put while every confidence interval and p-value drifted.
+    The demo reproduced it in two consecutive runs.
+
+    Simulated here by permuting the frame's campaign rows: whatever order they
+    arrive in, the blocks must come out keyed the same way.
+    """
+    frame = _frame(n_campaigns=4)
+    shuffled = pl.concat(
+        [
+            frame.filter(pl.col("campaign_id") == c)
+            for c in [3, 1, 4, 2]  # a different arrival order
+        ]
+        + [frame.filter(pl.col("campaign_id").is_null())]
+    )
+
+    ordered = CampaignBlocks.from_frame(shuffled)
+    campaign_ids_by_block = [
+        shuffled["campaign_id"][int(block[0])] for block in ordered.campaign_blocks
+    ]
+
+    assert campaign_ids_by_block == sorted(campaign_ids_by_block), (
+        "blocks must be keyed by campaign_id, not by group_by's arrival order"
+    )
+
+
+def test_the_same_seed_reproduces_the_same_resamples() -> None:
+    frame = _frame(n_campaigns=5)
+    blocks = CampaignBlocks.from_frame(frame)
+
+    first = [blocks.draw(np.random.default_rng(11))[0] for _ in range(3)]
+    second = [blocks.draw(np.random.default_rng(11))[0] for _ in range(3)]
+
+    for a, b in zip(first, second, strict=True):
+        assert np.array_equal(a, b)
+
+
 def test_a_draw_returns_one_index_per_block_and_reports_its_campaign_count() -> None:
     blocks = CampaignBlocks.from_frame(_frame(n_campaigns=3))
     rng = np.random.default_rng(7)

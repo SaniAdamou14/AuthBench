@@ -16,6 +16,7 @@ import polars as pl
 import pytest
 from omegaconf import OmegaConf
 
+from authbench.evaluate.stats_tests import MIN_CAMPAIGNS_FOR_SIGNIFICANCE
 from authbench.models.rules import RULES, NoPositivesInValidationError, RulesScorer
 from authbench.split.temporal import TemporalSplitConfig
 
@@ -33,6 +34,24 @@ def _redteam_days() -> set[int]:
     return set((frame["time"] // SECONDS_PER_DAY).to_list())
 
 
+def _redteam_frame() -> pl.DataFrame:
+    return pl.read_csv(
+        DEMO_REDTEAM,
+        has_header=False,
+        new_columns=["time", "user_at_domain", "src_computer", "dst_computer"],
+    ).with_columns((pl.col("time") // SECONDS_PER_DAY).alias("day"))
+
+
+def _campaigns_in(partition: str) -> int:
+    """Campaigns are grouped per `user@domain` (`label.redteam_join`), and the
+    generator gives each campaign its own user, so distinct users in a
+    partition is its campaign count."""
+    config = TemporalSplitConfig.from_hydra(OmegaConf.load(DEMO_SPLIT_CONF))
+    start, end = getattr(config, f"{partition}_days")
+    window = _redteam_frame().filter(pl.col("day").is_between(start, end))
+    return int(window["user_at_domain"].n_unique())
+
+
 @pytest.mark.parametrize("partition", ["train", "val", "test"])
 def test_every_demo_partition_contains_redteam_activity(partition: str) -> None:
     config = TemporalSplitConfig.from_hydra(OmegaConf.load(DEMO_SPLIT_CONF))
@@ -45,6 +64,37 @@ def test_every_demo_partition_contains_redteam_activity(partition: str) -> None:
         "an empty validation window silently reduces M1's weight calibration to a "
         "single arbitrary random draw."
     )
+
+
+def test_the_test_split_carries_enough_campaigns_to_estimate_significance() -> None:
+    """The second way this sample can cripple the benchmark without crashing.
+
+    Campaigns, not events, are the independent unit of the campaign-stratified
+    bootstrap: they *are* its sample size. With one campaign in the test split
+    no resample can vary the campaign composition, so no pairwise difference
+    can change sign, every p-value lands on the resolution floor `2/(R+1)`, and
+    the entire comparison table reads "outperforms" off a single attack. The
+    sample used to have exactly one, and the demo reported 21/21 significant.
+
+    `MIN_CAMPAIGNS_FOR_SIGNIFICANCE` now withholds the verdict below two, which
+    turns the silent wrong answer into a visible refusal — but a sample that
+    triggers it can never demonstrate what the demo exists to demonstrate.
+    """
+    n_campaigns = _campaigns_in("test")
+
+    assert n_campaigns >= MIN_CAMPAIGNS_FOR_SIGNIFICANCE, (
+        f"The demo test split holds {n_campaigns} campaign(s); the bootstrap needs at "
+        f"least {MIN_CAMPAIGNS_FOR_SIGNIFICANCE} for significance to be estimable at all. "
+        "Raise _CAMPAIGNS_PER_PARTITION['test'] in scripts/generate_demo_data.py."
+    )
+
+
+def test_validation_carries_more_than_one_campaign_for_m1_calibration() -> None:
+    """M1's weight search maximizes AUC-PR on validation. One campaign there
+    makes that objective nearly degenerate: almost every weight vector scores
+    the same handful of events identically, so the search returns something
+    arbitrary that still looks calibrated."""
+    assert _campaigns_in("val") >= 2
 
 
 def test_calibrate_weights_rejects_a_validation_set_with_no_positives() -> None:

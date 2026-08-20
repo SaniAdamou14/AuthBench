@@ -1,0 +1,39 @@
+{
+  "n_rows": 37844,
+  "null_rates": {
+    "time": 0.0,
+    "day": 0.0,
+    "src_user": 0.0,
+    "src_domain": 0.0,
+    "dst_user": 0.0,
+    "dst_domain": 0.0,
+    "src_computer": 0.0,
+    "dst_computer": 0.0,
+    "auth_type": 0.5521350808582602,
+    "auth_type_is_null": 0.0,
+    "logon_type": 0.13901807419934467,
+    "logon_type_is_null": 0.0,
+    "auth_orientation": 0.0,
+    "success": 0.0,
+    "src_user_is_machine": 0.0,
+    "dst_user_is_machine": 0.0,
+    "event_id": 0.0
+  },
+  "cardinality": {
+    "src_user": 350,
+    "src_domain": 1,
+    "dst_user": 350,
+    "dst_domain": 1,
+    "src_computer": 100,
+    "dst_computer": 100,
+    "auth_type": 5,
+    "logon_type": 5,
+    "auth_orientation": 2
+  },
+  "n_duplicate_rows": 0,
+  "dropped": {
+    "malformed_user_domain": 0,
+    "null_time": 0,
+    "total": 0
+  }
+}

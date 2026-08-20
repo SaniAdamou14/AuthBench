@@ -78,10 +78,21 @@ class CampaignBlocks:
     def from_frame(cls, frame: pl.DataFrame) -> CampaignBlocks:
         with_idx = frame.with_row_index("_idx")
         campaign_rows = with_idx.filter(pl.col("campaign_id").is_not_null())
+        # `.sort("campaign_id")` is load-bearing, not tidiness. Polars'
+        # `group_by` makes no ordering guarantee — it is a multi-threaded hash
+        # aggregation, and the group order varies between runs of the same
+        # process on the same data. The resample then draws block index `j`
+        # from a list whose `j`-th entry is a *different campaign* each run,
+        # so a seeded bootstrap produced a different sampling distribution
+        # every time: point estimates were stable, every confidence interval
+        # and every p-value drifted. That is NFR-02 (bit-identical reruns)
+        # broken exactly where it matters most, and silently — the numbers
+        # stayed plausible. Sorting pins the index-to-campaign mapping.
         campaign_blocks = [
             np.asarray(idx_list, dtype=np.int64)
             for idx_list in campaign_rows.group_by("campaign_id")
-            .agg(pl.col("_idx"))["_idx"]
+            .agg(pl.col("_idx"))
+            .sort("campaign_id")["_idx"]
             .to_list()
         ]
         benign = with_idx.filter(pl.col("campaign_id").is_null())

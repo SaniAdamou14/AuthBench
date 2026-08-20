@@ -11,12 +11,14 @@ meaningful to demo:
   something real to key on;
 - machine accounts (`$` suffix) with their own distinct pattern;
 - realistic null rates for `auth_type` (~55%) and `logon_type` (~14%);
-- three complete red-team lateral-movement campaigns (A→B→C chains), one in
-  each of the train/val/test partitions of `conf/split/demo_temporal.yaml`,
-  with every campaign event's quadruplet duplicated verbatim into the
-  redteam file, and the full history of the users/machines involved
-  preserved — a naive random event sample would destroy exactly the
-  historical features this benchmark is about (US-103 acceptance criteria).
+- ten complete red-team lateral-movement campaigns (A→B→C chains) spread
+  across the train/val/test partitions of `conf/split/demo_temporal.yaml`
+  — three, three and **four** respectively, for the reasons set out at
+  `_CAMPAIGNS_PER_PARTITION` — with every campaign event's quadruplet
+  duplicated verbatim into the redteam file, and the full history of the
+  users/machines involved preserved: a naive random event sample would
+  destroy exactly the historical features this benchmark is about (US-103
+  acceptance criteria).
 
 Deterministic: same seed, same output, byte for byte.
 """
@@ -25,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import gzip
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -42,6 +45,103 @@ FAILURE_RATE = 0.03
 
 def _fmt_row(*fields: object) -> str:
     return ",".join(str(f) for f in fields)
+
+
+@dataclass(frozen=True)
+class CampaignSpec:
+    """One red-team lateral-movement chain: a user walking a path of machines."""
+
+    user: str
+    day: int
+    start_hour: int
+    chain: list[str]
+
+
+# Where each partition of `conf/split/demo_temporal.yaml` sits, as a fraction of
+# `n_days`, so a sample regenerated with a different `--n-days` keeps landing
+# campaigns in the right places. At the default 14 days these resolve to the
+# configured train [0, 7] / val [8, 10] / test [11, 13].
+#
+# Day 0 is deliberately excluded: an attack on the first day has no prior
+# history for F2/F3 to contrast it against, so it would be detected (or missed)
+# for reasons that have nothing to do with the models.
+_PARTITION_DAY_FRACTIONS: dict[str, tuple[float, float]] = {
+    "train": (0.15, 0.54),
+    "val": (0.58, 0.76),
+    "test": (0.80, 0.97),
+}
+
+# How many campaigns land in each partition, and why the counts are not equal.
+#
+# **test gets the most, and never fewer than two.** The number of campaigns in
+# a partition *is* the sample size of the campaign-stratified bootstrap that
+# produces every confidence interval and every pairwise p-value. With one
+# campaign in the test split, resampling cannot vary the campaign composition
+# at all: no pairwise difference can change sign, every p-value collapses onto
+# the resolution floor 2/(R+1), and the whole comparison table reads
+# "significant" off a single attack. That is a property of the sample, not of
+# the models, and `stats_tests.MIN_CAMPAIGNS_FOR_SIGNIFICANCE` now refuses to
+# report a verdict below two — so a one-campaign test split makes the demo
+# unable to demonstrate the one thing it exists to demonstrate.
+#
+# **val gets three**, because M1's weight calibration maximizes AUC-PR there
+# and a single campaign makes that objective nearly degenerate.
+#
+# **train gets three**, so the semi-supervised regime (R2) has something to
+# learn from and the unsupervised regime (R1) has contamination to be robust to.
+_CAMPAIGNS_PER_PARTITION: dict[str, int] = {"train": 3, "val": 3, "test": 4}
+
+# Chain lengths cycle, so campaigns differ in event count the way real ones do
+# — a two-hop smash-and-grab and a four-hop walk are not the same detection
+# problem, and `campaign_summary.csv` should show that.
+_CHAIN_LENGTHS: list[int] = [3, 4, 3, 5]
+
+# Most intrusions here happen at night, where F4's calibrated night window can
+# see them. Two do not: a benchmark whose every positive is trivially separable
+# on one feature measures that feature, not the models.
+_NIGHT_START_HOURS: list[int] = [2, 3, 4, 5]
+_DAYTIME_CAMPAIGN_INDICES: frozenset[int] = frozenset({4, 8})
+
+
+def build_campaign_specs(n_days: int, users: list[str], computers: list[str]) -> list[CampaignSpec]:
+    """Lay out the red-team campaigns across the three partitions.
+
+    Every campaign gets its own user, because `label.redteam_join` groups
+    campaigns per `user@domain`: two chains sharing a user within the 24-hour
+    gap threshold would be merged into one campaign, silently undoing the
+    counts above.
+    """
+    specs: list[CampaignSpec] = []
+    index = 0
+
+    for partition, n_campaigns in _CAMPAIGNS_PER_PARTITION.items():
+        low_fraction, high_fraction = _PARTITION_DAY_FRACTIONS[partition]
+        first_day = max(1, int(n_days * low_fraction))
+        last_day = max(first_day, int(n_days * high_fraction))
+        span = last_day - first_day + 1
+
+        for slot in range(n_campaigns):
+            chain_length = _CHAIN_LENGTHS[index % len(_CHAIN_LENGTHS)]
+            chain_start = (index * 5) % max(1, len(computers) - chain_length)
+            specs.append(
+                CampaignSpec(
+                    user=users[index % len(users)],
+                    # Spread across the partition's days; two campaigns may
+                    # share a day when the partition is shorter than the
+                    # number of campaigns, which is fine — different users
+                    # keep them separate campaigns.
+                    day=first_day + (slot % span),
+                    start_hour=(
+                        10 + (index % 5)
+                        if index in _DAYTIME_CAMPAIGN_INDICES
+                        else _NIGHT_START_HOURS[index % len(_NIGHT_START_HOURS)]
+                    ),
+                    chain=computers[chain_start : chain_start + chain_length],
+                )
+            )
+            index += 1
+
+    return specs
 
 
 def generate(
@@ -145,40 +245,12 @@ def generate(
                     True,
                 )
 
-    # --- Red-team campaigns: three complete lateral-movement chains -----------
-    # One campaign per partition of conf/split/demo_temporal.yaml (train
-    # [0, 7], val [8, 10], test [11, 13] at the default n_days=14). Every
-    # partition needs its own positives, for a different reason each time:
-    #
-    #   train — so the semi-supervised regime (r2) has anything to learn from;
-    #   val   — M1's weight calibration maximizes AUC-PR on validation only.
-    #           With zero positives there, average_precision_score returns
-    #           0.0 for *every* trial, so the random search silently keeps its
-    #           first arbitrary draw and "calibration" becomes a no-op;
-    #   test  — otherwise every model reports AUC-PR 0 and the demo looks
-    #           broken for the wrong reason.
-    #
-    # The day offsets are expressed as fractions of n_days so that a demo
-    # regenerated with a different --n-days keeps landing one campaign in
-    # each partition.
-    campaign_specs = [
-        {"user": users[0], "day": max(2, n_days // 4), "chain": computers[:4], "start_hour": 3},
-        {
-            "user": users[1],
-            "day": max(3, int(n_days * 0.64)),
-            "chain": computers[4:8],
-            "start_hour": 5,
-        },
-        {"user": users[2], "day": max(4, n_days - 2), "chain": computers[8:12], "start_hour": 2},
-    ]
-
-    for spec in campaign_specs:
-        u = spec["user"]
-        day_start = spec["day"] * seconds_per_day
-        t = day_start + spec["start_hour"] * 3600
-        chain = spec["chain"]
-        for hop in range(len(chain) - 1):
-            src_c, dst_c = chain[hop], chain[hop + 1]
+    # --- Red-team campaigns: complete lateral-movement chains ------------------
+    for spec in build_campaign_specs(n_days, users, computers):
+        u = spec.user
+        t = spec.day * seconds_per_day + spec.start_hour * 3600
+        for hop in range(len(spec.chain) - 1):
+            src_c, dst_c = spec.chain[hop], spec.chain[hop + 1]
             t += int(rng.integers(60, 600))  # each hop a few minutes after the last
             auth_lines.append(
                 _fmt_row(

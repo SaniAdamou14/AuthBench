@@ -350,7 +350,11 @@ def data_generate_demo(out_dir: Path = typer.Option(Path("data/demo"))) -> None:
 @app.command()
 def demo(
     conf_dir: Path = typer.Option(Path("conf")),
-    reports_dir: Path = typer.Option(Path("reports")),
+    reports_dir: Path = typer.Option(
+        Path("reports/demo"),
+        help="Where the demo writes its artifacts. The default is versioned in git — "
+        "see reports/demo/RUN.md.",
+    ),
 ) -> None:
     """US-103 acceptance criterion: run the full pipeline on the demo sample
     end to end (ingest -> clean -> label -> split -> features F1-F4 ->

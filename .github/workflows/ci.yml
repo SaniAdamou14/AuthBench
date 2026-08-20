@@ -54,6 +54,19 @@ jobs:
           .venv/bin/python -m authbench.cli demo
         timeout-minutes: 5
 
+      # NFR-02, asserted rather than claimed. `reports/demo/` is committed
+      # output; the step above has just rewritten it from scratch with pinned
+      # seeds. If a single number moved, the run is not reproducible and the
+      # committed results are not the ones this code produces.
+      #
+      # This caught a real one: Polars' `group_by` gives no ordering guarantee,
+      # so the bootstrap's campaign blocks were reshuffled between runs and
+      # every confidence interval drifted while the point estimates held still.
+      - name: Committed reference results must regenerate byte for byte
+        run: |
+          git diff --exit-code --stat -- reports/demo/tables reports/demo/data_quality.json \
+            || { echo "::error::reports/demo/ drifted — a seeded run is no longer reproducible."; exit 1; }
+
       - name: Upload report artifacts
         uses: actions/upload-artifact@v4
         with:
