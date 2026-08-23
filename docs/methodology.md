@@ -124,14 +124,35 @@ within each — which is exactly the uniform draw over the combined list, at a c
 not involve materializing one Python object per benign event. `build_campaign_blocks` keeps
 the explicit form as the readable reference the tests check against.
 
+## One model is transductive, and it is not the one you would guess
+
+`M3b_ecod` is not a pure "fit here, apply there" model. PyOD's
+`ECOD.decision_function` recomputes the empirical cumulative distribution from the matrix it
+is handed, so an event's score depends on which other events are scored alongside it: the same
+row scores 10.64 alone and 10.81 among four hundred others.
+
+No label crosses the train/test boundary, so this is not leakage in the sense US-107 guards
+against, and it is how ECOD is used in the literature. But it does mean M3b's test scores
+depend on the *test* distribution, and a benchmark claiming a strictly temporal protocol owes
+its reader that sentence rather than leaving it in a library's source.
+
+It was found by `tests/unit/test_chunked_scoring.py`, which exists to assert the opposite —
+that scoring a split piecewise gives the same answer as scoring it whole. `M3a_iforest`,
+`M3b_hbos`, `M2b_pca_reconstruction` and `M0b_always_fail` pass that test; ECOD does not, and
+`AnomalyScorer.scores_row_locally` records which is which. So does M1, for a different and
+intended reason: R6 and R7 look backwards across the split by design.
+
 ## Scale
 
-The protocol above is written against 1.05 billion auth events; the implementation is not yet.
-`train_eval` loads each split whole and the estimators copy the design matrix.
-[`scaling.md`](scaling.md) has the measured per-stage disk and memory budget, and
-`authbench preflight` prints it for the machine it runs on and exits non-zero when the run
-does not fit. Nothing about the protocol changes; what changes is which of it can be executed
-where.
+The protocol is written against 1.05 billion auth events. Five changes brought a full run from
+~161 GB of disk and ~439 GB of RAM down to ~81 GB and ~49 GB — a day-window conversion, a
+feature store projected to the columns anything reads, bounded-sample fitting, day-chunked
+scoring, and a rank-ordered AUC-PR bootstrap. None of them moves a measured number:
+`reports/demo/` regenerates byte for byte after all five.
+
+[`scaling.md`](scaling.md) has the measured per-stage budget, the recommended 14-day LANL
+slice, and what each change bought. `authbench preflight` prints the budget for the machine it
+runs on and exits non-zero when the run does not fit, naming the event count that would.
 
 `eval.pairwise_test.method` also accepts `permutation` — the exact per-event paired test
 (`compare_models`). It assumes the two models' scores are exchangeable event by event, which

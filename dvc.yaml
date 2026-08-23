@@ -26,8 +26,12 @@ stages:
       authbench data to-parquet data/raw/auth.txt.gz
       --out-dir data/interim/auth
       --dataset ${dataset}
+      --days "${to_parquet_days}"
     deps:
       - data/raw
+    params:
+      - dataset
+      - to_parquet_days
     outs:
       - data/interim/auth:
           cache: false
@@ -69,8 +73,12 @@ stages:
     outs:
       - reports/tables
       - reports/figures
+    # The metrics file sits *outside* reports/tables on purpose. DVC refuses a
+    # metric that lives inside a tracked output directory ("overlap and are
+    # thus in the same tracked directory"), so a metric under reports/tables/
+    # makes `dvc repro` fail before it runs anything.
     metrics:
-      - reports/tables/metrics_summary.json:
+      - reports/metrics_summary.json:
           cache: false
 
 # There is deliberately no `report` (latexmk) stage yet: reports/paper/ does

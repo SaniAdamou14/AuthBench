@@ -1,0 +1,32 @@
+schema: '2.0'
+stages:
+  download:
+    cmd: authbench data download --dataset lanl
+    params:
+      params.yaml:
+        dataset: lanl
+    outs:
+    - path: data/raw
+      hash: md5
+      md5: 7ee6e4546ff479a771150a597a8eb3fc.dir
+      size: 7626510004
+      nfiles: 2
+  to_parquet:
+    cmd: authbench data to-parquet data/raw/auth.txt.gz --out-dir 
+      data/interim/auth --dataset lanl --days "0:13"
+    deps:
+    - path: data/raw
+      hash: md5
+      md5: 7ee6e4546ff479a771150a597a8eb3fc.dir
+      size: 7626510004
+      nfiles: 2
+    params:
+      params.yaml:
+        dataset: lanl
+        to_parquet_days: 0:13
+    outs:
+    - path: data/interim/auth
+      hash: md5
+      md5: c58be1003924d73e8ffc12d2aec11f42.dir
+      size: 2308515064
+      nfiles: 135

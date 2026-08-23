@@ -40,9 +40,20 @@ _RETRYABLE_STATUS_CODES = frozenset({408, 425, 429, 500, 502, 503, 504})
 # write Parquet next.
 DISK_SAFETY_MARGIN_BYTES = 2 * 1024**3  # 2 GiB
 
-# The fence token is an opaque path segment in the file URL, so it can only
-# be URL-safe characters and is never empty or HTML.
-_TOKEN_RE = re.compile(r"[A-Za-z0-9._~\-]{8,256}")
+# What the fence token may *not* contain, rather than what it may.
+#
+# The first version of this check was an allowlist of "URL-safe characters",
+# and it rejected the real thing: LANL returns a timestamp and a base64url
+# signature joined by a slash — `1787286884/vLcmtpKgdjOJ_K7_sPNfRenhJ4Q=` —
+# so `/` and `=` both appear, and both are perfectly legal in a URL path.
+# Guessing the shape of someone else's opaque token is how a validator ends up
+# blocking the success case it was written to protect.
+#
+# What actually distinguishes a token from the failure modes worth catching —
+# an HTML page, an interstitial, an empty body — is markup and whitespace.
+_TOKEN_FORBIDDEN_RE = re.compile(r"[\s<>\"']")
+_TOKEN_MIN_LENGTH = 8
+_TOKEN_MAX_LENGTH = 512
 
 
 class ChecksumMismatchError(RuntimeError):
@@ -166,7 +177,7 @@ def fetch_lanl_fence_token(
     # 404 several layers down, and the user is left debugging the wrong thing.
     # The token is an opaque URL path segment, so anything that cannot be one
     # is rejected here, where the real cause is still visible.
-    if not _TOKEN_RE.fullmatch(token):
+    if not _looks_like_fence_token(token):
         preview = " ".join(token[:200].split())
         raise InvalidFenceTokenError(
             f"{LANL_FENCE_BASE}/data-fence/token did not return a usable token for "
@@ -176,6 +187,21 @@ def fetch_lanl_fence_token(
             "download links point at."
         )
     return token
+
+
+def _looks_like_fence_token(token: str) -> bool:
+    """Whether `token` could be the opaque path segment of a file URL.
+
+    Deliberately permissive about *what* a token is and strict only about what
+    it cannot be. LANL's is `<timestamp>/<base64url signature>=`, which no
+    reasonable guess at "URL-safe characters" would have predicted; the next
+    change to their gate will not match a guess either. Markup and whitespace,
+    on the other hand, are never part of a path segment and are exactly what
+    an error page, an interstitial or an empty body are made of.
+    """
+    if not _TOKEN_MIN_LENGTH <= len(token) <= _TOKEN_MAX_LENGTH:
+        return False
+    return _TOKEN_FORBIDDEN_RE.search(token) is None
 
 
 def lanl_file_url(token: str, filename: str) -> str:

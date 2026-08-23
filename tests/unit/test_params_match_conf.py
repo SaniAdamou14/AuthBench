@@ -51,6 +51,34 @@ def test_feature_knobs_match() -> None:
     assert params.features.f6_context_length == conf.f6_sequence.context_length  # type: ignore[union-attr]
 
 
+def test_the_split_lies_inside_the_converted_day_window() -> None:
+    """`to_parquet_days` decides which days exist on disk; the split decides
+    which days the pipeline asks for. A split reaching outside the window does
+    not produce an empty partition, it produces a *missing* one — and
+    `verify_temporal_order` then reports a leakage error for a reason that has
+    nothing to do with leakage."""
+    params = _load("params.yaml")
+    window = str(params.to_parquet_days).strip()  # type: ignore[union-attr]
+    if not window:
+        return  # every day converted; nothing to check
+
+    first, last = (int(part) for part in window.split(":"))
+    conf = _load("conf", "split", "temporal.yaml")
+    for key in ("train_days", "val_days", "test_days"):
+        low, high = (int(v) for v in conf[key])  # type: ignore[index]
+        assert first <= low <= high <= last, (
+            f"split.{key} = [{low}, {high}] falls outside the converted window {window}"
+        )
+
+
+def test_runtime_knobs_match() -> None:
+    params = _load("params.yaml")
+    conf = _load("conf", "config.yaml")
+
+    assert params.runtime.fit_sample_size == conf.runtime.fit_sample_size  # type: ignore[union-attr]
+    assert params.runtime.bootstrap_workers == conf.runtime.bootstrap_workers  # type: ignore[union-attr]
+
+
 def test_dataset_knobs_match() -> None:
     params = _load("params.yaml")
     conf = _load("conf", "dataset", f"{_load('params.yaml').dataset}.yaml")  # type: ignore[union-attr]

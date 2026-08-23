@@ -69,7 +69,17 @@ class MlflowTracker:
 
 
 def open_tracker(tracking_uri: str, experiment_name: str) -> Tracker:
-    """An MLflow tracker if `authbench[tracking]` is installed, else a no-op."""
+    """An MLflow tracker if one can be opened, else a no-op.
+
+    Every failure is caught, not just `ImportError`. The narrower version was a
+    mistake with a concrete cost: MLflow 3.15 refuses a `file:./mlruns`
+    backend outright — "in maintenance mode", raising `MlflowException` — so
+    the whole `train_eval` stage died at startup, before reading a row, because
+    of a bookkeeping backend the results do not depend on.
+
+    A tracker that cannot be opened is a tracker that is not used. The run
+    still produces `reports/tables/`, and the reason is logged loudly.
+    """
     try:
         tracker = MlflowTracker(tracking_uri, experiment_name)
     except ImportError:
@@ -78,6 +88,15 @@ def open_tracker(tracking_uri: str, experiment_name: str) -> Tracker:
             "not tracked. Install the extra with `uv pip install -e '.[tracking]'` to enable "
             "tracking at %s.",
             tracking_uri,
+        )
+        return NullTracker()
+    except Exception as exc:  # noqa: BLE001 - tracking must never fail the run
+        logger.warning(
+            "MLflow could not be opened at %s (%s: %s) — continuing without tracking. "
+            "Results are unaffected and still written to reports/tables/.",
+            tracking_uri,
+            type(exc).__name__,
+            exc,
         )
         return NullTracker()
     logger.info("MLflow tracking to %s (experiment %r).", tracking_uri, experiment_name)

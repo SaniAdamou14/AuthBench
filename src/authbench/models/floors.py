@@ -15,6 +15,9 @@ class RandomScorer(BaseAnomalyScorer):
 
     name = "M0a_random"
     requires_labels = False
+    # Seeded from a single draw over the whole frame, so it is *not* row-local:
+    # scoring in chunks would restart the generator in each one.
+    scores_row_locally = False
 
     def __init__(self, seed: int = 42) -> None:
         self.seed = seed
@@ -36,6 +39,7 @@ class AlwaysFailScorer(BaseAnomalyScorer):
 
     name = "M0b_always_fail"
     requires_labels = False
+    scores_row_locally = True
 
     def fit(self, train: pl.LazyFrame) -> None:
         return None

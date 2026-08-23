@@ -33,3 +33,26 @@ this summarizes.
 - **ROC-AUC as a ranking criterion** — stays high even for operationally useless models at
   LANL's ~10⁻⁷ positive rate. Reported in the annex only, always with
   `authbench.evaluate.metrics.ROC_AUC_WARNING`.
+
+## One day of history per partition (LANL run, August 2026)
+
+The published LANL result splits one day into train, one into validation and one
+into test, with no warm-up. F2's 24-hour windows and F3's cumulative pair
+statistics therefore see at most one day of past.
+
+This makes a campaign recall of 0% ambiguous between two readings that the run
+cannot separate: the models genuinely detect nothing at an operational budget,
+or one day is not enough history to establish what counts as new.
+
+The effect is measured rather than asserted. On the demo sample, adding two
+warm-up days halves `pair_is_new` (2,623 -> 1,287) over an identical set of
+written events: without history, half the pairs called "never seen before" were
+only unseen because there was no past to have seen them in.
+
+What the limitation does **not** reach is the anti-correlation between ROC-AUC
+and campaign recall — M2a at 0.942 detecting nothing, M1 at 0.547 being the only
+model that detects anything. That is a property of the operating point and the
+positive rate, and no amount of history changes it.
+
+See [`../reports/lanl/RUN.md`](../reports/lanl/RUN.md) and
+[`scaling.md`](scaling.md).

@@ -5,6 +5,27 @@ f1_event:
   enabled: true
   categorical_encoding: frequency  # not one-hot — high cardinality
 
+# Days of history each split reads *before* its own first day, computed over
+# but never written out.
+#
+# **0 in the published LANL run, and that is a hardware limit, not a choice.**
+# One warm-up day made each split process 38M rows instead of 19M and died on
+# the second split after writing the first; two made it 57M and died before
+# writing anything. Measured on the demo sample, going from 0 to 2 warm-up days
+# halves `pair_is_new` (2,623 -> 1,287): without history, half the pairs called
+# "never seen" were only unseen because there was no past to have seen them in.
+# That is the size of what a 0 here costs, and it is why the LANL results carry
+# the caveat they do — see reports/lanl/RUN.md.
+#
+# Without it a one-day split gives F2's 24-hour windows and F3's cumulative pair
+# statistics a single day of past to work with — which cripples exactly the
+# feature families this benchmark says carry the lateral-movement signal, and
+# makes a recall of zero ambiguous between "the models detect nothing" and "one
+# day is not enough history to know what is new". Every warm-up day costs a
+# day's worth of processing memory, so it is capped by the machine, not by
+# taste.
+history_warmup_days: 0
+
 f2_history:
   enabled: true
   windows_hours: [1, 24, 168]  # 1h / 24h / 7d

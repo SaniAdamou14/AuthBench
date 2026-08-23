@@ -35,6 +35,7 @@ from authbench.features.temporal import calibrate_night_window, compute_f4
 from authbench.ingest.budget import (
     available_disk_bytes,
     available_memory_bytes,
+    free_memory_bytes,
     lanl_budget,
     max_events_for_disk,
     max_events_for_memory,
@@ -46,6 +47,7 @@ from authbench.ingest.download import (
     fetch_lanl_fence_token,
     free_space_bytes,
     lanl_file_url,
+    sha256_of,
 )
 from authbench.ingest.to_parquet import (
     estimate_parquet_bytes,
@@ -132,6 +134,30 @@ def load_dataset_config(dataset: str) -> DictConfig:
     )
 
 
+def parse_day_range(days: str | None) -> tuple[int, int] | None:
+    """Parse a `FIRST:LAST` day window, inclusive on both ends.
+
+    An empty string means "every day", so `dvc.yaml` can pass
+    `--days "${to_parquet_days}"` unconditionally and the choice stays in
+    `params.yaml`, where DVC can see it change, rather than in a stage command
+    someone has to remember to edit.
+    """
+    if days is None or not days.strip():
+        return None
+    try:
+        first_text, last_text = days.split(":")
+        window = (int(first_text), int(last_text))
+    except ValueError as exc:
+        raise typer.BadParameter(
+            f"Expected FIRST:LAST (e.g. 0:13), got {days!r}.", param_hint="--days"
+        ) from exc
+    if window[0] < 0 or window[0] > window[1]:
+        raise typer.BadParameter(
+            f"Expected 0 <= FIRST <= LAST, got {window[0]}:{window[1]}.", param_hint="--days"
+        )
+    return window
+
+
 @data_app.command("download")
 def data_download(
     dataset: str = typer.Option("lanl", help="Dataset name (currently: lanl)."),
@@ -157,19 +183,39 @@ def data_download(
     `dvc repro` and CI can run the stage unattended without an address being
     committed into `dvc.yaml`.
     """
-    if not email:
-        raise typer.BadParameter(
-            "LANL's data-use form requires an email address. Pass --email, or set "
-            "AUTHBENCH_LANL_EMAIL in your environment (what `dvc repro` expects).",
-            param_hint="--email",
-        )
-
     cfg = load_dataset_config(dataset)
     console.print(f"Destination {out_dir}: {free_space_bytes(out_dir) / 1e9:.1f} GB free.")
 
+    # Which files are already here and already verified. Checked *before* the
+    # data-use gate is touched, because a re-run with nothing to fetch should
+    # not depend on LANL being up, and should not need an email address at all.
+    # `dvc repro` re-runs this stage every time the pipeline is rebuilt, and
+    # US-101's promise is that doing so downloads nothing.
+    satisfied: dict[str, str] = {}
+    for key, filename in cfg.fence.filenames.items():
+        dest = out_dir / filename
+        expected = cfg.sha256.get(key)
+        if expected is not None and dest.exists() and sha256_of(dest) == expected:
+            satisfied[key] = expected
+            console.print(f"[green]{key}[/]: {dest} already present and verified, skipping.")
+
+    outstanding = [k for k in cfg.fence.filenames if k not in satisfied]
+    if not outstanding:
+        console.print("[green]Nothing to download — every file matches its recorded SHA-256.[/]")
+        return
+
+    if not email:
+        raise typer.BadParameter(
+            f"{', '.join(outstanding)} still need downloading, and LANL's data-use form "
+            "requires an email address. Pass --email, or set AUTHBENCH_LANL_EMAIL in your "
+            "environment (what `dvc repro` expects).",
+            param_hint="--email",
+        )
+
     token = fetch_lanl_fence_token(email, usage)
 
-    for key, filename in cfg.fence.filenames.items():
+    for key in outstanding:
+        filename = cfg.fence.filenames[key]
         url = lanl_file_url(token, filename)
         dest = out_dir / filename
         expected = cfg.sha256.get(key)
@@ -200,6 +246,11 @@ def data_to_parquet(
     block_bytes: int | None = typer.Option(
         None, help="Decompressed bytes held in memory per block. Lower it on a small machine."
     ),
+    days: str | None = typer.Option(
+        None,
+        help="Convert only this inclusive window of days, as FIRST:LAST (e.g. 0:13). "
+        "The whole point of running a real dataset on a machine that cannot hold all of it.",
+    ),
 ) -> None:
     """US-102: stream raw text into day-partitioned, ZSTD-compressed Parquet.
 
@@ -209,29 +260,49 @@ def data_to_parquet(
     disagree with itself, and the whole point of the check is that it is the
     published figure (US-102).
     """
-    if expected_rows is None:
+    day_window = parse_day_range(days)
+
+    if expected_rows is None and day_window is None:
         cfg = load_dataset_config(dataset)
         configured = cfg.get("expected_rows", {}).get("auth")
         expected_rows = int(configured) if configured is not None else None
 
     console.print(
         f"Source {src.name}: {src.stat().st_size / 1e9:.2f} GB on disk. "
-        f"Estimated Parquet output ~{estimate_parquet_bytes(src) / 1e9:.1f} GB, "
+        f"Estimated Parquet output "
+        f"~{estimate_parquet_bytes(src, days=day_window) / 1e9:.1f} GB, "
         f"{free_space_bytes(out_dir) / 1e9:.1f} GB free on the destination volume."
     )
+    if day_window is not None:
+        console.print(
+            f"[yellow]Partial conversion: days {day_window[0]}–{day_window[1]} only. "
+            "Every number downstream describes that window, not the whole dataset — "
+            "label it that way in anything you report.[/]"
+        )
 
-    kwargs = {} if block_bytes is None else {"block_bytes": block_bytes}
+    kwargs: dict[str, object] = {"days": day_window}
+    if block_bytes is not None:
+        kwargs["block_bytes"] = block_bytes
     report = to_parquet_partitioned(src, out_dir, **kwargs)  # type: ignore[arg-type]
     console.print(
-        f"Converted {report.n_rows_out:,}/{report.n_rows_in:,} rows in {report.n_batches} "
-        f"blocks, peak RSS {report.peak_rss_bytes / 1e9:.2f} GB "
+        f"Converted {report.n_rows_out:,}/{report.n_rows_in:,} rows read in "
+        f"{report.n_batches} blocks, peak RSS {report.peak_rss_bytes / 1e9:.2f} GB "
         f"(dropped {report.drop_counts.total:,}: "
         f"{report.drop_counts.null_time:,} null time, "
-        f"{report.drop_counts.malformed_user_domain:,} malformed user@domain)."
+        f"{report.drop_counts.malformed_user_domain:,} malformed user@domain"
+        + (
+            f"; {report.n_rows_out_of_range:,} outside the day window"
+            f"{', stopped early' if report.stopped_early else ''}"
+            if report.is_partial
+            else ""
+        )
+        + ")."
     )
     if expected_rows:
         verify_row_count(report, expected_rows)
         console.print(f"[green]Row count verified against {expected_rows:,}.[/]")
+    elif report.is_partial:
+        console.print("[yellow]Row-count verification does not apply to a partial conversion.[/]")
     else:
         console.print("[yellow]Row-count verification skipped.[/]")
 
@@ -260,11 +331,24 @@ def preflight(
             param_hint="--events",
         )
 
-    budget = lanl_budget(n_events)
+    # The test split's share of the window, taken from the split that is
+    # actually configured rather than from LANL's full-period proportions.
+    # Peak memory is dominated by the scored test split, so using 18/58 while
+    # `conf/split/temporal.yaml` carves 2 days out of 14 overstates it by half
+    # — and turns a run that fits into one the tool refuses.
+    split_cfg = OmegaConf.load(CONF_DIR / "split" / "temporal.yaml")
+    test_lo, test_hi = (int(v) for v in split_cfg.test_days)
+    window_lo = min(int(split_cfg.train_days[0]), test_lo)
+    n_days_window = max(1, test_hi - window_lo + 1)
+    n_days_test = max(1, test_hi - test_lo + 1)
+    test_fraction = n_days_test / n_days_window
+
+    budget = lanl_budget(n_events, test_fraction=test_fraction)
     disk_needed = total_disk_bytes(budget)
     rss_needed = peak_rss_bytes(budget)
     disk_free = available_disk_bytes(data_dir)
     ram_total = available_memory_bytes()
+    ram_free = free_memory_bytes()
 
     table = Table(title=f"Budget for {dataset} — {n_events:,} auth events")
     table.add_column("Stage")
@@ -289,7 +373,9 @@ def preflight(
 
     console.print(
         f"\nThis machine: {disk_free / 1e9:.1f} GB free under {data_dir.resolve()}, "
-        f"{ram_total / 1e9:.1f} GB RAM."
+        f"{ram_total / 1e9:.1f} GB RAM installed ({ram_free / 1e9:.1f} GB free right now). "
+        f"Split: train/val/test over {n_days_window} days, test is {n_days_test} "
+        f"({test_fraction:.0%} of the window)."
     )
 
     missing = [

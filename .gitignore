@@ -33,11 +33,16 @@ reports/data_quality.json
 !reports/tables/.gitkeep
 !reports/figures/.gitkeep
 
-# reports/demo/ is the ONE exception, and is deliberately versioned. It is
+# reports/demo/ and reports/lanl/ are the exceptions, deliberately versioned. It is
 # still pipeline output — `make demo` rewrites it in place — but its whole
 # purpose is to be readable without running anything, and to let CI assert on
 # every push that a seeded run reproduces it byte for byte. See
 # reports/demo/RUN.md. Never hand-edit it either; regenerate it.
+#
+# reports/lanl/ is the published snapshot of the real-dataset run — it cannot be
+# regenerated in CI (it needs a 7.6 GB download and hours of compute), so it is
+# committed with the provenance needed to reproduce it by hand: dataset SHA-256,
+# day window, split, and the exact commands. See reports/lanl/RUN.md.
 reports/paper/*.aux
 reports/paper/*.log
 reports/paper/*.out
@@ -50,3 +55,10 @@ reports/paper/*.blg
 Thumbs.db
 .vscode/
 .idea/
+
+# mlflow: the sqlite tracking backend (mlruns/ above is the artifact store).
+# Local run state, ~1 MB and growing, full of absolute paths — never versioned.
+mlruns.db
+
+# working-copy summary: the published snapshot lives in reports/lanl/
+reports/metrics_summary.json

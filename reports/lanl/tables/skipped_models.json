@@ -1,0 +1,3 @@
+{
+  "M3b_ecod": "MemoryError: Unable to allocate 3.89 GiB for an array with shape (24870848, 21) and data type float64"
+}

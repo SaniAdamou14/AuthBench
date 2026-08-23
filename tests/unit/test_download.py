@@ -171,10 +171,36 @@ def test_an_empty_gate_response_is_rejected() -> None:
         fetch_lanl_fence_token("a@b.org", "research", session=session)  # type: ignore[arg-type]
 
 
-def test_a_plausible_token_is_accepted_and_used_to_build_the_file_url() -> None:
-    session = _FakeSession([_FakeResponse(200, b"  abc123-DEF_456.789  \n")])
+def test_the_real_lanl_token_shape_is_accepted() -> None:
+    """Regression: the first version of this validator rejected the success case.
+
+    LANL returns a timestamp and a base64url signature joined by a slash. The
+    original check was an allowlist of "URL-safe characters" that admitted
+    neither `/` nor `=`, so a perfectly good token from a working gate came
+    back as `InvalidFenceTokenError` telling the user their gate had changed.
+    This is the token an actual download returned.
+    """
+    real = "1787286884/vLcmtpKgdjOJ_K7_sPNfRenhJ4Q="
+    session = _FakeSession([_FakeResponse(200, f"  {real}  \n".encode())])
 
     token = fetch_lanl_fence_token("a@b.org", "research", session=session)  # type: ignore[arg-type]
 
-    assert token == "abc123-DEF_456.789"
-    assert lanl_file_url(token, "auth.txt.gz").endswith(f"/data-fence/{token}/cyber1/auth.txt.gz")
+    assert token == real
+    assert lanl_file_url(token, "auth.txt.gz") == (
+        f"https://csr.lanl.gov/data-fence/{real}/cyber1/auth.txt.gz"
+    )
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b"abc123-DEF_456.789",  # plain opaque string
+        b"1787286884/vLcmtpKgdjOJ_K7_sPNfRenhJ4Q=",  # timestamp/signature
+        b"a%2Fb+c~d.e_f-g",  # percent-encoding, plus, and the unreserved set
+    ],
+)
+def test_token_shapes_a_gate_may_reasonably_return_are_all_accepted(body: bytes) -> None:
+    """The validator must not encode a guess about someone else's token format."""
+    session = _FakeSession([_FakeResponse(200, body)])
+
+    assert fetch_lanl_fence_token("a@b.org", "research", session=session)  # type: ignore[arg-type]

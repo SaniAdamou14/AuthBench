@@ -41,22 +41,46 @@ def test_disk_is_cumulative_and_memory_is_the_largest_single_stage() -> None:
     assert peak_rss_bytes(budget) == max(s.peak_rss_bytes for s in budget)
 
 
-def test_cost_scales_with_event_count() -> None:
-    """At benchmark scale the per-event terms dominate the fixed overhead, so
-    ten times the events costs very nearly ten times the disk."""
-    small = total_disk_bytes(lanl_budget(100_000_000))
-    large = total_disk_bytes(lanl_budget(1_000_000_000))
+def _fixed_disk_bytes() -> int:
+    """Everything that does not scale with the event count: the whole gzip
+    source LANL serves in one piece, and train_eval's small fixed outputs."""
+    budget = lanl_budget()
+    scaling = {"to_parquet", "label_split_features"}
+    return sum(s.disk_bytes for s in budget if not any(k in s.stage for k in scaling))
+
+
+def test_only_the_per_event_terms_scale_with_the_event_count() -> None:
+    """Ten times the events costs ten times the *converted* data — but not ten
+    times the download, which is one gzip stream LANL serves whole however few
+    days a run keeps. Getting that wrong understates a partial run's disk by
+    the size of the source file."""
+    fixed = _fixed_disk_bytes()
+    small = total_disk_bytes(lanl_budget(100_000_000)) - fixed
+    large = total_disk_bytes(lanl_budget(1_000_000_000)) - fixed
 
     assert 9.9 < large / small < 10.1
 
+    download = next(s for s in lanl_budget() if "download" in s.stage).disk_bytes
+    assert (
+        next(s for s in lanl_budget(10_000_000) if "download" in s.stage).disk_bytes == download
+    ), "the download does not shrink with the day window"
 
-def test_full_lanl_needs_far_more_than_the_download(  # the headline claim of docs/scaling.md
-) -> None:
+
+def test_the_pipeline_still_costs_several_times_the_download() -> None:
+    """docs/scaling.md's headline claim, at the ratio the pipeline now has.
+
+    It used to be about twenty times the download. It is around seven, because
+    the per-event terms were recalibrated on LANL itself — the demo-derived
+    estimates were 60% high on interim Parquet and 57% high on the feature
+    store — and because the store now persists only the columns something
+    reads. The download did not change; the pipeline got cheaper. Asserted
+    loosely on purpose: the claim worth defending is "planning for the
+    download alone is not enough", not any particular multiple."""
     budget = lanl_budget(LANL_TOTAL_EVENTS)
     download = next(s for s in budget if "download" in s.stage)
 
     assert download.disk_bytes < 10 * 1024**3, "the download itself is under 10 GB"
-    assert total_disk_bytes(budget) > 100 * 1024**3, "the pipeline around it is not"
+    assert total_disk_bytes(budget) > 3 * download.disk_bytes
 
 
 def test_max_events_for_disk_inverts_the_disk_budget() -> None:
@@ -75,14 +99,16 @@ def test_max_events_for_disk_never_goes_negative() -> None:
     assert max_events_for_disk(1024) == 0
 
 
-def test_memory_is_the_binding_constraint_on_a_laptop() -> None:
-    """16 GB of RAM caps the run harder than 21 GB of free disk does — the
-    reason `docs/scaling.md` says the fix is an out-of-core `train_eval`, not
-    a bigger drive."""
-    by_disk = max_events_for_disk(21 * 1024**3)
+def test_disk_is_now_the_binding_constraint_on_a_laptop() -> None:
+    """It used to be memory, by a factor of three: `train_eval` loaded whole
+    splits and the estimators copied the design matrix. Fitting on a bounded
+    sample and scoring by day moved the ceiling far enough that free disk is
+    what limits the run again — which is the constraint you can fix by
+    plugging in a drive."""
+    by_disk = max_events_for_disk(30 * 1024**3)
     by_memory = max_events_for_memory(16 * 1024**3)
 
-    assert by_memory < by_disk
+    assert by_disk < by_memory
 
 
 def test_available_disk_and_memory_are_readable_here(

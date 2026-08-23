@@ -66,4 +66,42 @@ MODEL_FEATURE_COLUMNS: list[str] = [
     *_F4_COLUMNS,
 ]
 
-__all__ = ["MODEL_FEATURE_COLUMNS"]
+# Identity, time and label columns every stage after `split` needs: the
+# evaluation frame (`evaluate.summary.EVAL_COLUMNS`) plus the join key.
+_IDENTITY_COLUMNS: list[str] = [
+    "event_id",
+    "time",
+    "day",
+    "is_malicious",
+    "campaign_id",
+]
+
+# Columns the non-matrix models read directly off the feature store.
+#
+# M1 recomputes two of its seven rules (R6 new auth type, R7 lateral chain)
+# from raw event fields rather than from precomputed features, so those fields
+# have to survive into the store even though no model treats them as features.
+_MODEL_INPUT_COLUMNS: list[str] = [
+    "src_user",  # M1 R2 threshold lookup, R6 grouping, R7 partitioning
+    "src_computer",  # M1 R7: does this event start where the last one ended?
+    "dst_computer",  # M1 R7
+    "auth_type",  # M1 R6
+    "success",  # M0b always-fail
+    "src_user_1h_n_distinct_dst",  # M1 R2
+    "dst_computer_1h_n_failures",  # M1 R3
+]
+
+#: What `pipeline.build_features` actually writes to disk.
+#:
+#: The feature pipeline produces about ninety columns; this is the ~thirty that
+#: something downstream reads. Persisting the rest cost roughly three times the
+#: disk for data no stage opens — 138 GB against 46 GB at full LANL scale, on a
+#: laptop where that difference decides whether the run happens at all. The
+#: dropped columns are not lost, only unwritten: rerunning the stage with a
+#: different projection regenerates them, and the feature-store version hash
+#: already captures the configuration that produced any given store.
+FEATURE_STORE_COLUMNS: list[str] = list(
+    dict.fromkeys([*_IDENTITY_COLUMNS, *MODEL_FEATURE_COLUMNS, *_MODEL_INPUT_COLUMNS])
+)
+
+__all__ = ["FEATURE_STORE_COLUMNS", "MODEL_FEATURE_COLUMNS"]

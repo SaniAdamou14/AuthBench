@@ -21,6 +21,7 @@ import logging
 from pathlib import Path
 
 import hydra
+import numpy as np
 import polars as pl
 from omegaconf import DictConfig
 
@@ -34,6 +35,7 @@ from authbench.evaluate.summary import (
     score_column,
 )
 from authbench.features import MODEL_FEATURE_COLUMNS
+from authbench.models.base import DEFAULT_FIT_SAMPLE_SIZE
 from authbench.models.classical import ECODScorer, HBOSScorer, IsolationForestScorer
 from authbench.models.floors import AlwaysFailScorer, RandomScorer
 from authbench.models.rules import RulesScorer
@@ -43,6 +45,14 @@ from authbench.pipeline.tracking import open_tracker
 
 logger = logging.getLogger(__name__)
 
+#: Rows scored at once by the row-local models.
+#:
+#: Peak memory for the design matrix is this times 21 float64 columns times the
+#: estimators' copy factor — about 1 GB at two million rows, and independent of
+#: how large the split is. Lower it on a smaller machine; it cannot change any
+#: score, only how many are computed at a time.
+DEFAULT_SCORING_CHUNK_ROWS = 2_000_000
+
 # The design matrix is `features.MODEL_FEATURE_COLUMNS`, shared with
 # `authbench demo`. It used to be redeclared here, and the two copies had
 # drifted: this stage was fitting M2b/M3a/M3b on 14 columns while the demo
@@ -51,48 +61,154 @@ logger = logging.getLogger(__name__)
 # names in the two places that are supposed to agree.
 
 
-def build_model_catalog() -> list[object]:
+def build_model_catalog(fit_sample_size: int | None = DEFAULT_FIT_SAMPLE_SIZE) -> list[object]:
     """The catalog, *unfitted*. `main` is the single place that fits — an
     earlier version fitted M1 here and then refit every model in the loop,
     which at LANL scale meant paying for M1's per-user aggregation twice and
     left the calibrated weights one stray `fit()` away from being discarded.
+
+    `fit_sample_size` bounds the rows the vector-space models estimate their
+    distributions from. It is a published parameter rather than a hidden
+    constant, because it is a real methodological choice: `None` fits on
+    everything and is what the tests and the demo use.
     """
     return [
         RandomScorer(),
         AlwaysFailScorer(),
         PairRarityScorer(),
-        PCAReconstructionScorer(MODEL_FEATURE_COLUMNS),
-        IsolationForestScorer(MODEL_FEATURE_COLUMNS),
-        ECODScorer(MODEL_FEATURE_COLUMNS),
-        HBOSScorer(MODEL_FEATURE_COLUMNS),
+        PCAReconstructionScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size),
+        IsolationForestScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size),
+        ECODScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size),
+        HBOSScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size),
         RulesScorer(),
     ]
 
 
 def fit_and_score_all(
-    models: list[object], train: pl.DataFrame, val: pl.DataFrame, test: pl.DataFrame
-) -> pl.DataFrame:
+    models: list[object],
+    train: pl.LazyFrame,
+    val: pl.LazyFrame,
+    test: pl.LazyFrame,
+    *,
+    chunk_rows: int | None = DEFAULT_SCORING_CHUNK_ROWS,
+) -> tuple[pl.DataFrame, dict[str, str]]:
     """Fit every model and return the slim evaluation frame carrying one
     score column per model.
 
     Holding all scores on a single frame is what lets the bootstrap below
     resample once for every model instead of once per model.
+
+    Row-local models (`AnomalyScorer.scores_row_locally`) are scored
+    `chunk_rows` at a time, so peak memory is a tunable constant rather than a
+    property of the dataset. Chunking by *day* was the first attempt and is not
+    fine-grained enough: a single LANL day is ~18 million events, which as a
+    21-column float64 matrix in three estimator copies is 9 GB — more than the
+    machine this was meant to fit on.
+
+    Models with cross-row state — M1, whose R6 and R7 look backwards across the
+    whole split — are scored whole, because chunking them would silently reset
+    that state at each boundary.
     """
-    scored = test.select(EVAL_COLUMNS)
+    n_rows = int(test.select(pl.len()).collect().item())
+    skipped: dict[str, str] = {}
+
     for model in models:
         name: str = model.name  # type: ignore[attr-defined]
         logger.info("Fitting %s", name)
-        model.fit(train.lazy())  # type: ignore[attr-defined]
+        model.fit(train)  # type: ignore[attr-defined]
         # M1 alone has a second, label-aware fitting step. It runs after
         # `fit` (which re-derives the thresholds its rules are built on)
         # and against the validation split only — never train, never test.
         if isinstance(model, RulesScorer):
-            model.calibrate_weights(val.lazy(), val["is_malicious"], n_trials=200)
+            val_frame = val.collect()
+            model.calibrate_weights(val_frame.lazy(), val_frame["is_malicious"], n_trials=200)
+            del val_frame
 
-        scores = model.score(test.lazy())  # type: ignore[attr-defined]
+    chunkable = [m for m in models if getattr(m, "scores_row_locally", False)]
+    whole_split = [m for m in models if not getattr(m, "scores_row_locally", False)]
+
+    if chunk_rows and chunkable:
+        n_chunks = (n_rows + chunk_rows - 1) // chunk_rows
+        logger.info(
+            "Scoring %d row-local model(s) over %d chunks of %d rows; "
+            "%d model(s) need the whole split.",
+            len(chunkable),
+            n_chunks,
+            chunk_rows,
+            len(whole_split),
+        )
+        eval_parts: list[pl.DataFrame] = []
+        chunk_scores: dict[str, list[np.ndarray]] = {
+            m.name: []  # type: ignore[attr-defined]
+            for m in chunkable
+        }
+        for offset in range(0, n_rows, chunk_rows):
+            chunk = test.slice(offset, chunk_rows).collect()
+            eval_parts.append(chunk.select(EVAL_COLUMNS))
+            for model in chunkable:
+                name = model.name  # type: ignore[attr-defined]
+                if name in skipped:
+                    continue
+                try:
+                    scores = model.score(chunk.lazy())  # type: ignore[attr-defined]
+                except MemoryError as exc:
+                    skipped[name] = f"{type(exc).__name__}: {exc}"
+                    logger.error("%s failed on a chunk and is EXCLUDED: %s", name, exc)
+                    continue
+                chunk_scores[name].append(scores.to_numpy())
+            del chunk
+
+        # Concatenated in the order the slices were taken, which is the frame's
+        # own order — so position still identifies the event, and every caller
+        # attaches scores by position rather than by key.
+        scored = pl.concat(eval_parts, how="vertical")
+        scored = scored.with_columns(
+            [
+                pl.Series(score_column(name), np.concatenate(parts))
+                for name, parts in chunk_scores.items()
+                if name not in skipped
+            ]
+        )
+        # Slicing preserves order, so the whole-split models see exactly the
+        # same row order the chunked ones produced.
+        ordered_test = test
+    else:
+        scored = test.select(EVAL_COLUMNS).collect()
+        whole_split = list(models)
+        ordered_test = test
+
+    for model in whole_split:
+        name = model.name  # type: ignore[attr-defined]
+        logger.info("Scoring %s over the whole split", name)
+        try:
+            scores = model.score(ordered_test)  # type: ignore[attr-defined]
+        except MemoryError as exc:
+            # One model that cannot be scored must not take the other seven
+            # with it. This is not hypothetical: M3b_ecod is transductive, so
+            # PyOD concatenates the fitted sample onto the frame being scored
+            # and argsorts all 21 columns of the result — 3.89 GB of int64
+            # indices for a 20-million-row split, which killed a run that had
+            # already spent twenty minutes building features.
+            #
+            # The model is recorded as unevaluated, with the reason, and the
+            # report says so. A benchmark that silently drops a competitor is
+            # worse than one that loses a run.
+            skipped[name] = f"{type(exc).__name__}: {exc}"
+            logger.error(
+                "%s could not be scored on this split and is EXCLUDED from the results: %s",
+                name,
+                exc,
+            )
+            continue
         scored = scored.with_columns(pl.Series(score_column(name), scores))
 
-    return scored
+    evaluated = [m for m in models if m.name not in skipped]  # type: ignore[attr-defined]
+    if not evaluated:
+        raise RuntimeError("Every model failed to score; there is nothing to report.")
+    return (
+        scored.select([*EVAL_COLUMNS, *[score_column(m.name) for m in evaluated]]),  # type: ignore[attr-defined]
+        skipped,
+    )
 
 
 @hydra.main(version_base=None, config_path=str(CONF_DIR), config_name="config")
@@ -109,9 +225,14 @@ def main(cfg: DictConfig) -> None:
     version = feature_store_version(cfg.features)
     version_dir = processed_dir / version
 
-    train = pl.read_parquet(version_dir / "train.parquet")
-    val = pl.read_parquet(version_dir / "val.parquet")
-    test = pl.read_parquet(version_dir / "test.parquet")
+    # Scanned, not read. `pl.read_parquet` on a real split materializes every
+    # column of every row before a single model has been fitted; the lazy
+    # frames below let each stage pull only what it needs — a sampled fit, a
+    # day of scoring — and are the other half of why this stage now fits in
+    # memory.
+    train = pl.scan_parquet(version_dir / "train.parquet")
+    val = pl.scan_parquet(version_dir / "val.parquet")
+    test = pl.scan_parquet(version_dir / "test.parquet")
 
     tracker = open_tracker(str(cfg.mlflow.tracking_uri), str(cfg.mlflow.experiment_name))
 
@@ -126,9 +247,17 @@ def main(cfg: DictConfig) -> None:
     if report_roc_auc and bool(cfg.eval.roc_auc.warn):
         logger.warning("%s", str(cfg.eval.roc_auc.warning_message).strip() or ROC_AUC_WARNING)
 
-    models = build_model_catalog()
+    models = build_model_catalog(fit_sample_size=int(cfg.runtime.fit_sample_size) or None)
     model_names: list[str] = [m.name for m in models]  # type: ignore[attr-defined]
-    scored = fit_and_score_all(models, train, val, test)
+    scored, skipped = fit_and_score_all(models, train, val, test)
+    if skipped:
+        model_names = [n for n in model_names if n not in skipped]
+        logger.error(
+            "%d of %d models were not evaluated: %s",
+            len(skipped),
+            len(models),
+            "; ".join(f"{k} ({v})" for k, v in skipped.items()),
+        )
 
     logger.info(
         "Campaign-stratified bootstrap: %d resamples x %d models over %d test events",
@@ -143,6 +272,11 @@ def main(cfg: DictConfig) -> None:
         n_resamples=int(cfg.eval.bootstrap.n_resamples),
         confidence=float(cfg.eval.bootstrap.confidence),
         seed=int(cfg.eval.bootstrap.seed),
+        # Same estimator, computed from a pre-sorted rank order instead of by
+        # re-gathering and re-sorting the split once per resample per model.
+        # `tests/unit/test_fast_auc_pr.py` pins the two to agree.
+        fast_auc_pr=True,
+        n_jobs=int(cfg.runtime.bootstrap_workers),
     )
 
     summary_rows = []
@@ -193,7 +327,12 @@ def main(cfg: DictConfig) -> None:
             bootstrap.ci(name).ci_high,
         )
 
-    (tables_dir / "metrics_summary.json").write_text(json.dumps(summary_rows, indent=2))
+    # Beside reports/tables/, not inside it: DVC will not accept a metric
+    # nested in a tracked output directory.
+    Path(cfg.paths.reports_dir).mkdir(parents=True, exist_ok=True)
+    (Path(cfg.paths.reports_dir) / "metrics_summary.json").write_text(
+        json.dumps(summary_rows, indent=2)
+    )
 
     comparisons = pairwise_comparisons(
         scored,
@@ -204,6 +343,10 @@ def main(cfg: DictConfig) -> None:
         n_permutations=int(cfg.eval.pairwise_test.n_permutations),
         seed=int(cfg.eval.pairwise_test.seed),
     )
+    # Published, not just logged: a reader must be able to see which
+    # competitors are missing from the comparison and why.
+    (tables_dir / "skipped_models.json").write_text(json.dumps(skipped, indent=2))
+
     (tables_dir / "pairwise_comparisons.json").write_text(
         json.dumps([c.to_dict() for c in comparisons], indent=2)
     )
@@ -216,12 +359,12 @@ def main(cfg: DictConfig) -> None:
         cfg.eval.pairwise_test.correction,
     )
 
-    n_campaigns = test.filter(pl.col("campaign_id").is_not_null())["campaign_id"].n_unique()
+    n_campaigns = scored.filter(pl.col("campaign_id").is_not_null())["campaign_id"].n_unique()
     figure_path = plot_campaign_recall_vs_budget(
         curves,
         figures_dir / CAMPAIGN_RECALL_FIGURE,
         subtitle=(
-            f"{cfg.dataset.name} test split — {n_campaigns} campaigns, {test.height:,} events."
+            f"{cfg.dataset.name} test split — {n_campaigns} campaigns, {scored.height:,} events."
         ),
     )
     logger.info("Wrote headline figure to %s", figure_path)

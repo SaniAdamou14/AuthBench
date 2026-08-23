@@ -18,12 +18,28 @@ paths:
   tables_dir: reports/tables
 
 mlflow:
-  tracking_uri: file:./mlruns
+  # SQLite, not `file:./mlruns`. MLflow 3.15 refuses the filesystem backend
+  # ("in maintenance mode") and raises rather than warning, which took down the
+  # whole train_eval stage at startup. Tracking is optional either way — see
+  # `pipeline.tracking.open_tracker`, which degrades to a no-op on any failure.
+  tracking_uri: sqlite:///mlruns.db
   experiment_name: authbench
 
 runtime:
   max_rss_gb: 8.0
   n_workers: 8
+  # Rows the vector-space models (M2b, M3a, M3b) estimate their distributions
+  # from. A published parameter, not a hidden constant: it is the difference
+  # between a stage that needs hundreds of GB of RAM and one that does not, and
+  # it is a real methodological choice a reader is entitled to check. Every
+  # event is still *scored*; only the fit is bounded. 0 means "no limit".
+  fit_sample_size: 5_000_000
+  # Worker processes for the campaign bootstrap. The models are independent, so
+  # this divides wall time directly — the first real LANL run spent 4h49 in that
+  # loop on one core with eleven idle. Each worker holds its own copy of one
+  # model's scores and rank order, so on a small machine memory, not core count,
+  # should set this. 0 means "one per CPU".
+  bootstrap_workers: 4
 
 hydra:
   run:

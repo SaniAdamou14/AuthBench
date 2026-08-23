@@ -14,11 +14,20 @@ seed: 42
 
 dataset: lanl
 
-# conf/split/temporal.yaml
+# The day window `to_parquet` converts, as FIRST:LAST, or "" for all 58 days.
+#
+# Not a convenience knob: at full scale the pipeline needs ~81 GB of disk, and
+# a laptop does not have it. Days 0:13 is ~254 million real LANL events in
+# ~24 GB — see docs/scaling.md, and run `authbench preflight --events N` before
+# changing it. Every number a windowed run produces describes that window, and
+# `split` below must be set to match it.
+to_parquet_days: "0:13"
+
+# conf/split/temporal.yaml — must lie inside `to_parquet_days` above.
 split:
-  train_days: [0, 29]
-  val_days: [30, 39]
-  test_days: [40, 57]
+  train_days: [5, 5]
+  val_days: [8, 8]
+  test_days: [12, 12]
 
 # conf/features/base.yaml
 features:
@@ -34,6 +43,11 @@ eval:
   bootstrap_resamples: 2000
   bootstrap_confidence: 0.95
   pairwise_alpha: 0.05
+
+# conf/config.yaml (runtime)
+runtime:
+  fit_sample_size: 5_000_000
+  bootstrap_workers: 4
 
 # conf/dataset/lanl.yaml
 campaign_gap_hours: 24

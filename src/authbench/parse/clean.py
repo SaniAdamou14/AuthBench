@@ -148,9 +148,12 @@ def clean_auth(raw: pl.LazyFrame, *, id_offset: int = 0) -> tuple[pl.LazyFrame, 
 def clean_redteam(raw: pl.LazyFrame) -> tuple[pl.LazyFrame, int]:
     """Parse raw redteam.txt into the typed schema.
 
-    Returns the typed frame and the number of exact-duplicate rows removed
-    (LANL ships 12 known duplicates out of 749 — US-105 requires this be
-    logged, not silently absorbed).
+    Returns the typed frame and the number of exact-duplicate rows removed.
+    Measured on the real file: 749 raw rows, **34** exact duplicates, 715
+    distinct. Widely-repeated secondary figures of 12 duplicates / 737 unique
+    do not match the file, which is exactly why US-105 requires this count be
+    logged rather than silently absorbed — a hard-coded 737 would have made a
+    real discrepancy invisible.
     """
     parts = pl.col("user_at_domain").str.split_exact("@", 1)
     typed = raw.with_columns(

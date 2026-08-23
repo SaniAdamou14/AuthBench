@@ -7,7 +7,7 @@ import polars as pl
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
-from authbench.models.base import BaseAnomalyScorer
+from authbench.models.base import BaseAnomalyScorer, sample_for_fit
 
 
 class PairRarityScorer(BaseAnomalyScorer):
@@ -19,6 +19,7 @@ class PairRarityScorer(BaseAnomalyScorer):
 
     name = "M2a_pair_rarity"
     requires_labels = False
+    scores_row_locally = True
 
     def fit(self, train: pl.LazyFrame) -> None:
         return None
@@ -35,11 +36,19 @@ class PCAReconstructionScorer(BaseAnomalyScorer):
 
     name = "M2b_pca_reconstruction"
     requires_labels = False
+    scores_row_locally = True
 
-    def __init__(self, feature_cols: list[str], n_components: float = 0.95, seed: int = 42) -> None:
+    def __init__(
+        self,
+        feature_cols: list[str],
+        n_components: float = 0.95,
+        seed: int = 42,
+        fit_sample_size: int | None = None,
+    ) -> None:
         self.feature_cols = feature_cols
         self.n_components = n_components
         self.seed = seed
+        self.fit_sample_size = fit_sample_size
         self.scaler = StandardScaler()
         self.pca = PCA(n_components=n_components, random_state=seed)
 
@@ -47,7 +56,10 @@ class PCAReconstructionScorer(BaseAnomalyScorer):
         return data.select(self.feature_cols).collect().to_numpy().astype(np.float64)
 
     def fit(self, train: pl.LazyFrame) -> None:
-        x = self._matrix(train)
+        # A covariance and a set of principal axes are distribution estimates;
+        # five million rows pins them far tighter than any downstream interval
+        # can resolve. Scoring still covers every event — see `sample_for_fit`.
+        x = self._matrix(sample_for_fit(train, self.fit_sample_size, self.seed))
         x_scaled = self.scaler.fit_transform(x)
         self.pca.fit(x_scaled)
 
