@@ -61,11 +61,13 @@ This is the benchmark's reason to exist, and here it is on real attacks:
 
 - **M2a scores ROC-AUC 0.942 and detects nothing** at any operational budget.
   0.94 is a number that passes without comment in a paper.
-- **M1 has the worst ROC-AUC of the seven, 0.547 — barely above chance — and is
-  the only model that catches anything at all.**
+- **M1 has the lowest ROC-AUC of the five non-trivial models, 0.547 — barely
+  above the 0.50 the two floors score by construction — and is the only model
+  that catches anything at all.**
 
-Ranking by the literature-comparable metric would put the model that detects
-nothing first and the only model that detects something last.
+Ranking the non-trivial models by the literature-comparable metric would put
+the model that detects nothing first and the only model that detects something
+last.
 
 ## The demo's M1 result was circular; this one is not
 

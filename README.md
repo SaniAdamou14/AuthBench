@@ -37,11 +37,13 @@ And the two registers are not merely different, they are **anti-correlated**:
 
 - **M2a scores ROC-AUC 0.942 and detects nothing.** 0.94 passes without comment
   in a paper.
-- **M1 has the worst ROC-AUC of the seven, 0.547 — barely above chance — and is
-  the only model that catches anything at all.**
+- **M1 has the lowest ROC-AUC of the five non-trivial models, 0.547 — barely
+  above the 0.50 the two floors score by construction — and is the only model
+  that catches anything at all.**
 
-Ranking by the literature-comparable metric would put the model that detects
-nothing first, and the only model that detects something last. That is what
+Ranking the non-trivial models by the literature-comparable metric would put
+the model that detects nothing first, and the only model that detects something
+last. That is what
 this benchmark was built to measure, and it did not need a new model to show it.
 
 13 of 21 pairwise comparisons are significant after Holm-Bonferroni. M3b_ecod
