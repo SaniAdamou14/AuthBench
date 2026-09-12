@@ -22,7 +22,7 @@ campaigns** in the test split. Full provenance and caveats:
 | Model | AUC-PR [95% CI] | ROC-AUC | Camp. @10 | @50 | @100 | @500 |
 |---|---|---:|---:|---:|---:|---:|
 | M0a random *(floor)* | 0.00001 [0.00000, 0.00002] | 0.500 | 0% | 0% | 0% | 0% |
-| M0b always-fail *(floor)* | 0.00001 [0.00000, 0.00002] | 0.496 | 0% | 0% | 0% | 0% |
+| M0b always-fail *(floor)* † | 0.00001 [0.00000, 0.00002] | 0.496 | 0% | 0% | 0% | 0% |
 | **M2a pair rarity** | **0.00065** [0.00023, 0.00131] | **0.942** | 0% | 0% | 0% | 0% |
 | M2b PCA reconstruction | 0.00005 [0.00002, 0.00011] | 0.893 | 0% | 0% | 0% | 0% |
 | M3a Isolation Forest | 0.00004 [0.00001, 0.00010] | 0.872 | 0% | 0% | 0% | 0% |
@@ -32,6 +32,16 @@ campaigns** in the test split. Full provenance and caveats:
 **Not one of the seven models detects a single campaign out of 39 at 10, 50 or
 100 alerts per day.** One catches two campaigns at 500 alerts/day — a budget no
 SOC staffs for.
+
+> † **M0b's row predates the tie-break fix and should be read as
+> undetermined.** M0b scores every event 0 or 1, so on a test day of 19.9M
+> events its alert set is decided entirely by how equally-scored events are
+> ordered — and this run used the ordering that was later found to be
+> `(src_user, time)`, i.e. alphabetical by user. Its zeros are a property of
+> that ordering, not of the floor. Every other row is unaffected: their scores
+> are continuous and leave the tie-break nothing to decide. The fix, and what
+> it changed on the demo sample, is [below](#and-the-alert-budget-had-a-floor-of-its-own-the-tie-break);
+> re-running LANL is what would resolve this one, and that has not been done.
 
 And the two registers are not merely different, they are **anti-correlated**:
 
@@ -46,8 +56,11 @@ the model that detects nothing first, and the only model that detects something
 last. That is what
 this benchmark was built to measure, and it did not need a new model to show it.
 
-13 of 21 pairwise comparisons are significant after Holm-Bonferroni. M3b_ecod
-could not be evaluated and is [declared, with the
+13 of 21 pairwise comparisons are significant after Holm-Bonferroni — and 12 of
+those 13 sit on the bootstrap's own resolution floor, so they are reported as
+`Holm-adjusted p ≤ 0.0210` against a threshold of 0.05, not as a measured
+p-value. [What that means, and why it is printed as a bound](#the-significant-results-are-bounds-not-measurements).
+M3b_ecod could not be evaluated and is [declared, with the
 reason](reports/lanl/tables/skipped_models.json).
 
 > **One limitation decides how to read the zeros.** Each partition is a single
@@ -71,15 +84,21 @@ synthetic events, 10 red-team campaigns, 4 of them in the test split. Kept
 because it is the **control** that makes the LANL result readable, not because
 it is a finding.
 
-| Model | AUC-PR [95% CI] | ROC-AUC | Campaign recall @10 | @50 | @100 | @500 |
-|---|---|---:|---:|---:|---:|---:|
-| M0a random *(floor)* | 0.0016 [0.0005, 0.0039] | 0.497 | 0% | 0% | 0% | 50% |
-| M0b always-fail *(floor)* | 0.0014 [0.0002, 0.0030] | 0.491 | 0% | 0% | 0% | 0% |
-| M2a pair rarity | 0.0025 [0.0003, 0.0107] | 0.477 | 0% | 0% | 0% | 25% |
-| M2b PCA reconstruction | 0.0040 [0.0007, 0.0135] | 0.784 | 0% | 0% | 0% | 75% |
-| M3a Isolation Forest | 0.0042 [0.0007, 0.0105] | 0.798 | 0% | 0% | 0% | 75% |
-| M3b ECOD | 0.0046 [0.0005, 0.0187] | 0.690 | 0% | 0% | 25% | 50% |
-| **M1 rules** | **0.3305 [0.0840, 0.6423]** | 0.911 | **100%** | **100%** | **100%** | **100%** |
+| Model | AUC-PR [95% CI] | ROC-AUC | Camp. @10 | @50 | @100 | @500 | Budget→1st |
+|---|---|---:|---:|---:|---:|---:|---:|
+| M0a random *(floor)* | 0.0016 [0.0005, 0.0039] | 0.497 | 0% | 0% | 0% | 50% | 162 |
+| M0b always-fail *(floor)* | 0.0014 [0.0002, 0.0030] | 0.491 | 0% | 0% *[0–50]* | 0% *[0–100]* | 75% *[0–100]* | 165 |
+| M2a pair rarity | 0.0025 [0.0003, 0.0107] | 0.477 | 0% | 0% | 0% | 25% | 294 |
+| M2b PCA reconstruction | 0.0040 [0.0007, 0.0135] | 0.784 | 0% | 0% | 0% | 75% | 114 |
+| M3a Isolation Forest | 0.0042 [0.0007, 0.0105] | 0.798 | 0% | 0% | 0% | 75% | 284 |
+| M3b ECOD | 0.0046 [0.0005, 0.0187] | 0.690 | 0% | 0% | 25% | 50% | 83 |
+| **M1 rules** | **0.3305 [0.0840, 0.6423]** | 0.911 | **100%** | **100%** | **100%** | **100%** | **1** |
+
+*Italic brackets are the tie-break range: M0b scores every event 0 or 1, so at
+budget 500 some 7,899 equally-scored events compete for 1,350 places and the
+recall printed is whichever of them the ordering happened to reach. Every other
+model's score is continuous enough that the bracket collapses onto the point
+estimate, which is why only one row carries one.*
 
 **Read the Isolation Forest row twice.** ROC-AUC 0.798 — a number that would
 pass without comment in a paper — and it catches **nothing** at 10, 50 or 100
@@ -88,9 +107,19 @@ differently and they disagree about whether the model works at all. That gap is
 what the benchmark exists to measure, and it does not depend on the sample being
 realistic: it is a property of the operating point.
 
+**Then read the last column, which is the one that does not saturate.** Four
+models print `0% 0% 0%` and the recall row ranks them as equally far from
+working. They are not: M3b ECOD needs a budget of 83 to catch its first
+campaign, M2b PCA 114 — and M3a Isolation Forest needs **284**, M2a pair rarity
+**294**, both worse than the random floor's 162. A column of zeros hid a
+factor of three between models it presented as identical, and hid two ML models
+losing to a random scorer.
+
 8 of the 21 pairwise comparisons are significant after Holm-Bonferroni; the
-other 13 are not, and are reported as not. Four campaigns in a test split is a
-small sample and the intervals say so.
+other 13 are not, and are reported as not. All eight sit on the resolution
+floor and print as `Holm-adjusted p ≤ 0.0420` against a threshold of 0.05 —
+see [below](#the-significant-results-are-bounds-not-measurements). Four
+campaigns in a test split is a small sample and the intervals say so.
 
 ### M1's 100% is partly circular, and here is the measurement
 
@@ -247,7 +276,7 @@ on mismatch.
 | Source | LANL Comprehensive, Multi-Source Cyber-Security Events (Kent, 2015) |
 | Period | 58 consecutive days |
 | Auth events | 1,051,430,459 |
-| Red-team events | 749 (737 unique after dedup) |
+| Red-team events | 749 raw, 715 unique (34 exact duplicates, counted by `clean_redteam`) |
 | Positive rate | ≈ 7.1 × 10⁻⁷ |
 
 ## Architecture
@@ -307,6 +336,88 @@ clean sweep of "outperforms" — while having nothing to do with the models:
   about the models. `stats_tests.MIN_CAMPAIGNS_FOR_SIGNIFICANCE` withholds the
   verdict below two campaigns; the point estimates and intervals still stand,
   and `authbench demo` now prints 0/21 with the reason.
+
+### The significant results are bounds, not measurements
+
+The third floor above is not only a hazard for a one-campaign split. It applies,
+in a weaker form, to **almost every significant result this project has
+published** — so it is stated here rather than left for a reader to derive:
+
+| run | significant | of those, on the resolution floor |
+|---|---:|---:|
+| demo (R = 1000, 21 pairs) | 8 | **8** |
+| LANL (R = 2000, 21 pairs) | 13 | **12** |
+
+A pair lands on the floor when not one resample out of R put the difference on
+the other side of zero. The two-sided p-value is then `2/(R+1)` because that is
+the smallest number the bootstrap can express — not because anything was
+measured there. Reported honestly, those comparisons say `Holm-adjusted
+p ≤ 0.0420` (demo) and `≤ 0.0210` (LANL) against a threshold of 0.05: true, and
+a factor of 1.2 and 2.4 of margin respectively. That is a real result and a thin
+one, and the two facts belong in the same sentence.
+
+Three things follow, all of them now mechanical rather than editorial:
+
+- `at_resolution_floor` is recorded per comparison in
+  `pairwise_comparisons.json`, and `render_p_value` prints `≤` instead of `=`
+  whenever it is set.
+- `p_value_raw` and `p_value_holm_adjusted` are separate fields. The JSON key
+  used to be a single `p_value_corrected` that carried the **uncorrected**
+  number — Holm was only ever applied as a decision rule, never folded into the
+  value printed next to the word "corrected".
+- Raising `R` is what buys resolution. Nothing else does, and no amount of
+  care with the wording substitutes for it.
+
+The one LANL comparison that is *not* on the floor — M0b always-fail versus M1
+rules — lands at Holm-adjusted `p = 0.0450`. That is the only pairwise verdict
+in the published run whose p-value the bootstrap actually resolved.
+
+### And the alert budget had a floor of its own: the tie-break
+
+"Top 10 events of the day" is not a question a model answers on its own. A model
+whose score takes few distinct values leaves the ordering to whatever sorts the
+frame — and for most of this project's history that was **the row order**,
+which after `features.temporal.compute_f4` is `(src_user, time)`. The published
+M0b always-fail row was therefore, literally, *the failures of the
+alphabetically earliest users*.
+
+Measured on the demo test split, M0b puts 2,619 equally-scored events in
+competition for 8 of day 11's places. Under the old ordering it caught nothing
+at any budget; under arrival order it catches 3 of 4 campaigns at budget 500.
+Neither number is wrong — the metric simply did not have enough information to
+produce one, and said nothing about it.
+
+Three changes, in `evaluate/budget.py`:
+
+- ties break on `(time, event_id)` — arrival order, which is what a queue does
+  and what an analyst working a shift does. Label-free, total, and stated:
+  `ALERT_ORDER_TIE_BREAK`.
+- `campaign_recall_bracket` reports what the tie could have cost or bought. The
+  low end is exact; the high end is achievable. A zero-width bracket certifies
+  that the tie-break decided nothing, which is the case for every model here
+  except M0b.
+- `tie_exposure` publishes the slots and the contenders per budget, so the
+  bracket's width has a stated cause.
+
+The headline figure shades the bracket and names it in the legend. Every model
+with a continuous score draws no band at all, and that absence is the point:
+the shading marks exactly the numbers that are soft.
+
+### `budget_for_first_detection`: the column that does not saturate
+
+A recall table of `0% 0% 0% 0%` ranks every model that failed as equally far
+from succeeding. A model whose best campaign sits at rank 600 and one whose best
+sits at rank 9,000,000 print identically, and the benchmark's central claim —
+*nothing works at an operational budget* — is exactly the regime where that
+table stops discriminating.
+
+A campaign is detected at budget `k` precisely when one of its events reaches
+rank `k` or better in its own day, so the smallest budget that detects anything
+is the minimum rank over all campaign events: one pass, exact, no sweep. On the
+demo sample it separates four models the recall row called identical (83 / 114 /
+284 / 294) and shows two of them losing to the random floor. `authbench demo`
+prints it as `Budget→1st`; `metrics_summary.json` carries it under
+`operational.budget_for_first_detection`.
 
 ## State of the project
 

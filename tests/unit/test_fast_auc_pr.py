@@ -103,13 +103,33 @@ def test_the_two_paths_agree_on_significance_across_a_model_family() -> None:
     for a, b in zip(slow_out, fast_out, strict=True):
         # Verdicts must match exactly: they are what the report prints.
         assert (a.model_a, a.model_b, a.significant) == (b.model_a, b.model_b, b.significant)
-        assert a.p_value == pytest.approx(b.p_value, abs=1e-15)
+        assert a.p_value_raw == pytest.approx(b.p_value_raw, abs=1e-15)
         # The two paths sum the same terms in a different order, so they agree
         # to floating-point precision rather than bit-for-bit. Anything looser
         # than this would be a different estimator, not a faster one.
         assert a.diff == pytest.approx(b.diff, abs=1e-12)
         assert a.diff_ci_low == pytest.approx(b.diff_ci_low, abs=1e-12)
         assert a.diff_ci_high == pytest.approx(b.diff_ci_high, abs=1e-12)
+
+
+def test_the_degenerate_count_is_a_property_of_the_draw_not_of_the_family() -> None:
+    """One shared draw sequence means one degenerate count.
+
+    Whether a resample is discarded depends only on the counts it produced —
+    truncation only ever drops rows ranked below the last positive, so every
+    model sees the same number of positives on every draw. Adding models to the
+    family therefore cannot change the count. The reporting loop used to keep
+    whichever model's count arrived last, which was right by accident; this
+    pins it as an invariant instead.
+    """
+    frame = _frame()
+    metric = lambda f, col: auc_pr(f["is_malicious"].to_numpy(), f[col].to_numpy())  # noqa: E731
+    kwargs = {"n_resamples": 250, "seed": 11, "fast_auc_pr": True}
+
+    alone = paired_campaign_bootstrap(frame, metric, {"good": "good"}, **kwargs)
+    family = paired_campaign_bootstrap(frame, metric, {"good": "good", "tied": "tied"}, **kwargs)
+
+    assert alone.n_degenerate_discarded == family.n_degenerate_discarded
 
 
 @pytest.mark.parametrize("n_jobs", [1, 2, 4])

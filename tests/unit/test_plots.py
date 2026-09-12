@@ -14,7 +14,12 @@ from pathlib import Path
 import pytest
 
 from authbench.evaluate.budget import BudgetCurve
-from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
+from authbench.evaluate.plots import (
+    CAMPAIGN_RECALL_FIGURE,
+    _shade_tie_bracket,
+    plot_campaign_recall_vs_budget,
+    plt,
+)
 
 BUDGETS = [10, 50, 100, 500]
 
@@ -55,3 +60,29 @@ def test_handles_models_that_tie_at_every_budget(tmp_path: Path) -> None:
 def test_refuses_to_write_a_figure_with_no_curves(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="at least one BudgetCurve"):
         plot_campaign_recall_vs_budget([], tmp_path / CAMPAIGN_RECALL_FIGURE)
+
+
+def test_the_tie_bracket_is_shaded_only_where_it_has_width() -> None:
+    """The shading has to mean something, which means it has to be absent.
+
+    A band drawn under every curve would say nothing; drawn only where the
+    tie-break could have changed the answer, its presence marks the soft
+    numbers and its absence certifies the rest. A curve carrying no bracket at
+    all — everything built before `compute_budget_curve` reported one — must
+    also draw nothing rather than crash.
+    """
+    fig, ax = plt.subplots()
+    try:
+        soft = _curve("M0b_always_fail", [0.0, 0.0, 0.0, 0.75])
+        soft.campaign_recall_min = [0.0, 0.0, 0.0, 0.0]
+        soft.campaign_recall_max = [0.0, 0.5, 1.0, 1.0]
+
+        firm = _curve("M1_rules", [0.0, 0.5, 1.0, 1.0])
+        firm.campaign_recall_min = list(firm.campaign_recall)
+        firm.campaign_recall_max = list(firm.campaign_recall)
+
+        assert _shade_tie_bracket(ax, soft, "0.55") is True
+        assert _shade_tie_bracket(ax, firm, "0.55") is False
+        assert _shade_tie_bracket(ax, _curve("M2a_pair_rarity", [0.0] * 4), "0.55") is False
+    finally:
+        plt.close(fig)

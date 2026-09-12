@@ -105,3 +105,28 @@ def test_the_configured_resamples_can_resolve_a_significant_result() -> None:
     assert int(conf.bootstrap.n_resamples) >= required, (  # type: ignore[union-attr]
         f"{n_models} models = {n_pairs} pairs needs >= {required} resamples"
     )
+
+
+def test_the_demo_resamples_can_resolve_a_significant_result_too() -> None:
+    """The same arithmetic, on the side of it nothing was watching.
+
+    `authbench demo` pins its own `DEMO_BOOTSTRAP_RESAMPLES` instead of reading
+    `conf/eval/default.yaml`, so the guard above never covered it. Its 7-model
+    catalog needs 839 resamples and it has 1000 — but adding a single model
+    (HBOS, say, which the full catalog already carries) takes it to 28 pairs
+    and 1119, and every demo comparison would silently come back
+    non-significant while reading like a real null result. That is the exact
+    failure `conf/` is guarded against; the demo now is too.
+    """
+    from authbench.cli import DEMO_BOOTSTRAP_RESAMPLES, demo_model_catalog
+    from authbench.evaluate.stats_tests import minimum_resamples_for_family
+
+    n_models = len(demo_model_catalog())
+    n_pairs = n_models * (n_models - 1) // 2
+    alpha = float(_load("conf", "eval", "default.yaml").pairwise_test.alpha)  # type: ignore[union-attr]
+
+    required = minimum_resamples_for_family(n_pairs, alpha)
+    assert required <= DEMO_BOOTSTRAP_RESAMPLES, (
+        f"the demo's {n_models} models = {n_pairs} pairs needs >= {required} resamples, "
+        f"DEMO_BOOTSTRAP_RESAMPLES is {DEMO_BOOTSTRAP_RESAMPLES}"
+    )

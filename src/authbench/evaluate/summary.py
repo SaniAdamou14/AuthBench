@@ -106,6 +106,24 @@ class ModelEvaluation:
                 "budgets": self.curve.budgets,
                 "event_recall": self.curve.event_recall,
                 "campaign_recall": self.curve.campaign_recall,
+                # What the campaign_recall row alone cannot say. The bracket is
+                # how far a different tie-break could move each point, and
+                # `tie_exposure` is why: a recall computed from 8 slots that
+                # 2,619 equally-scored events competed for is a statement about
+                # the ordering at least as much as about the model.
+                "campaign_recall_tie_bracket": [
+                    [low, high]
+                    for low, high in zip(
+                        self.curve.campaign_recall_min,
+                        self.curve.campaign_recall_max,
+                        strict=True,
+                    )
+                ],
+                "tie_exposure": [exposure.__dict__ for exposure in self.curve.tie_exposure],
+                # The number that does not saturate at zero: how large a daily
+                # budget this model would need before it caught anything at
+                # all. `None` means no budget reaches a campaign.
+                "budget_for_first_detection": self.curve.budget_for_first_detection,
                 "time_to_detection": [ttd.__dict__ for ttd in self.time_to_detection],
             },
             "literature_comparable": {

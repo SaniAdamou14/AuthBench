@@ -113,6 +113,16 @@ class RulesScorer(BaseAnomalyScorer):
 
     name = "M1_rules"
     requires_labels = False
+    # Stated here, not inherited. `BaseAnomalyScorer` defaults this to False,
+    # which happens to be right for M1 — but a safe default and a decision read
+    # identically, and this one is load-bearing: R6 asks whether this user has
+    # ever used this auth type *before*, and R7 whether their previous event
+    # ended where this one starts. Scored in day chunks, R6 would call an auth
+    # type new once a day and R7 would lose every chain crossing midnight, and
+    # the scores would still look entirely plausible. If a future edit ever
+    # makes this True, it has to be a sentence someone wrote, not a line
+    # nobody noticed was missing.
+    scores_row_locally = False
 
     def __init__(
         self, chain_window_seconds: int = 1800, percentile_threshold: float = 99.9

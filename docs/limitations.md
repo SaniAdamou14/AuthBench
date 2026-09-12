@@ -49,6 +49,39 @@ warm-up days halves `pair_is_new` (2,623 -> 1,287) over an identical set of
 written events: without history, half the pairs called "never seen before" were
 only unseen because there was no past to have seen them in.
 
+### Cold start is encoded as "normal", and that compounds it
+
+An event with no prior history for its user does not get a neutral feature
+value — it gets the most normal one available. `compute_f4` fills
+`hour_deviation_from_profile` with `0.0` for a user's first event in a
+partition, and `0.0` is the **minimum** of that column's range; the F2 failure
+ratios are likewise 0 when there are no prior events to have failed.
+
+Measured on the demo test split rather than asserted:
+
+| | |
+|---|---|
+| Events with no prior 1h history | 3,299 of 8,049 (**41%**) |
+| Events that are a user's first in the split | 350 |
+| Of those, carrying `hour_deviation_from_profile == 0.0` | **350 — all of them, and no other event** |
+| Median deviation elsewhere · 99th percentile | 0.426 · 3.046 |
+| Malicious test events in that set | **2 of 11** |
+
+So the sentinel and the cold-start set coincide exactly, and they are scored as
+maximally typical on that axis. This is not independent of the one-day-of-history
+limitation above — it is the same shortage seen from the feature side, and the
+shorter each partition, the larger the affected share. It biases in the
+direction that produces the reported zeros, which is the direction that
+flatters the conclusion, so it is stated here rather than left to be found.
+
+It is **not** fixed, and the reason is a trade rather than an oversight:
+changing the sentinel changes the design matrix, which moves every
+vector-space model's scores and would desynchronise
+[`../reports/lanl/`](../reports/lanl/RUN.md) from the code that claims to
+produce it — and that snapshot cannot be re-run cheaply. The honest options are
+a cold-start indicator column or a sentinel outside the column's range, both of
+which are changes to the protocol and belong with a re-run, not before one.
+
 What the limitation does **not** reach is the anti-correlation between ROC-AUC
 and campaign recall — M2a at 0.942 detecting nothing, M1 at 0.547 being the only
 model that detects anything. That is a property of the operating point and the

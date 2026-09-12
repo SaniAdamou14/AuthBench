@@ -55,7 +55,16 @@ def get_test_split(data: pl.LazyFrame, config: TemporalSplitConfig) -> pl.LazyFr
 
 
 def verify_temporal_order(train: pl.LazyFrame, val: pl.LazyFrame, test: pl.LazyFrame) -> None:
-    """US-107: train.max(time) < val.min(time) < val.max(time) < test.min(time).
+    """US-107: `max(train.time) < min(val.time)` and `max(val.time) < min(test.time)`.
+
+    Those two, and deliberately not the four-term chain this docstring used to
+    claim (`train.max < val.min < val.max < test.min`). The middle link,
+    `val.min < val.max`, is not a leakage condition — it is false only for a
+    partition whose events all share one timestamp, which says nothing about
+    what any split can see of any other. Stating it as if it were enforced
+    invited a reader to believe a degenerate partition would be caught here.
+    It would not, and the two conditions above are together sufficient:
+    transitivity gives `max(train.time) < min(test.time)` for free.
 
     Raises `LeakageError` rather than returning a bool — a leakage check that
     can be silently ignored is worse than none.

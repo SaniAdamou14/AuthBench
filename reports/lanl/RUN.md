@@ -39,7 +39,7 @@ would be.
 | Model | AUC-PR [95% CI] | ROC-AUC | Camp. @10 | @50 | @100 | @500 |
 |---|---|---:|---:|---:|---:|---:|
 | M0a random *(floor)* | 0.00001 [0.00000, 0.00002] | 0.500 | 0% | 0% | 0% | 0% |
-| M0b always-fail *(floor)* | 0.00001 [0.00000, 0.00002] | 0.496 | 0% | 0% | 0% | 0% |
+| M0b always-fail *(floor)* † | 0.00001 [0.00000, 0.00002] | 0.496 | 0% | 0% | 0% | 0% |
 | **M2a pair rarity** | **0.00065** [0.00023, 0.00131] | **0.942** | 0% | 0% | 0% | 0% |
 | M2b PCA reconstruction | 0.00005 [0.00002, 0.00011] | 0.893 | 0% | 0% | 0% | 0% |
 | M3a Isolation Forest | 0.00004 [0.00001, 0.00010] | 0.872 | 0% | 0% | 0% | 0% |
@@ -52,8 +52,44 @@ staffs for.
 
 13 of the 21 pairwise comparisons are significant after Holm-Bonferroni. M2a
 beats both floors, PCA, Isolation Forest and HBOS. M2a versus M1 is *not*
-significant (corrected p = 0.138), and neither is M1 versus the random floor
-(p = 0.022, above the corrected threshold).
+significant (Holm-adjusted p = 0.828; raw p = 0.138), and neither is M1 versus
+the random floor (Holm-adjusted p = 0.176; raw p = 0.022).
+
+**Twelve of those thirteen are bounds, not measurements.** No resample out of
+2,000 put the difference on the other side of zero, so their p-value is the
+bootstrap's own resolution floor `2/(R+1)` and they are reported as
+`Holm-adjusted p ≤ 0.0210` against a threshold of 0.05 — true, with a factor
+of 2.4 of margin, and not a number the run resolved. The single exception is
+M0b always-fail versus M1 rules at Holm-adjusted `p = 0.0450`, the one pairwise
+verdict here whose p-value the bootstrap actually measured. Raising
+`eval.bootstrap.n_resamples` is the only thing that buys resolution;
+`at_resolution_floor` in `tables/pairwise_comparisons.json` marks every affected
+pair.
+
+> **Note on the M0b row, September 2026.** M0b always-fail scores every event
+> 0 or 1, so on a 19.9M-event test day its alert set at any budget is decided
+> entirely by how equally-scored events are ordered. This run used the ordering
+> that was in force at the time — the frame's own row order, which after
+> `features.temporal.compute_f4` is `(src_user, time)`, i.e. alphabetical by
+> user. **M0b's zeros are therefore a property of that ordering, not of the
+> floor**, and should be read as undetermined rather than as 0%. On the demo
+> sample the same fix moved M0b from 0% to 75% at budget 500, with a tie
+> bracket of `[0, 1]`. `evaluate.budget` now breaks ties on `(time, event_id)`
+> and publishes `campaign_recall_tie_bracket` and `tie_exposure` next to every
+> recall; this snapshot predates all three and cannot be re-run cheaply. Every
+> other row is unaffected — their scores are continuous and leave the tie-break
+> nothing to decide — and nothing here touches AUC-PR, ROC-AUC, the intervals
+> or the pairwise comparisons, none of which depend on the alert ordering.
+
+> **Note on this table, September 2026.** `tables/pairwise_comparisons.json`
+> was re-emitted in the current schema — `p_value_raw`,
+> `p_value_holm_adjusted` and `at_resolution_floor` in place of a single
+> `p_value_corrected` that held the *uncorrected* value. Nothing was re-run and
+> nothing could have been: the adjusted p-value is a function of the 21 raw
+> p-values already in the file, and the floor flag is `p == 2/(R+1)`. Every
+> `significant` verdict came out identical, which the migration asserted rather
+> than assumed. The point estimates, intervals and recall figures below are the
+> originals, untouched.
 
 ## The two registers are anti-correlated, not merely different
 

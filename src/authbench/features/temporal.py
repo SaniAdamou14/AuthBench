@@ -109,6 +109,25 @@ def compute_f4(events: pl.LazyFrame, night_window: NightWindow) -> pl.LazyFrame:
             pl.arctan2("_cum_sin_prior", "_cum_cos_prior").alias("_profile_angle"),
         ]
     ).with_columns(
+        # `fill_null(0.0)` is a **known bias**, kept deliberately and recorded
+        # rather than quietly fixed. A user's first event in a partition has no
+        # prior angle to deviate from, and 0.0 is not a neutral filler here: it
+        # is the exact minimum of this column's range, so "no history" is
+        # encoded as *maximally typical*.
+        #
+        # Measured on the demo test split: 350 of 8,049 events are a user's
+        # first, all 350 carry exactly 0.0, and no other event does — the
+        # sentinel and the cold-start set coincide one-to-one. The median
+        # deviation elsewhere is 0.426 and the 99th percentile 3.046. Two of
+        # the eleven malicious test events are in that set, scored as perfectly
+        # ordinary on this axis for want of a past.
+        #
+        # It compounds the one-day-of-history limitation rather than being
+        # independent of it: the shorter each partition, the larger the
+        # cold-start share (41% of test events have no prior hour at all).
+        # Changing the sentinel changes the design matrix, so it moves every
+        # vector-space model's scores and would desynchronise the published
+        # LANL snapshot, which cannot be re-run cheaply. See docs/limitations.md.
         ((pl.col("_angle") - pl.col("_profile_angle") + math.pi) % TWO_PI - math.pi)
         .abs()
         .fill_null(0.0)

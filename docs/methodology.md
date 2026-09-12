@@ -18,11 +18,29 @@ enforced by `tests/unit/test_no_test_leakage.py`.
 
 Boundaries live in `conf/split/temporal.yaml`, expressed in 0-indexed `day = time // 86400`:
 
-| Partition | Days (0-indexed) | Spec's 1-indexed equivalent |
-|---|---|---|
-| Train | 0–29 | 1–30 |
-| Validation | 30–39 | 31–40 |
-| Test | 40–57 | 41–58 |
+| Partition | Days (0-indexed) | Events | Campaigns |
+|---|---|---:|---:|
+| Train | 5 | 18,557,382 | 4 |
+| Validation | 8 | 19,374,688 | 45 |
+| Test | 12 | 19,870,848 | 39 |
+
+**One day each, and not contiguous.** The spec's own split (train 1–30, validation 31–40,
+test 41–58, i.e. 0–29 / 30–39 / 40–57 here) cannot be run at all: the red team stops at
+day 29, so it puts every one of the 749 red-team events in train and leaves validation and
+test with none. Every ranking metric would be undefined and M1's weight calibration would
+have nothing to maximise. `conf/dataset/lanl.yaml` records `redteam_active_days` for exactly
+this reason, and `tests/unit/test_split_has_positives.py` refuses a split that repeats the
+mistake.
+
+The three constraints that do admit a solution — campaigns in every partition, temporal
+order (5 < 8 < 12), and no partition above ~20M events on an 8 GB machine — are set out in
+full in `conf/split/temporal.yaml`. What the answer costs is **one day of history per
+partition**, which is the binding limitation on the published LANL numbers; see
+[`limitations.md`](limitations.md) and [`../reports/lanl/RUN.md`](../reports/lanl/RUN.md).
+
+The gaps between partitions are not a leak — nothing from day 6 or 9 reaches any model —
+and testing on day 12 after training on day 5 is a harder generalisation test than the next
+day would be.
 
 `authbench.split.temporal.verify_temporal_order` raises `LeakageError` unless
 `max(train.time) < min(val.time)` and `max(val.time) < min(test.time)`.
@@ -80,6 +98,22 @@ reporting different things. Metrics stay in two registers, kept under separate k
 - **AUC-PR**, the headline ranking metric, with a campaign-stratified CI.
 - **Recall at alert budget** (`evaluate.budget`) — top-k scored events **per day**, never
   top-k over the whole period. Reported per event and per campaign.
+- **Tie-break, stated rather than inherited.** "The top 10 events of the day" is not a
+  question a model with a coarse score answers on its own: M0b always-fail puts 2,619
+  equally-scored demo events in competition for 8 places. Equal scores are ordered by
+  `(time, event_id)` — arrival order, label-free and total (`ALERT_ORDER_TIE_BREAK`).
+  Before this was explicit, ties fell to the frame's row order, which after `compute_f4`
+  is `(src_user, time)`; the published floor row was the failures of the alphabetically
+  earliest users. `campaign_recall_bracket` now reports what the tie could cost (exact)
+  and buy (achievable), and `tie_exposure` the slots and contenders behind the width. A
+  zero-width bracket certifies that the tie-break decided nothing, which is every model
+  whose score is continuous.
+- **Budget for first detection** (`budget_for_first_detection`) — the smallest daily
+  budget at which the model catches any campaign. Recall at a fixed budget saturates at
+  zero exactly in the regime this benchmark studies, ranking every failed model as equally
+  far from working; this does not. A campaign is detected at budget `k` iff one of its
+  events reaches rank `k` in its own day, so the answer is the minimum rank over campaign
+  events — one pass, exact, no sweep over candidate budgets.
 - **Time-to-detection** (`evaluate.campaign`) — campaigns never detected at a given budget
   are counted in `n_never_detected`, never dropped from the denominator and never folded in
   as a delay of zero.
@@ -92,8 +126,11 @@ to rank models:
   which is *not* the per-day operating point above.
 - **Recall at fixed FPR**.
 
-The gap between the registers is the project's whole thesis, and the demo sample already
-shows it: M2b reaches ROC-AUC 0.98 while catching nothing at a budget of 10 or 50 alerts/day.
+The gap between the registers is the project's whole thesis, and both runs show it. On the
+demo sample M3a reaches ROC-AUC 0.798 and catches nothing at 10, 50 or 100 alerts/day. On
+LANL the two registers are not merely different but **anti-correlated**: M2a scores 0.942 and
+detects none of the 39 campaigns at any budget, while M1 has the lowest ROC-AUC of the five
+non-trivial models (0.547) and is the only one that detects anything at all.
 
 ## Uncertainty and pairwise comparisons (US-128)
 

@@ -72,6 +72,12 @@ def test_metrics_stay_in_separate_registers_in_the_emitted_record() -> None:
         "budgets",
         "event_recall",
         "campaign_recall",
+        # What the recall row alone cannot say: how far the tie-break could
+        # move each point, what it was competing over, and the budget at which
+        # this model first detects anything.
+        "campaign_recall_tie_bracket",
+        "tie_exposure",
+        "budget_for_first_detection",
         "time_to_detection",
     }
     assert set(record["literature_comparable"]) == {  # type: ignore[arg-type]
