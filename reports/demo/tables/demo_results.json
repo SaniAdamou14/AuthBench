@@ -118,6 +118,11 @@
         "0.001": 0.0
       }
     },
+    "score_resolution": {
+      "n_events": 8049,
+      "n_distinct_scores": 8049,
+      "largest_tie_fraction": 0.00012423903590508137
+    },
     "auc_pr_ci_low": 0.00047674993836320354,
     "auc_pr_ci_high": 0.003875136666871608,
     "auc_pr_ci_confidence": 0.95
@@ -240,6 +245,11 @@
         "0.0001": 0.0,
         "0.001": 0.0
       }
+    },
+    "score_resolution": {
+      "n_events": 8049,
+      "n_distinct_scores": 2,
+      "largest_tie_fraction": 0.9813641446142378
     },
     "auc_pr_ci_low": 0.0002486634340420241,
     "auc_pr_ci_high": 0.002978415794167968,
@@ -364,6 +374,11 @@
         "0.001": 0.0
       }
     },
+    "score_resolution": {
+      "n_events": 8049,
+      "n_distinct_scores": 7009,
+      "largest_tie_fraction": 0.0006211951795254069
+    },
     "auc_pr_ci_low": 0.000253404213275439,
     "auc_pr_ci_high": 0.0107394995342218,
     "auc_pr_ci_confidence": 0.95
@@ -486,6 +501,11 @@
         "0.0001": 0.0,
         "0.001": 0.0
       }
+    },
+    "score_resolution": {
+      "n_events": 8049,
+      "n_distinct_scores": 8049,
+      "largest_tie_fraction": 0.00012423903590508137
     },
     "auc_pr_ci_low": 0.0007088771302146312,
     "auc_pr_ci_high": 0.01354526708113257,
@@ -610,6 +630,11 @@
         "0.001": 0.0
       }
     },
+    "score_resolution": {
+      "n_events": 8049,
+      "n_distinct_scores": 8043,
+      "largest_tie_fraction": 0.0003727171077152441
+    },
     "auc_pr_ci_low": 0.0007034908555071226,
     "auc_pr_ci_high": 0.01052873908476036,
     "auc_pr_ci_confidence": 0.95
@@ -733,6 +758,11 @@
         "0.001": 0.0
       }
     },
+    "score_resolution": {
+      "n_events": 8049,
+      "n_distinct_scores": 8049,
+      "largest_tie_fraction": 0.00012423903590508137
+    },
     "auc_pr_ci_low": 0.0004787380059687469,
     "auc_pr_ci_high": 0.018667349147307978,
     "auc_pr_ci_confidence": 0.95
@@ -855,6 +885,11 @@
         "0.0001": 0.0,
         "0.001": 0.5454545454545454
       }
+    },
+    "score_resolution": {
+      "n_events": 8049,
+      "n_distinct_scores": 7750,
+      "largest_tie_fraction": 0.020002484780718102
     },
     "auc_pr_ci_low": 0.08399399991718766,
     "auc_pr_ci_high": 0.6423443805066738,

@@ -56,6 +56,18 @@ the model that detects nothing first, and the only model that detects something
 last. That is what
 this benchmark was built to measure, and it did not need a new model to show it.
 
+> **The obvious objection, and how to check it.** ROC-AUC credits a tied pair
+> 0.5, so a model whose score takes few distinct values is dragged toward 0.50
+> by arithmetic rather than by anything about the operating point — and M1's
+> 0.547 could in principle be that and nothing else. Every run now publishes
+> `score_resolution` per model (distinct values, and the share of the split on
+> the single most crowded score) so the objection is settled by a number rather
+> than argued. On the demo sample M1 takes **7,750 distinct values over 8,049
+> events**, with 2% of the split on its largest tie — not a coarse score. The
+> LANL snapshot predates the field and will carry it on the next run; until
+> then that specific check is open for the 0.547, and saying so is cheaper than
+> having a reviewer find it.
+
 13 of 21 pairwise comparisons are significant after Holm-Bonferroni — and 12 of
 those 13 sit on the bootstrap's own resolution floor, so they are reported as
 `Holm-adjusted p ≤ 0.0210` against a threshold of 0.05, not as a measured

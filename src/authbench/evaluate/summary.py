@@ -87,6 +87,43 @@ class TimeToDetectionSummary:
         )
 
 
+@dataclass(frozen=True)
+class ScoreResolution:
+    """How finely a model's score actually separates events.
+
+    Published because the project's headline claim invites an objection it
+    should answer in advance. The claim is that the two registers are
+    *anti-correlated* — M2a at ROC-AUC 0.942 detecting nothing, M1 lowest at
+    0.547 and the only model detecting anything. A reviewer is entitled to
+    reply that ROC-AUC credits a tied pair 0.5, so a coarse score is dragged
+    toward 0.5 by arithmetic rather than by any property of the operating
+    point, and M1's 0.547 might be that and nothing more.
+
+    These two numbers settle it either way instead of leaving it to be argued.
+    On the demo sample M1 takes 7,750 distinct values over 8,049 events, so its
+    ROC-AUC there is not a granularity artifact; M0b takes 2, so its is.
+    """
+
+    n_events: int
+    n_distinct_scores: int
+    #: Share of the split sitting on the single most crowded score. At 1/n the
+    #: score is fully discriminating; near 1.0 the model has essentially one
+    #: verdict and every rank metric over it is reporting tie conventions.
+    largest_tie_fraction: float
+
+    @classmethod
+    def from_scores(cls, scores: np.ndarray) -> ScoreResolution:
+        n = int(scores.size)
+        if n == 0:
+            return cls(n_events=0, n_distinct_scores=0, largest_tie_fraction=0.0)
+        counts = np.unique(scores, return_counts=True)[1]
+        return cls(
+            n_events=n,
+            n_distinct_scores=int(counts.size),
+            largest_tie_fraction=float(counts.max() / n),
+        )
+
+
 @dataclass
 class ModelEvaluation:
     model_name: str
@@ -97,6 +134,7 @@ class ModelEvaluation:
     roc_auc: float | None = None
     precision_at_k_global: dict[int, float] = field(default_factory=dict)
     recall_at_fixed_fpr: dict[float, float] = field(default_factory=dict)
+    score_resolution: ScoreResolution | None = None
 
     def to_dict(self) -> dict[str, object]:
         record: dict[str, object] = {
@@ -134,6 +172,11 @@ class ModelEvaluation:
                 },
             },
         }
+        if self.score_resolution is not None:
+            # Outside both registers on purpose: it is a property of the score
+            # itself, and it qualifies a metric in each of them — ROC-AUC's tie
+            # credit on one side, the alert-budget tie-break on the other.
+            record["score_resolution"] = self.score_resolution.__dict__
         if self.auc_pr_ci is not None:
             record["auc_pr_ci_low"] = self.auc_pr_ci.ci_low
             record["auc_pr_ci_high"] = self.auc_pr_ci.ci_high
@@ -186,6 +229,7 @@ def evaluate_model(
             if both_classes_present
             else {}
         ),
+        score_resolution=ScoreResolution.from_scores(scores),
     )
 
 

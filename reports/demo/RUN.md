@@ -70,7 +70,7 @@ narrow it.
 
 | File | What it holds |
 |---|---|
-| `tables/demo_results.json` | every metric, per model, operational and literature-comparable kept separate — the operational block also carries `campaign_recall_tie_bracket`, `tie_exposure` and `budget_for_first_detection` |
+| `tables/demo_results.json` | every metric, per model, operational and literature-comparable kept separate — the operational block also carries `campaign_recall_tie_bracket`, `tie_exposure` and `budget_for_first_detection`, and each row a `score_resolution` (distinct values, largest tie share) that says how much of any rank metric is tie convention |
 | `tables/pairwise_comparisons.json` | all 21 pairwise AUC-PR tests: `p_value_raw`, `p_value_holm_adjusted`, and `at_resolution_floor` — set on all 8 significant pairs here, meaning their p-value is the bound `2/(R+1)` rather than a value the bootstrap resolved |
 | `tables/campaign_summary.csv` | one row per red-team campaign: user, event count, duration |
 | `figures/campaign_recall_vs_budget.png` | the headline figure |
