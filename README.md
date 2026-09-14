@@ -1,7 +1,7 @@
 # AuthBench
 
-**How much does deep learning actually buy you in authentication-log anomaly
-detection?** A leak-free, alert-budget-constrained benchmark on the LANL
+**What does published anomaly-detection performance become under a realistic
+alert budget?** A leak-free, budget-constrained benchmark on the LANL
 Comprehensive Multi-Source Cyber-Security Events dataset.
 
 [![CI](https://github.com/SaniAdamou14/AuthBench/actions/workflows/ci.yml/badge.svg)](https://github.com/SaniAdamou14/AuthBench/actions/workflows/ci.yml)
@@ -10,8 +10,16 @@ Comprehensive Multi-Source Cyber-Security Events dataset.
 > published anomaly-detection results are reported at operating points no
 > analyst could ever use. AuthBench does not propose a new model — it
 > measures, under a strictly temporal, leak-free protocol and a realistic
-> daily alert budget, how much of the published deep-learning advantage over
-> well-built heuristics actually survives.
+> daily alert budget, what survives.
+>
+> **The question it was built to ask — how much of the published deep-learning
+> advantage over well-built heuristics survives that constraint — is not
+> answered here.** The LANL run evaluates seven heuristic, statistical and
+> classical outlier models; no deep model has been run on real data yet (see
+> [State of the project](#state-of-the-project)). What the run did find does not
+> depend on that comparison, and is sharper than expected: at an operational
+> budget the two evaluation registers are not merely different but
+> *anti-correlated*.
 
 ## The result
 
