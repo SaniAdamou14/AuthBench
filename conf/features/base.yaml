@@ -8,23 +8,25 @@ f1_event:
 # Days of history each split reads *before* its own first day, computed over
 # but never written out.
 #
-# **0 in the published LANL run, and that is a hardware limit, not a choice.**
-# One warm-up day made each split process 38M rows instead of 19M and died on
-# the second split after writing the first; two made it 57M and died before
-# writing anything. Measured on the demo sample, going from 0 to 2 warm-up days
-# halves `pair_is_new` (2,623 -> 1,287): without history, half the pairs called
-# "never seen" were only unseen because there was no past to have seen them in.
-# That is the size of what a 0 here costs, and it is why the LANL results carry
-# the caveat they do — see reports/lanl/RUN.md.
+# **0 in the published LANL run, and that was a hardware limit, not a choice.**
+# On the 8 GB reference machine, one warm-up day made each split process 38M
+# rows instead of 19M and died on the second split after writing the first;
+# two made it 57M and died before writing anything — see docs/scaling.md for
+# the measured numbers. Set to **2** here for the wider-window run
+# (`conf/split/temporal.yaml`) on hardware that can hold it: `authbench
+# preflight` is the check that says whether it still can, not this comment.
 #
-# Without it a one-day split gives F2's 24-hour windows and F3's cumulative pair
-# statistics a single day of past to work with — which cripples exactly the
-# feature families this benchmark says carry the lateral-movement signal, and
-# makes a recall of zero ambiguous between "the models detect nothing" and "one
-# day is not enough history to know what is new". Every warm-up day costs a
-# day's worth of processing memory, so it is capped by the machine, not by
-# taste.
-history_warmup_days: 0
+# Measured on the demo sample, going from 0 to 2 warm-up days halves
+# `pair_is_new` (2,623 -> 1,287): without history, half the pairs called
+# "never seen" were only unseen because there was no past to have seen them
+# in. That is the size of the effect this buys back — a one-day split gave
+# F2's 24-hour windows and F3's cumulative pair statistics a single day of
+# past to work with, which cripples exactly the feature families this
+# benchmark says carry the lateral-movement signal, and made a recall of zero
+# ambiguous between "the models detect nothing" and "one day is not enough
+# history to know what is new". Only the very first day of train (day 0)
+# still starts cold: nothing precedes the converted window for it to read.
+history_warmup_days: 2
 
 f2_history:
   enabled: true

@@ -28,6 +28,14 @@ The document uses only standard packages (`amsmath`, `amssymb`, `booktabs`,
 compiles on any TeX Live or MiKTeX install, and on Overleaf with no
 configuration.
 
+**One figure is included by relative path** —
+`../lanl/figures/campaign_recall_vs_budget.png` — so that the paper always shows
+the committed output rather than a copy that can drift from it. This works for a
+local build. It does **not** work for an arXiv upload, which must be
+self-contained: copy the PNG next to `main.tex` and change the path to
+`campaign_recall_vs_budget.png` before packaging. Do it at submission time, not
+before, so the working copy keeps pointing at the run.
+
 If no local TeX is installed, Overleaf is the shortest path: create a blank
 project, upload `main.tex`, compile. It also produces the archive arXiv expects.
 

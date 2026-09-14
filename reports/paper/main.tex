@@ -335,6 +335,16 @@ own day. On the synthetic sample it separates four models that the recall row
 called identical (83 / 114 / 284 / 294) and reveals that two of them lose to the
 random floor.
 
+We note the obvious objection: this metric was designed for exactly the regime
+the LANL run occupies, and yet no LANL values are reported for it. The reason is
+provenance, not selection. \textbf{The metric postdates the committed LANL run},
+as do the tie-break fix of Section~\ref{sec:threats} and the score-resolution
+diagnostics; that snapshot is frozen, and re-running it is precisely what the
+history limitation makes expensive. Reporting the metric on the synthetic sample
+only, and saying so, seemed better than either omitting it --- it is part of the
+protocol being described --- or quietly recomputing it against a run whose
+published tables would then no longer match the code.
+
 \paragraph{Tie-breaking, stated rather than inherited.} ``The top 10 events of
 the day'' is not a question a coarse-scored model answers on its own: the
 always-fail floor puts 2{,}619 equally-scored events in competition for 8 places
@@ -415,7 +425,21 @@ rather than zero; see Section~\ref{sec:threats}.}
 \label{tab:results}
 \end{table}
 
-Table~\ref{tab:results} reports the run. Two findings follow.
+Table~\ref{tab:results} reports the run, and Figure~\ref{fig:recall} plots it.
+Two findings follow.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.92\textwidth]{../lanl/figures/campaign_recall_vs_budget.png}
+\caption{Campaign recall against daily alert budget on the LANL test day,
+reproduced as generated. Every curve lies on zero across the entire budget
+range; the single departure is the rule model reaching 5.1\% at 500 alerts per
+day, in the lower right. The emptiness of the plot is the result, not a
+rendering failure. (The generated legend overlaps that one departure; this is a
+cosmetic defect of the plotting code, left uncorrected here so that the figure
+matches the committed output byte for byte.)}
+\label{fig:recall}
+\end{figure}
 
 \subsection{Nothing works at an operational budget}
 

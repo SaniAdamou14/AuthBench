@@ -25,9 +25,9 @@ to_parquet_days: "0:13"
 
 # conf/split/temporal.yaml — must lie inside `to_parquet_days` above.
 split:
-  train_days: [5, 5]
-  val_days: [8, 8]
-  test_days: [12, 12]
+  train_days: [0, 7]
+  val_days: [8, 10]
+  test_days: [11, 13]
 
 # conf/features/base.yaml
 features:
@@ -35,6 +35,11 @@ features:
   f5_graph_enabled: false
   f6_sequence_enabled: false
   f6_context_length: 32
+  # The wider-window run's second half — a wider partition alone still starts
+  # every val/test day cold. See the comment in conf/features/base.yaml for
+  # what this buys back and what it still cannot: day 0 of train has nothing
+  # before the converted window to read regardless of this number.
+  history_warmup_days: 2
 
 # conf/eval/default.yaml
 eval:

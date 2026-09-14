@@ -1,36 +1,61 @@
-# The split actually used for the LANL run: **one day per partition, and not
-# contiguous**. Both properties are forced, and both must be reported.
+# The wider-window split, run on rented hardware once the 8 GB reference
+# machine's constraint on partition size stopped applying.
 #
-# Three constraints hold simultaneously, and on LANL they admit no tidy
-# thirds-of-the-calendar answer:
+# The single-day split below (`train_days: [5, 5]`, `val_days: [8, 8]`,
+# `test_days: [12, 12]`) is what `reports/lanl/RUN.md` reports and what an
+# 8 GB machine could afford — 3.19 GB for a single 33M-row allocation is
+# already the ceiling, and `docs/scaling.md` measured that one warm-up day
+# (38M rows) died mid-run and two (57M) died before writing anything. This
+# file's own comment used to say so at length; the constraint no longer holds
+# once the run happens on a machine with enough RAM to hold the wider windows,
+# so it names its own upgrade rather than repeating the old ceiling as if it
+# still applied.
 #
-#  1. **Every partition needs campaigns.** The red team stops at day 29, and
-#     inside the converted 0-13 window days 0, 3, 4, 10 and 11 carry no
-#     red-team activity at all. The spec's own 0-29 / 30-39 / 40-57 leaves
-#     validation and test with none — tests/unit/test_split_has_positives.py.
-#  2. **Temporal order must hold**, and it does: day 5 < day 8 < day 12.
-#  3. **No partition may exceed ~20M events.** Featurising 133M rows asks for a
-#     single 3.19 GB allocation; 33M rows on this machine paged for 36 minutes
-#     without writing a file. ~19M per split is the size measured to complete,
-#     in about 2.5 minutes each.
+# Two things changed together, and only together — a wider window with no
+# warm-up is not the fix `docs/scaling.md` recommends:
 #
-# What this costs, stated plainly: **one day of history**. F2's 24-hour windows
-# and F3's cumulative pair statistics have a single day of lookback inside each
-# partition, so novelty and rarity are measured against a much shorter past
-# than a 58-day run would give. That weakens exactly the feature families this
-# benchmark says carry the lateral-movement signal, and any result must be read
-# with it in mind. It is a real limitation, and a bounded, honest one.
+#  1. **Multi-day partitions**, so F2's 24-hour windows and F3's cumulative
+#     pair statistics have more than a single day of same-partition events to
+#     rank a "new" pair against.
+#  2. **`features.history_warmup_days: 2`** (`conf/features/base.yaml`), so
+#     even the *first* day of val and test — which a wider partition alone
+#     does nothing for — reads real history from the two days before it. Only
+#     the very first day of train (day 0) still starts cold; nothing precedes
+#     the converted window for it to read.
 #
-# The gaps between partitions are not a leak — nothing from day 6 or 9 reaches
-# the model — and evaluating on day 12 after training on day 5 is a *harder*
-# test than the day immediately after, not an easier one.
+# The three constraints from the single-day version still hold and were
+# rechecked against the real, already-downloaded `redteam.txt.gz` before this
+# file changed (never against the demo sample, and never guessed):
 #
-# Campaigns: train 4, val 45, test 39. Events: 18.6M / 19.4M / 19.9M.
+#  1. **Every partition needs campaigns**, and every one now has more than
+#     before, not merely enough: train 4 -> **11**, val 45 -> **45** (day 9
+#     adds events but no additional campaign_id within the 24h gap), test
+#     39 -> **52** — a wider margin above
+#     `stats_tests.MIN_CAMPAIGNS_FOR_SIGNIFICANCE`, and specifically more
+#     campaigns for the bootstrap to resample in the partition every reported
+#     confidence interval and p-value comes from.
+#  2. **Temporal order holds**: [0,7] < [8,10] < [11,13].
+#  3. **No partition exceeds the machine's memory**, which is no longer ~20M
+#     events — it is whatever `authbench preflight` reports for the rented
+#     instance, checked there before this run, not assumed here.
+#
+# Rows actually processed, computed from the already-converted `day=0..13`
+# Parquet partitions (`data/interim/auth`, SHA-256-verified against
+# `conf/dataset/lanl.yaml`, no re-download or re-conversion needed for this
+# run): train scans days [0,7] (warm-up clips at 0, nothing precedes the
+# converted window) = 133,093,586 rows, all written. Val scans [6,10] for
+# 90,462,966 rows, writing the 51,687,105 in [8,10]. Test scans [9,13] for
+# 87,003,185 rows, writing the 54,690,768 in [11,13].
+#
+# The gaps between partitions are still not a leak — nothing from day 6 or 9
+# reaches a model as a *labeled* event — and testing on days 11-13 after
+# training on days 0-7 is still a harder generalisation test than the
+# immediately-following days would be.
 name: temporal
 mode: temporal
 
-train_days: [5, 5]
-val_days: [8, 8]
-test_days: [12, 12]
+train_days: [0, 7]
+val_days: [8, 10]
+test_days: [11, 13]
 
 regimes: [r1_unsupervised, r2_semi_supervised]

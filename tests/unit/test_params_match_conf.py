@@ -49,6 +49,12 @@ def test_feature_knobs_match() -> None:
     assert params.features.f5_graph_enabled == conf.f5_graph.enabled  # type: ignore[union-attr]
     assert params.features.f6_sequence_enabled == conf.f6_sequence.enabled  # type: ignore[union-attr]
     assert params.features.f6_context_length == conf.f6_sequence.context_length  # type: ignore[union-attr]
+    # Added alongside the wider-window LANL split: a value here that disagreed
+    # with conf/ would be the exact drift this test file exists to catch, and
+    # this key controls how many extra days each split scans before its own —
+    # a silent mismatch changes how much history a run actually got without
+    # changing what `dvc params diff` claims it asked for.
+    assert params.features.history_warmup_days == conf.history_warmup_days  # type: ignore[union-attr]
 
 
 def test_the_split_lies_inside_the_converted_day_window() -> None:
