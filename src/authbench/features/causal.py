@@ -22,7 +22,7 @@ def sort_for_causal(df: pl.LazyFrame, entity_col: str, time_col: str) -> pl.Lazy
     `entity_col` group. Every causal primitive below assumes its input has
     already been sorted this way.
     """
-    return df.sort([entity_col, time_col])
+    return df.sort([entity_col, time_col, "event_id"])
 
 
 def causal_rolling_count(
@@ -137,7 +137,7 @@ def causal_distinct_count(
     """
     base = events.select([id_col, entity_col, partner_col, time_col])
 
-    with_prev = base.sort([entity_col, partner_col, time_col]).with_columns(
+    with_prev = base.sort([entity_col, partner_col, time_col, "event_id"]).with_columns(
         pl.col(time_col).shift(1).over([entity_col, partner_col]).alias("_prev_pair_time")
     )
     bounds = with_prev.select(
@@ -187,7 +187,7 @@ def causal_distinct_count(
         pl.concat(
             [queries.with_columns(pl.lit(0, dtype=pl.Int8).alias("_kind")), deltas], how="diagonal"
         )
-        .sort([entity_col, "_t", "_kind"])
+        .sort([entity_col, "_t", "_kind", "event_id"])
         .with_columns(pl.col("_delta").cum_sum().over(entity_col).alias(out_col))
     )
 
@@ -206,7 +206,7 @@ def causal_first_occurrence(
         "_group_key"
     )
     with_key = events.select([id_col, time_col, *group_cols]).with_columns(key)
-    sorted_ = with_key.sort(["_group_key", time_col])
+    sorted_ = with_key.sort(["_group_key", time_col, id_col])
     with_idx = sorted_.with_columns(
         [
             pl.int_range(0, pl.len()).over("_group_key").alias("_occurrence_index"),
