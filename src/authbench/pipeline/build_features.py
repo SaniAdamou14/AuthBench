@@ -167,13 +167,41 @@ def main(cfg: DictConfig) -> None:
     def labeled(frame: pl.LazyFrame) -> pl.LazyFrame:
         return attach_campaign_id(label_auth_events(frame, typed_redteam), campaigns)
 
+    def checkpoint(frame: pl.LazyFrame, name: str) -> pl.LazyFrame:
+        """Materialize a lazy frame to Parquet and rescan it.
+
+        `featurize()` below joins many independently-computed feature branches
+        back onto the same starting frame (one per F2 entity/window pair, plus
+        F3's several sorts and F4's cumulative circular mean) — one `.join(...,
+        on="event_id")` per branch. Polars' planner does not share the upstream
+        work across sibling branches of a join graph: each branch re-derives
+        the redteam label join and campaign-id assignment from the raw Parquet
+        scan independently. Confirmed with `.explain()` on an 8-day train
+        window: 32 independent full scans of the same ~134M-row base, each
+        redoing the campaign-id sort/rank chain, before a single feature column
+        existed — the same failure mode the module docstring above already
+        diagnoses for `verify_temporal_order`, one level deeper.
+
+        Checkpointing here breaks the graph exactly where it forked: every
+        downstream branch now scans this small, already-labeled file instead
+        of re-deriving it, at the cost of one extra Parquet round-trip per
+        split. It changes nothing about the computed values — same join, same
+        filter, just performed once.
+        """
+        tmp_path = interim_dir / f"_checkpoint_{name}.parquet"
+        frame.sink_parquet(tmp_path, compression="zstd")
+        return pl.scan_parquet(tmp_path)
+
     # Featurised over the warm-up window; written for the split's own days only.
     bounds = {
         "train": split_config.train_days,
         "val": split_config.val_days,
         "test": split_config.test_days,
     }
-    warm = {name: labeled(raw_split(days, warmup=warmup_days)) for name, days in bounds.items()}
+    warm = {
+        name: checkpoint(labeled(raw_split(days, warmup=warmup_days)), name)
+        for name, days in bounds.items()
+    }
 
     version = feature_store_version(cfg.features)
     version_dir = processed_dir / version
@@ -203,6 +231,9 @@ def main(cfg: DictConfig) -> None:
         out_path = version_dir / f"{split_name}.parquet"
         out.sink_parquet(out_path, compression="zstd")
         logger.info("Wrote %s features to %s", split_name, out_path)
+
+        checkpoint_path = interim_dir / f"_checkpoint_{split_name}.parquet"
+        checkpoint_path.unlink(missing_ok=True)
 
     logger.info("Feature store version: %s", version)
 
