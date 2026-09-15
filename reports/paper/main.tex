@@ -569,6 +569,39 @@ anything.
 M2a at 0.942 detects nothing while M1 at 0.547 detects something is a property of
 the operating point and the base rate, and no quantity of history changes it.
 
+\subsection{A robustness check: the wider window, with warm-up}
+\label{sec:wider-window}
+
+The limitation above is no longer entirely hypothetical. A second run, on
+hardware large enough to afford what the reference machine could not, trains
+on days 0--7, validates on 8--10 and tests on 11--13, with two warm-up days
+feeding every split's first events a real past (133{,}093{,}586 /
+51{,}687{,}105 / 54{,}690{,}768 rows; 52 test-split campaigns against the
+single day's 39). Full output: \texttt{reports/lanl/wider\_window\_results/}.
+
+The central finding is unchanged, and if anything sharper. Every one of the
+seven scoreable models --- M3b ECOD excluded here for the same reason given
+in Section~\ref{sec:models}, at larger scale --- reads exactly 0\% campaign
+recall at every budget from 10 through 500 alerts per day, over 52 campaigns
+rather than 39. The anti-correlation holds too: M2a's ROC-AUC is 0.941
+(0.942 on the single day) against zero operational recall, to three figures
+the same finding from a test split more than five times the size.
+
+One number does move, and it is reported here rather than only the numbers
+that confirm the paper's thesis. M1 rules --- Table~\ref{tab:results}'s only
+non-zero row, 5.1\% campaign recall at 500 alerts/day --- reads 0\% on the
+wider run, at every budget. Two things changed together between the runs,
+not one: three test days instead of one, and warm-up switched on for the
+first time on real data. Section~\ref{sec:threats}'s own measurement above is
+that warm-up roughly halves how often a pair is flagged never-seen-before;
+M1's R1 and R6 rules are built directly on that signal. A plausible reading
+is that warm-up did here what it was already shown to do on the synthetic
+sample --- shrink the over-flagging that let M1 catch two campaigns on an
+unwarmed-up test day --- rather than three days being harder to detect in
+than one. \textbf{This is not isolated}: separating window width from
+warm-up would need a third run holding one fixed, which is future work, not
+a claim made here.
+
 \subsection{Cold start is encoded as ``normal'', and it biases toward our conclusion}
 
 An event with no prior history for its user does not receive a neutral feature
