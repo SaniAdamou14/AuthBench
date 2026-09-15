@@ -6,10 +6,12 @@
     "diff": 0.00019624966999957937,
     "diff_ci_low": -0.00015100024322988644,
     "diff_ci_high": 0.0021444039541221875,
-    "p_value_corrected": 0.41358641358641357,
+    "p_value_raw": 0.41358641358641357,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M0a_random and M0b_always_fail are not significantly different on auc_pr (\u0394=0.0002, 95% CI [-0.0002, +0.0021], corrected p=0.4136)."
+    "sentence": "M0a_random and M0b_always_fail are not significantly different on auc_pr (\u0394=0.0002, 95% CI [-0.0002, +0.0021], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M0a_random",
@@ -18,10 +20,12 @@
     "diff": -0.0008983113296964446,
     "diff_ci_low": -0.009168274827501212,
     "diff_ci_high": 0.0019653569013023515,
-    "p_value_corrected": 0.5594405594405595,
+    "p_value_raw": 0.5594405594405595,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M0a_random and M2a_pair_rarity are not significantly different on auc_pr (\u0394=-0.0009, 95% CI [-0.0020, +0.0092], corrected p=0.5594)."
+    "sentence": "M0a_random and M2a_pair_rarity are not significantly different on auc_pr (\u0394=-0.0009, 95% CI [-0.0020, +0.0092], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M0a_random",
@@ -30,10 +34,12 @@
     "diff": -0.0024857095367012746,
     "diff_ci_low": -0.011549047971836661,
     "diff_ci_high": 0.0003996082024167567,
-    "p_value_corrected": 0.2677322677322677,
+    "p_value_raw": 0.2677322677322677,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M0a_random and M2b_pca_reconstruction are not significantly different on auc_pr (\u0394=-0.0025, 95% CI [-0.0004, +0.0115], corrected p=0.2677)."
+    "sentence": "M0a_random and M2b_pca_reconstruction are not significantly different on auc_pr (\u0394=-0.0025, 95% CI [-0.0004, +0.0115], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M0a_random",
@@ -42,10 +48,12 @@
     "diff": -0.002634234559688033,
     "diff_ci_low": -0.007045899388499324,
     "diff_ci_high": 0.00021286164358862598,
-    "p_value_corrected": 0.07792207792207792,
+    "p_value_raw": 0.07792207792207792,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M0a_random and M3a_iforest are not significantly different on auc_pr (\u0394=-0.0026, 95% CI [-0.0002, +0.0070], corrected p=0.0779)."
+    "sentence": "M0a_random and M3a_iforest are not significantly different on auc_pr (\u0394=-0.0026, 95% CI [-0.0002, +0.0070], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M0a_random",
@@ -54,10 +62,12 @@
     "diff": -0.003008380172490747,
     "diff_ci_low": -0.014819581561644066,
     "diff_ci_high": 0.00033021487798613324,
-    "p_value_corrected": 0.11388611388611389,
+    "p_value_raw": 0.11388611388611389,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M0a_random and M3b_ecod are not significantly different on auc_pr (\u0394=-0.0030, 95% CI [-0.0003, +0.0148], corrected p=0.1139)."
+    "sentence": "M0a_random and M3b_ecod are not significantly different on auc_pr (\u0394=-0.0030, 95% CI [-0.0003, +0.0148], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M0a_random",
@@ -66,10 +76,12 @@
     "diff": -0.3289689748362215,
     "diff_ci_low": -0.6409064294223026,
     "diff_ci_high": -0.08336839906043818,
-    "p_value_corrected": 0.001998001998001998,
+    "p_value_raw": 0.001998001998001998,
+    "p_value_holm_adjusted": 0.04195804195804196,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M1_rules outperforms M0a_random on auc_pr (\u0394=0.3290, 95% CI [+0.0834, +0.6409], corrected p=0.0020)."
+    "sentence": "M1_rules outperforms M0a_random on auc_pr (\u0394=0.3290, 95% CI [+0.0834, +0.6409], Holm-adjusted p <= 0.0420)."
   },
   {
     "model_a": "M0b_always_fail",
@@ -78,10 +90,12 @@
     "diff": -0.001094560999696024,
     "diff_ci_low": -0.009768236044286966,
     "diff_ci_high": 0.0003946960987773415,
-    "p_value_corrected": 0.34965034965034963,
+    "p_value_raw": 0.34965034965034963,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M0b_always_fail and M2a_pair_rarity are not significantly different on auc_pr (\u0394=-0.0011, 95% CI [-0.0004, +0.0098], corrected p=0.3497)."
+    "sentence": "M0b_always_fail and M2a_pair_rarity are not significantly different on auc_pr (\u0394=-0.0011, 95% CI [-0.0004, +0.0098], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M0b_always_fail",
@@ -90,10 +104,12 @@
     "diff": -0.002681959206700854,
     "diff_ci_low": -0.011311890329686025,
     "diff_ci_high": -0.00021673494945564204,
-    "p_value_corrected": 0.001998001998001998,
+    "p_value_raw": 0.001998001998001998,
+    "p_value_holm_adjusted": 0.04195804195804196,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2b_pca_reconstruction outperforms M0b_always_fail on auc_pr (\u0394=0.0027, 95% CI [+0.0002, +0.0113], corrected p=0.0020)."
+    "sentence": "M2b_pca_reconstruction outperforms M0b_always_fail on auc_pr (\u0394=0.0027, 95% CI [+0.0002, +0.0113], Holm-adjusted p <= 0.0420)."
   },
   {
     "model_a": "M0b_always_fail",
@@ -102,10 +118,12 @@
     "diff": -0.0028304842296876125,
     "diff_ci_low": -0.008013198364813663,
     "diff_ci_high": -0.00020622581323959403,
-    "p_value_corrected": 0.001998001998001998,
+    "p_value_raw": 0.001998001998001998,
+    "p_value_holm_adjusted": 0.04195804195804196,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M3a_iforest outperforms M0b_always_fail on auc_pr (\u0394=0.0028, 95% CI [+0.0002, +0.0080], corrected p=0.0020)."
+    "sentence": "M3a_iforest outperforms M0b_always_fail on auc_pr (\u0394=0.0028, 95% CI [+0.0002, +0.0080], Holm-adjusted p <= 0.0420)."
   },
   {
     "model_a": "M0b_always_fail",
@@ -114,10 +132,12 @@
     "diff": -0.0032046298424903267,
     "diff_ci_low": -0.016642570099933984,
     "diff_ci_high": 1.9079318326557417e-05,
-    "p_value_corrected": 0.0959040959040959,
+    "p_value_raw": 0.0959040959040959,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M0b_always_fail and M3b_ecod are not significantly different on auc_pr (\u0394=-0.0032, 95% CI [-0.0000, +0.0166], corrected p=0.0959)."
+    "sentence": "M0b_always_fail and M3b_ecod are not significantly different on auc_pr (\u0394=-0.0032, 95% CI [-0.0000, +0.0166], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M0b_always_fail",
@@ -126,10 +146,12 @@
     "diff": -0.32916522450622104,
     "diff_ci_low": -0.6408538824319004,
     "diff_ci_high": -0.0835065976111243,
-    "p_value_corrected": 0.001998001998001998,
+    "p_value_raw": 0.001998001998001998,
+    "p_value_holm_adjusted": 0.04195804195804196,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M1_rules outperforms M0b_always_fail on auc_pr (\u0394=0.3292, 95% CI [+0.0835, +0.6409], corrected p=0.0020)."
+    "sentence": "M1_rules outperforms M0b_always_fail on auc_pr (\u0394=0.3292, 95% CI [+0.0835, +0.6409], Holm-adjusted p <= 0.0420)."
   },
   {
     "model_a": "M2a_pair_rarity",
@@ -138,10 +160,12 @@
     "diff": -0.0015873982070048302,
     "diff_ci_low": -0.00901132740288906,
     "diff_ci_high": 0.00837123272144134,
-    "p_value_corrected": 0.5834165834165834,
+    "p_value_raw": 0.5834165834165834,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2a_pair_rarity and M2b_pca_reconstruction are not significantly different on auc_pr (\u0394=-0.0016, 95% CI [-0.0084, +0.0090], corrected p=0.5834)."
+    "sentence": "M2a_pair_rarity and M2b_pca_reconstruction are not significantly different on auc_pr (\u0394=-0.0016, 95% CI [-0.0084, +0.0090], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M2a_pair_rarity",
@@ -150,10 +174,12 @@
     "diff": -0.0017359232299915886,
     "diff_ci_low": -0.00783632701375348,
     "diff_ci_high": 0.008435954288278064,
-    "p_value_corrected": 0.5934065934065934,
+    "p_value_raw": 0.5934065934065934,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2a_pair_rarity and M3a_iforest are not significantly different on auc_pr (\u0394=-0.0017, 95% CI [-0.0084, +0.0078], corrected p=0.5934)."
+    "sentence": "M2a_pair_rarity and M3a_iforest are not significantly different on auc_pr (\u0394=-0.0017, 95% CI [-0.0084, +0.0078], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M2a_pair_rarity",
@@ -162,10 +188,12 @@
     "diff": -0.0021100688427943028,
     "diff_ci_low": -0.016644711502746566,
     "diff_ci_high": 0.008837090515231757,
-    "p_value_corrected": 0.7352647352647352,
+    "p_value_raw": 0.7352647352647352,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2a_pair_rarity and M3b_ecod are not significantly different on auc_pr (\u0394=-0.0021, 95% CI [-0.0088, +0.0166], corrected p=0.7353)."
+    "sentence": "M2a_pair_rarity and M3b_ecod are not significantly different on auc_pr (\u0394=-0.0021, 95% CI [-0.0088, +0.0166], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M2a_pair_rarity",
@@ -174,10 +202,12 @@
     "diff": -0.32807066350652503,
     "diff_ci_low": -0.6376695979272109,
     "diff_ci_high": -0.08360873798347795,
-    "p_value_corrected": 0.001998001998001998,
+    "p_value_raw": 0.001998001998001998,
+    "p_value_holm_adjusted": 0.04195804195804196,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M1_rules outperforms M2a_pair_rarity on auc_pr (\u0394=0.3281, 95% CI [+0.0836, +0.6377], corrected p=0.0020)."
+    "sentence": "M1_rules outperforms M2a_pair_rarity on auc_pr (\u0394=0.3281, 95% CI [+0.0836, +0.6377], Holm-adjusted p <= 0.0420)."
   },
   {
     "model_a": "M2b_pca_reconstruction",
@@ -186,10 +216,12 @@
     "diff": -0.00014852502298675838,
     "diff_ci_low": -0.00433920514383098,
     "diff_ci_high": 0.006216119100686678,
-    "p_value_corrected": 0.9010989010989011,
+    "p_value_raw": 0.9010989010989011,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2b_pca_reconstruction and M3a_iforest are not significantly different on auc_pr (\u0394=-0.0001, 95% CI [-0.0062, +0.0043], corrected p=0.9011)."
+    "sentence": "M2b_pca_reconstruction and M3a_iforest are not significantly different on auc_pr (\u0394=-0.0001, 95% CI [-0.0062, +0.0043], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M2b_pca_reconstruction",
@@ -198,10 +230,12 @@
     "diff": -0.0005226706357894725,
     "diff_ci_low": -0.01350421308076573,
     "diff_ci_high": 0.009154132265979251,
-    "p_value_corrected": 0.8851148851148851,
+    "p_value_raw": 0.8851148851148851,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2b_pca_reconstruction and M3b_ecod are not significantly different on auc_pr (\u0394=-0.0005, 95% CI [-0.0092, +0.0135], corrected p=0.8851)."
+    "sentence": "M2b_pca_reconstruction and M3b_ecod are not significantly different on auc_pr (\u0394=-0.0005, 95% CI [-0.0092, +0.0135], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M2b_pca_reconstruction",
@@ -210,10 +244,12 @@
     "diff": -0.3264832652995202,
     "diff_ci_low": -0.6290404274566871,
     "diff_ci_high": -0.0829216298405752,
-    "p_value_corrected": 0.001998001998001998,
+    "p_value_raw": 0.001998001998001998,
+    "p_value_holm_adjusted": 0.04195804195804196,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M1_rules outperforms M2b_pca_reconstruction on auc_pr (\u0394=0.3265, 95% CI [+0.0829, +0.6290], corrected p=0.0020)."
+    "sentence": "M1_rules outperforms M2b_pca_reconstruction on auc_pr (\u0394=0.3265, 95% CI [+0.0829, +0.6290], Holm-adjusted p <= 0.0420)."
   },
   {
     "model_a": "M3a_iforest",
@@ -222,10 +258,12 @@
     "diff": -0.00037414561280271416,
     "diff_ci_low": -0.009099064470945587,
     "diff_ci_high": 0.003001809662086283,
-    "p_value_corrected": 0.8151848151848152,
+    "p_value_raw": 0.8151848151848152,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M3a_iforest and M3b_ecod are not significantly different on auc_pr (\u0394=-0.0004, 95% CI [-0.0030, +0.0091], corrected p=0.8152)."
+    "sentence": "M3a_iforest and M3b_ecod are not significantly different on auc_pr (\u0394=-0.0004, 95% CI [-0.0030, +0.0091], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M3a_iforest",
@@ -234,10 +272,12 @@
     "diff": -0.3263347402765334,
     "diff_ci_low": -0.6369855161683285,
     "diff_ci_high": -0.0821231156244837,
-    "p_value_corrected": 0.001998001998001998,
+    "p_value_raw": 0.001998001998001998,
+    "p_value_holm_adjusted": 0.04195804195804196,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M1_rules outperforms M3a_iforest on auc_pr (\u0394=0.3263, 95% CI [+0.0821, +0.6370], corrected p=0.0020)."
+    "sentence": "M1_rules outperforms M3a_iforest on auc_pr (\u0394=0.3263, 95% CI [+0.0821, +0.6370], Holm-adjusted p <= 0.0420)."
   },
   {
     "model_a": "M3b_ecod",
@@ -246,9 +286,11 @@
     "diff": -0.32596059466373073,
     "diff_ci_low": -0.640071436195148,
     "diff_ci_high": -0.07919211055804165,
-    "p_value_corrected": 0.001998001998001998,
+    "p_value_raw": 0.001998001998001998,
+    "p_value_holm_adjusted": 0.04195804195804196,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M1_rules outperforms M3b_ecod on auc_pr (\u0394=0.3260, 95% CI [+0.0792, +0.6401], corrected p=0.0020)."
+    "sentence": "M1_rules outperforms M3b_ecod on auc_pr (\u0394=0.3260, 95% CI [+0.0792, +0.6401], Holm-adjusted p <= 0.0420)."
   }
 ]

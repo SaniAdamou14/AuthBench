@@ -1,7 +1,7 @@
 """Statistical uncertainty: campaign-stratified bootstrap CIs and paired
 permutation tests with Holm-Bonferroni correction (US-128).
 
-With 737 positives concentrated in a handful of campaigns, treating
+With 715 positives concentrated in a handful of campaigns, treating
 individual events as independent draws grossly underestimates variance.
 Every bootstrap resample here is drawn at the **campaign** level: each
 campaign's events move together as one block, and every benign event is its
@@ -361,19 +361,28 @@ class PairedBootstrap:
                 required,
             )
 
-        raw_p_values, diffs, intervals = [], [], []
+        raw_p_values, diffs, intervals, at_floor = [], [], [], []
         for a, b in pairs:
             delta = self.resampled[a] - self.resampled[b]
             n_le = int(np.count_nonzero(delta <= 0))
             n_ge = int(np.count_nonzero(delta >= 0))
             tail = min(n_le, n_ge)
             raw_p_values.append(min(1.0, 2.0 * (tail + 1) / (self.n_resamples + 1)))
+            # `tail == 0` is the entire resolution story, recorded rather than
+            # left to be inferred from the printed number: not one resample out
+            # of `n_resamples` put the difference on the other side of zero, so
+            # the p-value above is the floor `2/(R+1)` and nothing was measured
+            # beneath it. The comparison then supports "p is at most this", not
+            # "p is this" — and on both published runs every single significant
+            # pair is one of these.
+            at_floor.append(tail == 0)
 
             diffs.append(self.point_estimates[a] - self.point_estimates[b])
             lo, hi = np.quantile(delta, [ci_alpha / 2, 1 - ci_alpha / 2])
             intervals.append((float(lo), float(hi)))
 
         significances = holm_bonferroni(raw_p_values, alpha=alpha)
+        adjusted_p_values = holm_adjusted_p_values(raw_p_values)
 
         # A campaign-stratified bootstrap has as many independent observations
         # as the split has campaigns. Below two, resampling cannot vary the
@@ -403,14 +412,23 @@ class PairedBootstrap:
                 model_b=b,
                 metric_name=metric_name,
                 diff=diff,
-                p_value=p,
+                p_value_raw=p,
                 significant=sig,
+                p_value_holm_adjusted=adjusted,
+                at_resolution_floor=floored,
                 diff_ci_low=ci[0],
                 diff_ci_high=ci[1],
                 method="paired_campaign_bootstrap",
             )
-            for (a, b), diff, p, sig, ci in zip(
-                pairs, diffs, raw_p_values, significances, intervals, strict=True
+            for (a, b), diff, p, adjusted, sig, ci, floored in zip(
+                pairs,
+                diffs,
+                raw_p_values,
+                adjusted_p_values,
+                significances,
+                intervals,
+                at_floor,
+                strict=True,
             )
         ]
 
@@ -557,7 +575,7 @@ def paired_campaign_bootstrap(
         workers = _resolve_worker_count(n_jobs, len(tasks))
         logger.info("Bootstrapping %d models across %d worker process(es).", len(tasks), workers)
 
-        degenerate = 0
+        degenerate_per_model: dict[str, int] = {}
         started = time.monotonic()
         if workers == 1:
             results = [_bootstrap_one_model(task) for task in tasks]
@@ -569,7 +587,7 @@ def paired_campaign_bootstrap(
 
         for name, values, n_kept, n_degenerate in results:
             resampled[name] = values
-            degenerate = n_degenerate
+            degenerate_per_model[name] = n_degenerate
             logger.info(
                 "  %s: %d of %d rows survived truncation (%.1f%%), %d degenerate draws redrawn",
                 name,
@@ -579,6 +597,24 @@ def paired_campaign_bootstrap(
                 n_degenerate,
             )
         logger.info("Bootstrap finished in %.1f s.", time.monotonic() - started)
+
+        # Every model replays the same seeded draw sequence, and whether a draw
+        # is discarded depends only on the counts it produced — never on any
+        # model's scores, since truncation only ever drops rows ranked below the
+        # last positive. So these counts are equal by construction, and the loop
+        # above used to just keep whichever arrived last. Keeping them all makes
+        # the invariant checkable instead of assumed: if they ever disagree, the
+        # models were not scored on the same resamples and the "paired" in
+        # `paired_campaign_bootstrap` is no longer true.
+        distinct = set(degenerate_per_model.values())
+        if len(distinct) > 1:
+            logger.error(
+                "Models saw different numbers of degenerate resamples (%s). They are supposed "
+                "to replay one shared draw sequence, so this means the comparisons are no "
+                "longer paired. Reporting the largest count; the pairing is the real problem.",
+                degenerate_per_model,
+            )
+        degenerate = max(distinct) if distinct else 0
 
         return PairedBootstrap(
             model_names=model_names,
@@ -673,14 +709,62 @@ def holm_bonferroni(p_values: list[float], alpha: float = 0.05) -> list[bool]:
     return reject
 
 
+def holm_adjusted_p_values(p_values: list[float]) -> list[float]:
+    """Holm-adjusted p-values, returned per original index.
+
+    `holm_bonferroni` answers "reject at *this* alpha?". This answers "at what
+    alpha would this comparison start to be rejected?", which is the number a
+    reader can hold against any threshold instead of only against the one the
+    run happened to use — and the number that belongs under a key called
+    `p_value_holm_adjusted`, where this project published the *uncorrected*
+    value for most of its history.
+
+    Sorting ascending, the adjusted value at rank `i` is
+    `max_{j <= i} (m - j) * p_(j)`, clipped to 1. The running maximum is what
+    keeps the sequence monotone, and monotonicity is what makes
+    "adjusted <= alpha" agree with the step-down rule at every alpha at once —
+    `tests/unit/test_stats_tests.py` pins the two together rather than trusting
+    that they cannot drift apart.
+
+    The agreement holds for every `alpha < 1` and not at `alpha == 1`, which is
+    the clipping and not a disagreement about the procedure: an adjusted
+    p-value is a p-value and may not exceed 1, so a family whose step-down rule
+    rejects nothing still ends up with adjusted values of exactly 1.0, and
+    `<= 1.0` then admits them. No significance level is 1.
+    """
+    m = len(p_values)
+    if m == 0:
+        return []
+
+    adjusted = [0.0] * m
+    running = 0.0
+    for rank, idx in enumerate(np.argsort(p_values)):
+        running = max(running, (m - rank) * p_values[idx])
+        adjusted[idx] = min(1.0, running)
+    return adjusted
+
+
 @dataclass
 class PairwiseComparison:
     model_a: str
     model_b: str
     metric_name: str
     diff: float
-    p_value: float
+    #: The **uncorrected** two-sided p-value for this pair on its own. Named
+    #: for what it is: the JSON key used to say `p_value_corrected` and the
+    #: sentence used to say "corrected p", while Holm was only ever applied as
+    #: a decision rule and never folded into this number.
+    p_value_raw: float
     significant: bool
+    #: `p_value_raw` corrected for multiplicity across the whole family.
+    #: `None` on routes that report no family.
+    p_value_holm_adjusted: float | None = None
+    #: True when `p_value_raw` is the smallest value the test is *able* to
+    #: express rather than one it measured — no resample (or permutation) put
+    #: the difference on the far side of zero. The p-value is then an upper
+    #: bound and the sentence says `<=` instead of `=`, because reporting a
+    #: floor as a measurement claims a precision the run does not have.
+    at_resolution_floor: bool = False
     # Populated by `PairedBootstrap.comparisons`; the permutation route has no
     # sampling distribution for the difference and leaves them None.
     diff_ci_low: float | None = None
@@ -695,7 +779,9 @@ class PairwiseComparison:
             "diff": self.diff,
             "diff_ci_low": self.diff_ci_low,
             "diff_ci_high": self.diff_ci_high,
-            "p_value_corrected": self.p_value,
+            "p_value_raw": self.p_value_raw,
+            "p_value_holm_adjusted": self.p_value_holm_adjusted,
+            "at_resolution_floor": self.at_resolution_floor,
             "significant": self.significant,
             "method": self.method,
             "sentence": render_comparison_sentence(self),
@@ -729,6 +815,14 @@ def compare_models(
         for a, b in pairs
     ]
     significances = holm_bonferroni(raw_p_values, alpha=alpha)
+    adjusted_p_values = holm_adjusted_p_values(raw_p_values)
+
+    # `permutation_test` reports `(count + 1) / (n + 1)`, so `1 / (n + 1)` is
+    # the smallest value it can return and means no permutation reached the
+    # observed difference. `<=` rather than `==` only because a p-value can
+    # never fall below its own floor, and float equality is a poor way to ask
+    # a question arithmetic already settles.
+    floor = 1.0 / (n_permutations + 1)
 
     return [
         PairwiseComparison(
@@ -736,12 +830,36 @@ def compare_models(
             model_b=b,
             metric_name=metric_name,
             diff=metric_fn(y_true, scores_by_model[a]) - metric_fn(y_true, scores_by_model[b]),
-            p_value=p,
+            p_value_raw=p,
             significant=sig,
+            p_value_holm_adjusted=adjusted,
+            at_resolution_floor=p <= floor,
             method="paired_permutation",
         )
-        for (a, b), p, sig in zip(pairs, raw_p_values, significances, strict=True)
+        for (a, b), p, adjusted, sig in zip(
+            pairs, raw_p_values, adjusted_p_values, significances, strict=True
+        )
     ]
+
+
+def render_p_value(comparison: PairwiseComparison) -> str:
+    """How a comparison's p-value is allowed to be written down.
+
+    Two things the printed form has to get right, both of which it used to get
+    wrong. It reports the **Holm-adjusted** value when there is one, because
+    the sentence already says "corrected" and the number beside it was the
+    uncorrected one. And it writes `<=` whenever the test bottomed out at its
+    own resolution: a bootstrap that never once put the difference on the far
+    side of zero has shown that p is *below* `2/(R+1)`, not that it *equals*
+    it, and every significant pair in both published runs is exactly that
+    case. Printing `=` there turns the number of resamples into a measurement.
+    """
+    adjusted = comparison.p_value_holm_adjusted
+    label, value = (
+        ("Holm-adjusted p", adjusted) if adjusted is not None else ("p", comparison.p_value_raw)
+    )
+    relation = "<=" if comparison.at_resolution_floor else "="
+    return f"{label} {relation} {value:.4f}"
 
 
 def render_comparison_sentence(comparison: PairwiseComparison) -> str:
@@ -768,13 +886,13 @@ def render_comparison_sentence(comparison: PairwiseComparison) -> str:
             else (comparison.diff_ci_low, comparison.diff_ci_high)
         )
         interval = f", 95% CI [{low:+.4f}, {high:+.4f}]"
+    p_value = render_p_value(comparison)
     if comparison.significant:
         return (
             f"{better} outperforms {worse} on {comparison.metric_name} "
-            f"(Δ={abs(comparison.diff):.4f}{interval}, corrected p={comparison.p_value:.4f})."
+            f"(Δ={abs(comparison.diff):.4f}{interval}, {p_value})."
         )
     return (
         f"{comparison.model_a} and {comparison.model_b} are not significantly different "
-        f"on {comparison.metric_name} (Δ={comparison.diff:.4f}{interval}, "
-        f"corrected p={comparison.p_value:.4f})."
+        f"on {comparison.metric_name} (Δ={comparison.diff:.4f}{interval}, {p_value})."
     )

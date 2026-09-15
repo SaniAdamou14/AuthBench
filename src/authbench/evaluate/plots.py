@@ -21,6 +21,8 @@ import matplotlib
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt  # noqa: E402
+from matplotlib.axes import Axes  # noqa: E402
+from matplotlib.patches import Patch  # noqa: E402
 
 from authbench.evaluate.budget import BudgetCurve  # noqa: E402
 
@@ -35,6 +37,32 @@ _FLOOR_PREFIX = "M0"
 
 def _is_floor(model_name: str) -> bool:
     return model_name.startswith(_FLOOR_PREFIX)
+
+
+def _shade_tie_bracket(ax: Axes, curve: BudgetCurve, color: object) -> bool:
+    """Shade the range a different tie-break could have put this curve in.
+
+    A curve drawn as a line says the model reached that recall at that budget.
+    For a model whose score takes few distinct values that is not what the run
+    measured: on the demo sample M0b always-fail has 7,899 equally-scored
+    events competing for 1,350 of budget 500's places, and the recall printed
+    is whichever of them the ordering happened to pick. Its honest value is an
+    interval, and a line through the middle of an interval is a claim the data
+    does not support.
+
+    Draws nothing when the bracket has zero width, which is every model with a
+    continuous score — so the shading appears exactly where the number is
+    soft, and its absence is itself information.
+    """
+    if not curve.campaign_recall_min or not curve.campaign_recall_max:
+        return False
+    low = [r * 100 for r in curve.campaign_recall_min]
+    high = [r * 100 for r in curve.campaign_recall_max]
+    if all(abs(h - lo) < 1e-9 for lo, h in zip(low, high, strict=True)):
+        return False
+
+    ax.fill_between(curve.budgets, low, high, color=color, alpha=0.13, linewidth=0)
+    return True
 
 
 def plot_campaign_recall_vs_budget(
@@ -68,7 +96,11 @@ def plot_campaign_recall_vs_budget(
     # with one campaign). Distinct markers plus transparency keep a tied curve
     # visible underneath the one drawn last, instead of silently erasing it.
     markers = ["o", "s", "^", "D", "v", "P", "*", "X"]
+    shaded: list[str] = []
     for idx, curve in enumerate(models):
+        color = colors(idx % 10)
+        if _shade_tie_bracket(ax, curve, color):
+            shaded.append(curve.model_name)
         ax.plot(
             curve.budgets,
             [r * 100 for r in curve.campaign_recall],
@@ -76,11 +108,13 @@ def plot_campaign_recall_vs_budget(
             markersize=6,
             linewidth=1.9,
             alpha=0.75,
-            color=colors(idx % 10),
+            color=color,
             label=curve.model_name,
         )
 
     for curve in floors:
+        if _shade_tie_bracket(ax, curve, "0.55"):
+            shaded.append(curve.model_name)
         ax.plot(
             curve.budgets,
             [r * 100 for r in curve.campaign_recall],
@@ -115,7 +149,15 @@ def plot_campaign_recall_vs_budget(
             va="bottom",
         )
 
-    ax.legend(loc="lower right", fontsize=8.5, framealpha=0.9)
+    handles, labels = ax.get_legend_handles_labels()
+    if shaded:
+        # A shaded band with nothing naming it reads as decoration. Say whose
+        # it is and what it means, because for the models it appears on it is
+        # the more honest half of the figure: the line is one tie-break's
+        # answer, the band is every tie-break's.
+        handles.append(Patch(facecolor="0.55", alpha=0.13, linewidth=0))
+        labels.append(f"tie-break range ({', '.join(shaded)})")
+    ax.legend(handles, labels, loc="lower right", fontsize=8.5, framealpha=0.9)
     fig.tight_layout()
     fig.savefig(out_path, dpi=dpi)
     plt.close(fig)

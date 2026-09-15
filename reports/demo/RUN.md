@@ -48,12 +48,30 @@ alert-budget-versus-ROC-AUC gap in the same table does **not** depend on this �
 it is a property of the operating point, not of the sample — but the model
 *ranking* does. Do not quote the ranking as a finding.
 
+## One row is a tie, not a measurement
+
+M0b always-fail scores every event 0 or 1, so at budget 500 some 7,899
+equally-scored events compete for 1,350 places and *something* has to order
+them. `tables/demo_results.json` reports that directly: the
+`campaign_recall_tie_bracket` on M0b's row spans `[0, 1]` at budgets 100 and
+500, and `tie_exposure` gives the slots and the contenders behind it. Every
+other model's bracket has zero width — their scores leave the ordering nothing
+to decide — which is why the headline figure shades one band and not seven.
+
+This changed a published number. Before the ordering was made explicit, ties
+broke on the frame's row order, which after `features.temporal.compute_f4` is
+`(src_user, time)` — so M0b's alerts were the failures of the alphabetically
+earliest users, and it caught nothing at any budget. Under arrival order it
+catches 3 of 4 campaigns at budget 500. The honest reading is neither figure on
+its own: at this budget M0b's recall is somewhere in `[0, 1]` and the run cannot
+narrow it.
+
 ## Files
 
 | File | What it holds |
 |---|---|
-| `tables/demo_results.json` | every metric, per model, operational and literature-comparable kept separate |
-| `tables/pairwise_comparisons.json` | all 21 pairwise AUC-PR tests, Holm-Bonferroni corrected |
+| `tables/demo_results.json` | every metric, per model, operational and literature-comparable kept separate — the operational block also carries `campaign_recall_tie_bracket`, `tie_exposure` and `budget_for_first_detection`, and each row a `score_resolution` (distinct values, largest tie share) that says how much of any rank metric is tie convention |
+| `tables/pairwise_comparisons.json` | all 21 pairwise AUC-PR tests: `p_value_raw`, `p_value_holm_adjusted`, and `at_resolution_floor` — set on all 8 significant pairs here, meaning their p-value is the bound `2/(R+1)` rather than a value the bootstrap resolved |
 | `tables/campaign_summary.csv` | one row per red-team campaign: user, event count, duration |
 | `figures/campaign_recall_vs_budget.png` | the headline figure |
 | `data_quality.json` | null rates, cardinalities, counted drops |

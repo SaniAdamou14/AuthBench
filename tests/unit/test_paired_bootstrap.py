@@ -77,7 +77,7 @@ def test_identical_models_are_never_declared_different() -> None:
     twins = next(c for c in comparisons if {c.model_a, c.model_b} == {"good", "twin_of_good"})
 
     assert twins.diff == pytest.approx(0.0)
-    assert twins.p_value == pytest.approx(1.0)
+    assert twins.p_value_raw == pytest.approx(1.0)
     assert twins.significant is False
 
 
@@ -110,7 +110,7 @@ def test_results_are_reproducible_for_a_fixed_seed() -> None:
     a = _bootstrap(seed=3).comparisons("auc_pr")
     b = _bootstrap(seed=3).comparisons("auc_pr")
 
-    assert [c.p_value for c in a] == [c.p_value for c in b]
+    assert [c.p_value_raw for c in a] == [c.p_value_raw for c in b]
 
 
 def test_p_values_stay_in_range_and_are_never_exactly_zero() -> None:
@@ -118,7 +118,7 @@ def test_p_values_stay_in_range_and_are_never_exactly_zero() -> None:
     justify claiming p = 0.
     """
     for comparison in _bootstrap().comparisons("auc_pr"):
-        assert 0.0 < comparison.p_value <= 1.0
+        assert 0.0 < comparison.p_value_raw <= 1.0
 
 
 def test_resamples_with_no_positives_are_discarded_not_counted_as_ties() -> None:
@@ -140,7 +140,7 @@ def test_resamples_with_no_positives_are_discarded_not_counted_as_ties() -> None
     gap = next(
         c for c in bootstrap.comparisons("auc_pr") if {c.model_a, c.model_b} == {"good", "bad"}
     )
-    assert gap.p_value < 0.05
+    assert gap.p_value_raw < 0.05
 
 
 def test_a_frame_with_no_positives_at_all_is_an_error_not_an_interval() -> None:
@@ -182,7 +182,7 @@ def test_the_reported_interval_points_the_same_way_as_the_sentence() -> None:
         model_b="strong",
         metric_name="auc_pr",
         diff=-0.42,
-        p_value=0.001,
+        p_value_raw=0.001,
         significant=True,
         diff_ci_low=-0.60,
         diff_ci_high=-0.30,

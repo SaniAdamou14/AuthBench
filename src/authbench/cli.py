@@ -103,8 +103,42 @@ console = Console()
 # catalog's 7 models (21 pairs → 0.05/21 = 0.00238; 2/(1000+1) = 0.00200).
 # Below that, no comparison could ever be significant however good a model
 # was — see `stats_tests.minimum_resamples_for_family`.
+#
+# That arithmetic depends on the *size of the demo catalog*, and nothing used
+# to notice when the catalog changed: `conf/eval/default.yaml` is guarded by
+# `tests/unit/test_params_match_conf.py`, this constant was not. Adding one
+# model here takes the demo to 28 pairs and 1119 required resamples, and at
+# 1000 every comparison would come back non-significant by arithmetic while
+# reading exactly like a real null result. `demo_model_catalog` exists so the
+# same test can hold this number against the catalog it actually serves.
 DEMO_BOOTSTRAP_RESAMPLES = 1000
 DEMO_FPR_TARGETS = [1.0e-4, 1.0e-3]
+
+
+def demo_model_catalog() -> list[object]:
+    """The models `authbench demo` runs, *unfitted*.
+
+    A module-level function rather than a list inside `demo()` for one reason:
+    the number of models fixes the number of pairwise comparisons, which fixes
+    how many bootstrap resamples `DEMO_BOOTSTRAP_RESAMPLES` has to provide for
+    any of them to be able to come back significant. Inside the command body
+    that count was unreachable from a test, so the invariant `conf/` already
+    enforces had no counterpart here.
+
+    Deliberately smaller than `pipeline.train_eval.build_model_catalog`: the
+    demo is a smoke test under a five-minute CI ceiling and fits on everything
+    rather than on a bounded sample. The two catalogs are not interchangeable
+    and the difference is a scoping decision, not drift.
+    """
+    return [
+        RandomScorer(),
+        AlwaysFailScorer(),
+        PairRarityScorer(),
+        PCAReconstructionScorer(MODEL_FEATURE_COLUMNS),
+        IsolationForestScorer(MODEL_FEATURE_COLUMNS),
+        ECODScorer(MODEL_FEATURE_COLUMNS),
+        RulesScorer(),
+    ]
 
 
 def load_dataset_config(dataset: str) -> DictConfig:
@@ -524,15 +558,7 @@ def demo(
     test_feat = featurize(test).collect()
 
     console.print("[bold]5/7[/] Fitting models (M0, M1, M2, M3)...")
-    models: list[object] = [
-        RandomScorer(),
-        AlwaysFailScorer(),
-        PairRarityScorer(),
-        PCAReconstructionScorer(MODEL_FEATURE_COLUMNS),
-        IsolationForestScorer(MODEL_FEATURE_COLUMNS),
-        ECODScorer(MODEL_FEATURE_COLUMNS),
-        RulesScorer(),
-    ]
+    models = demo_model_catalog()
 
     console.print("[bold]6/7[/] Scoring and evaluating on the test split...")
     model_names: list[str] = [m.name for m in models]  # type: ignore[attr-defined]
@@ -574,6 +600,10 @@ def demo(
     operational.add_column("AUC-PR [95% CI]")
     for k in DEFAULT_BUDGETS:
         operational.add_column(f"Camp.rec@{k}", justify="right")
+    # The column that does not saturate at zero. A recall row of 0/0/0/0 ranks
+    # every model that failed as equally far from succeeding; this says whether
+    # the nearest miss was by ten alerts or by ten million.
+    operational.add_column("Budget→1st", justify="right")
     operational.add_column("TTD@100", justify="right")
 
     comparable = Table(title="Literature-comparable — reported for placement, not for ranking")
@@ -603,10 +633,30 @@ def demo(
 
         ci = bootstrap.ci(name)
         ttd = next(t for t in evaluation.time_to_detection if t.budget == 100)
+        curve = evaluation.curve
+        # A recall whose tie bracket has width is not a number, it is an
+        # interval — printed as one, with the point estimate beside it, so the
+        # table cannot present an ordering artifact as a measurement.
+        recalls = [
+            f"{point:.0%}" if low == high else f"{point:.0%} [{low:.0%}-{high:.0%}]"
+            for point, low, high in zip(
+                curve.campaign_recall,
+                curve.campaign_recall_min,
+                curve.campaign_recall_max,
+                strict=True,
+            )
+        ]
         operational.add_row(
             name,
             f"{evaluation.auc_pr:.4f} [{ci.ci_low:.4f}, {ci.ci_high:.4f}]",
-            *[f"{r:.0%}" for r in evaluation.curve.campaign_recall],
+            *recalls,
+            # "—", not "never": a rank is bounded by the size of its own day,
+            # so this is None only when the split holds no campaign to detect.
+            (
+                f"{curve.budget_for_first_detection:,}"
+                if curve.budget_for_first_detection is not None
+                else "—"
+            ),
             (
                 f"{ttd.median_delay_seconds / 60:.0f}min"
                 if ttd.median_delay_seconds is not None

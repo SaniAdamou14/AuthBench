@@ -7,6 +7,23 @@ Version 1.0 — 25 juillet 2026
 
 ---
 
+> **Errata — ce document précède les mesures.** Il est conservé tel quel comme
+> document de conception ; deux de ses chiffres n'ont pas survécu au contact des
+> données, et c'est le protocole qui a fonctionné, pas le document qui a
+> échoué — la section 4.2 demandait justement que tout écart soit publié.
+>
+> | Spécifié | Mesuré | Où |
+> |---|---|---|
+> | `redteam.txt.gz` : 749 lignes, 12 doublons → **737** uniques | 749 lignes, **34** doublons → **715** uniques | `parse.clean.clean_redteam`, `conf/dataset/lanl.yaml` |
+> | Découpage 0–29 / 30–39 / 40–57 | **impossible** : l'équipe rouge s'arrête au jour 29, ce découpage laisse validation et test sans un seul positif. Le run publié utilise jour 5 / 8 / 12 | `conf/split/temporal.yaml`, `docs/methodology.md` |
+>
+> Le protocole réellement implémenté est décrit dans
+> [`docs/methodology.md`](docs/methodology.md), ses limites dans
+> [`docs/limitations.md`](docs/limitations.md), et les résultats dans
+> [`reports/lanl/RUN.md`](reports/lanl/RUN.md).
+
+---
+
 ## Sommaire
 
 1. Positionnement et question de recherche

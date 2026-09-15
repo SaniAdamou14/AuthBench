@@ -58,7 +58,32 @@ def featurize(
     features_cfg: DictConfig,
     night_window: NightWindow,
     frequency_encoding: FrequencyEncoding,
+    *,
+    checkpoint_fn=None,
+    split_name: str = "",
 ) -> pl.LazyFrame:
+    """`checkpoint_fn`, when given, is called between feature families (a
+    materialize-and-rescan, same contract as `checkpoint()` in `main()` below)
+    to bound peak memory on wide-window splits.
+
+    F2 and F3 each join several independently-derived branches back onto their
+    input by `event_id` — one per (entity, window) pair in F2, three in F3 —
+    exactly the sibling-join shape `checkpoint()` already fixes once between
+    splits (see its docstring). Left unchecked *within* a family too, Polars
+    keeps every branch's own full sort alive until all of that family's joins
+    resolve, so the family boundary is where the graph forks worst and where
+    a checkpoint pays for itself: measured on the VPS, every thread count
+    tried (0, 2, 4, 8, 14) on 4-14 day splits OOM-killed at the same ~30 GB
+    ceiling — the volume of simultaneously-live sorted copies, not
+    parallelism, was the constraint. Splitting the graph after F2 and after
+    F3 forces each family's joins to flush to Parquet before the next
+    family's branches are even planned, so at most one family's fanout is
+    resident at a time instead of all three. This changes nothing about
+    computed values (same join, same filter, just performed once) — safe now
+    that every sort in causal.py/novelty.py has a total order (commit
+    3654c22), so an extra materialization point can no longer change which
+    row wins a tie.
+    """
     if features_cfg.f1_event.enabled:
         frame = compute_f1(frame, frequency_encoding)
     if features_cfg.f2_history.enabled:
@@ -70,8 +95,12 @@ def featurize(
             windows_hours=DEFAULT_F2_WINDOWS_HOURS,
             diversity_for=DEFAULT_DIVERSITY_PAIRS,
         )
+        if checkpoint_fn is not None:
+            frame = checkpoint_fn(frame, f"{split_name}_f2")
     if features_cfg.f3_novelty.enabled:
         frame = compute_f3(frame)
+        if checkpoint_fn is not None:
+            frame = checkpoint_fn(frame, f"{split_name}_f3")
     if features_cfg.f4_temporal.enabled:
         frame = compute_f4(frame, night_window)
     # F5/F6 require the optional graph/deep extras and the full trailing-window
@@ -167,13 +196,41 @@ def main(cfg: DictConfig) -> None:
     def labeled(frame: pl.LazyFrame) -> pl.LazyFrame:
         return attach_campaign_id(label_auth_events(frame, typed_redteam), campaigns)
 
+    def checkpoint(frame: pl.LazyFrame, name: str) -> pl.LazyFrame:
+        """Materialize a lazy frame to Parquet and rescan it.
+
+        `featurize()` below joins many independently-computed feature branches
+        back onto the same starting frame (one per F2 entity/window pair, plus
+        F3's several sorts and F4's cumulative circular mean) — one `.join(...,
+        on="event_id")` per branch. Polars' planner does not share the upstream
+        work across sibling branches of a join graph: each branch re-derives
+        the redteam label join and campaign-id assignment from the raw Parquet
+        scan independently. Confirmed with `.explain()` on an 8-day train
+        window: 32 independent full scans of the same ~134M-row base, each
+        redoing the campaign-id sort/rank chain, before a single feature column
+        existed — the same failure mode the module docstring above already
+        diagnoses for `verify_temporal_order`, one level deeper.
+
+        Checkpointing here breaks the graph exactly where it forked: every
+        downstream branch now scans this small, already-labeled file instead
+        of re-deriving it, at the cost of one extra Parquet round-trip per
+        split. It changes nothing about the computed values — same join, same
+        filter, just performed once.
+        """
+        tmp_path = interim_dir / f"_checkpoint_{name}.parquet"
+        frame.sink_parquet(tmp_path, compression="zstd")
+        return pl.scan_parquet(tmp_path)
+
     # Featurised over the warm-up window; written for the split's own days only.
     bounds = {
         "train": split_config.train_days,
         "val": split_config.val_days,
         "test": split_config.test_days,
     }
-    warm = {name: labeled(raw_split(days, warmup=warmup_days)) for name, days in bounds.items()}
+    warm = {
+        name: checkpoint(labeled(raw_split(days, warmup=warmup_days)), name)
+        for name, days in bounds.items()
+    }
 
     version = feature_store_version(cfg.features)
     version_dir = processed_dir / version
@@ -183,7 +240,14 @@ def main(cfg: DictConfig) -> None:
     )
 
     for split_name, frame in warm.items():
-        out = featurize(frame, cfg.features, night_window, frequency_encoding)
+        out = featurize(
+            frame,
+            cfg.features,
+            night_window,
+            frequency_encoding,
+            checkpoint_fn=checkpoint,
+            split_name=split_name,
+        )
         # Warm-up rows are dropped *after* featurisation: they were read so the
         # split's own first events would have a past, not to be evaluated on.
         out = out.filter(pl.col("day") >= bounds[split_name][0])
@@ -203,6 +267,10 @@ def main(cfg: DictConfig) -> None:
         out_path = version_dir / f"{split_name}.parquet"
         out.sink_parquet(out_path, compression="zstd")
         logger.info("Wrote %s features to %s", split_name, out_path)
+
+        for stage_suffix in ("", "_f2", "_f3"):
+            checkpoint_path = interim_dir / f"_checkpoint_{split_name}{stage_suffix}.parquet"
+            checkpoint_path.unlink(missing_ok=True)
 
     logger.info("Feature store version: %s", version)
 

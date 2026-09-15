@@ -72,6 +72,12 @@ def test_metrics_stay_in_separate_registers_in_the_emitted_record() -> None:
         "budgets",
         "event_recall",
         "campaign_recall",
+        # What the recall row alone cannot say: how far the tie-break could
+        # move each point, what it was competing over, and the budget at which
+        # this model first detects anything.
+        "campaign_recall_tie_bracket",
+        "tie_exposure",
+        "budget_for_first_detection",
         "time_to_detection",
     }
     assert set(record["literature_comparable"]) == {  # type: ignore[arg-type]
@@ -99,3 +105,49 @@ def test_roc_auc_is_omitted_rather_than_crashing_when_a_class_is_absent() -> Non
 def test_roc_auc_can_be_switched_off_entirely() -> None:
     evaluation = _evaluate([0.9, 0.1, 0.2, 0.9, 0.1, 0.2], report_roc_auc=False)
     assert evaluation.roc_auc is None
+
+
+def test_score_resolution_separates_a_fine_score_from_a_degenerate_one() -> None:
+    """The number that answers the tie-artifact objection to the ROC-AUC claim.
+
+    A reviewer can reply that ROC-AUC credits a tied pair 0.5, so a coarse
+    score is pulled toward 0.5 by arithmetic rather than by anything about the
+    operating point. These two fields make that checkable per model instead of
+    arguable.
+    """
+    fine = _evaluate([0.9, 0.1, 0.2, 0.8, 0.3, 0.4]).score_resolution
+    assert fine is not None
+    assert fine.n_events == 6
+    assert fine.n_distinct_scores == 6
+    assert fine.largest_tie_fraction == 1 / 6
+
+    # A binary score, the shape M0b always-fail has: two verdicts for the whole
+    # split, and every rank metric over it is mostly reporting tie conventions.
+    binary = _evaluate([1.0, 0.0, 0.0, 1.0, 0.0, 0.0]).score_resolution
+    assert binary is not None
+    assert binary.n_distinct_scores == 2
+    assert binary.largest_tie_fraction == 4 / 6
+
+
+def test_score_resolution_of_a_constant_score_is_maximally_degenerate() -> None:
+    """One value for every event: the model has a single verdict, and
+    `largest_tie_fraction` must say 1.0 rather than quietly look ordinary.
+    """
+    resolution = _evaluate([0.5] * 6).score_resolution
+
+    assert resolution is not None
+    assert resolution.n_distinct_scores == 1
+    assert resolution.largest_tie_fraction == 1.0
+
+
+def test_score_resolution_is_emitted_outside_both_registers() -> None:
+    """It qualifies a metric in each register, so it belongs to neither."""
+    record = _evaluate([0.9, 0.1, 0.2, 0.8, 0.3, 0.4]).to_dict()
+
+    assert set(record["score_resolution"]) == {  # type: ignore[arg-type]
+        "n_events",
+        "n_distinct_scores",
+        "largest_tie_fraction",
+    }
+    assert "score_resolution" not in record["operational"]  # type: ignore[operator]
+    assert "score_resolution" not in record["literature_comparable"]  # type: ignore[operator]

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 
 import hydra
@@ -61,7 +62,23 @@ DEFAULT_SCORING_CHUNK_ROWS = 2_000_000
 # names in the two places that are supposed to agree.
 
 
-def build_model_catalog(fit_sample_size: int | None = DEFAULT_FIT_SAMPLE_SIZE) -> list[object]:
+# `RLIMIT_AS` (a hard cap on the process's virtual address space, tried
+# in an earlier version of this file) does not work as an OOM guard for this
+# workload and was removed: on the real run it rejected even the ~450 MB
+# RandomScorer needs and a 417 MB bootstrap array while RSS was ~8 GB, because
+# numpy/Polars/PyArrow routinely reserve far more virtual address space than
+# they ever touch (the same run's OOM `dmesg` entry, before this change, read
+# `total-vm: 114 GB` against `anon-rss: 30 GB` -- a >3x ratio). Linux also does
+# not enforce `RLIMIT_RSS`, so there is no in-process rlimit that tracks the
+# resident memory an OOM kill actually depends on. `exclude` below is the
+# honest alternative: it costs nothing, unlike an address-space cap that is
+# either too tight (kills cheap models as collateral damage, as above) or too
+# loose to catch the real one before the kernel does.
+def build_model_catalog(
+    fit_sample_size: int | None = DEFAULT_FIT_SAMPLE_SIZE,
+    *,
+    exclude: set[str] | None = None,
+) -> list[object]:
     """The catalog, *unfitted*. `main` is the single place that fits — an
     earlier version fitted M1 here and then refit every model in the loop,
     which at LANL scale meant paying for M1's per-user aggregation twice and
@@ -71,8 +88,17 @@ def build_model_catalog(fit_sample_size: int | None = DEFAULT_FIT_SAMPLE_SIZE) -
     distributions from. It is a published parameter rather than a hidden
     constant, because it is a real methodological choice: `None` fits on
     everything and is what the tests and the demo use.
+
+    `exclude` drops named models before fitting even starts -- for a model
+    known in advance to be unaffordable on the machine at hand (M3b_ecod's
+    `decision_function` on the full LANL test split needs far more than a
+    30 GB box has, and is transductive so it cannot be chunked -- see its
+    class docstring), this is the honest alternative to attempting it and
+    losing the run: `fit_and_score_all`'s `except (MemoryError, OSError)`
+    only catches a graceful allocation failure, not a kernel OOM kill, which
+    is what a model this size actually gets.
     """
-    return [
+    catalog = [
         RandomScorer(),
         AlwaysFailScorer(),
         PairRarityScorer(),
@@ -82,6 +108,9 @@ def build_model_catalog(fit_sample_size: int | None = DEFAULT_FIT_SAMPLE_SIZE) -
         HBOSScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size),
         RulesScorer(),
     ]
+    if exclude:
+        catalog = [m for m in catalog if m.name not in exclude]  # type: ignore[attr-defined]
+    return catalog
 
 
 def fit_and_score_all(
@@ -182,13 +211,23 @@ def fit_and_score_all(
         logger.info("Scoring %s over the whole split", name)
         try:
             scores = model.score(ordered_test)  # type: ignore[attr-defined]
-        except MemoryError as exc:
+        except (MemoryError, OSError) as exc:
             # One model that cannot be scored must not take the other seven
             # with it. This is not hypothetical: M3b_ecod is transductive, so
             # PyOD concatenates the fitted sample onto the frame being scored
             # and argsorts all 21 columns of the result — 3.89 GB of int64
             # indices for a 20-million-row split, which killed a run that had
-            # already spent twenty minutes building features.
+            # already spent twenty minutes building features on a smaller
+            # split, and on the full 55-million-row test split climbed past
+            # 30 GB RSS plus 20 GB of swap before the kernel OOM-killed the
+            # whole process outright -- not a catchable exception, so this
+            # block alone cannot save that run; `main` below is expected to
+            # pass `exclude={"M3b_ecod"}` to `build_model_catalog` on a
+            # machine this size instead. This except stays, uncapped, as a
+            # cheap safety net for whichever whole-split model turns out to
+            # be the next one that's merely close to the ceiling rather than
+            # far past it -- for those, a graceful `MemoryError`/`OSError` is
+            # plausible and worth catching.
             #
             # The model is recorded as unevaluated, with the reason, and the
             # report says so. A benchmark that silently drops a competitor is
@@ -247,7 +286,21 @@ def main(cfg: DictConfig) -> None:
     if report_roc_auc and bool(cfg.eval.roc_auc.warn):
         logger.warning("%s", str(cfg.eval.roc_auc.warning_message).strip() or ROC_AUC_WARNING)
 
-    models = build_model_catalog(fit_sample_size=int(cfg.runtime.fit_sample_size) or None)
+    # A machine-specific affordability call, not a methodological default:
+    # unset almost everywhere, so `dvc repro` on a big-enough machine still
+    # evaluates all eight models. Set on a box too small for M3b_ecod's
+    # whole-split `decision_function` (see `build_model_catalog`'s docstring)
+    # to get a complete run for the other seven instead of losing the run.
+    exclude_models = {
+        name.strip()
+        for name in os.environ.get("AUTHBENCH_EXCLUDE_MODELS", "").split(",")
+        if name.strip()
+    }
+    if exclude_models:
+        logger.warning("Excluding from this run (AUTHBENCH_EXCLUDE_MODELS): %s", sorted(exclude_models))
+    models = build_model_catalog(
+        fit_sample_size=int(cfg.runtime.fit_sample_size) or None, exclude=exclude_models
+    )
     model_names: list[str] = [m.name for m in models]  # type: ignore[attr-defined]
     scored, skipped = fit_and_score_all(models, train, val, test)
     if skipped:

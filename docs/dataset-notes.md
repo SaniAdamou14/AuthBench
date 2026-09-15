@@ -18,8 +18,9 @@ looser join silently inflates the positive count.
 
 ## Campaign grouping (US-106, spec section 4.2)
 
-The 749 raw red-team rows (737 after deduplication) are not 737 independent attacks — they are a
-handful of lateral-movement campaigns. `label.redteam_join.group_into_campaigns` groups by
+The 749 raw red-team rows (**715** after deduplication — 34 exact duplicates, measured on the
+file rather than taken from the widely-repeated secondary figure of 737) are not 715 independent
+attacks — they are a handful of lateral-movement campaigns. `label.redteam_join.group_into_campaigns` groups by
 `user@domain` with a configurable gap threshold (`campaign_gap_hours`, default 24h). There is no
 canonical grouping in the literature; the sensitivity of the resulting campaign count to this
 threshold must be reported, not treated as a fixed constant (see `docs/limitations.md`).

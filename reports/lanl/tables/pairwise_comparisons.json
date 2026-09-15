@@ -6,10 +6,12 @@
     "diff": 8.041278906203549e-07,
     "diff_ci_low": -9.028219105159686e-07,
     "diff_ci_high": 4.332057046117365e-06,
-    "p_value_corrected": 0.39780109945027486,
+    "p_value_raw": 0.39780109945027486,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M0a_random and M0b_always_fail are not significantly different on auc_pr (\u0394=0.0000, 95% CI [-0.0000, +0.0000], corrected p=0.3978)."
+    "sentence": "M0a_random and M0b_always_fail are not significantly different on auc_pr (\u0394=0.0000, 95% CI [-0.0000, +0.0000], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M0a_random",
@@ -18,10 +20,12 @@
     "diff": -0.0006436962345740762,
     "diff_ci_low": -0.0012838528057172122,
     "diff_ci_high": -0.00022823331926309588,
-    "p_value_corrected": 0.0009995002498750624,
+    "p_value_raw": 0.0009995002498750624,
+    "p_value_holm_adjusted": 0.020989505247376312,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2a_pair_rarity outperforms M0a_random on auc_pr (\u0394=0.0006, 95% CI [+0.0002, +0.0013], corrected p=0.0010)."
+    "sentence": "M2a_pair_rarity outperforms M0a_random on auc_pr (\u0394=0.0006, 95% CI [+0.0002, +0.0013], Holm-adjusted p <= 0.0210)."
   },
   {
     "model_a": "M0a_random",
@@ -30,10 +34,12 @@
     "diff": -3.495732072378555e-05,
     "diff_ci_low": -9.020569173028505e-05,
     "diff_ci_high": -1.2198093776260182e-05,
-    "p_value_corrected": 0.0009995002498750624,
+    "p_value_raw": 0.0009995002498750624,
+    "p_value_holm_adjusted": 0.020989505247376312,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2b_pca_reconstruction outperforms M0a_random on auc_pr (\u0394=0.0000, 95% CI [+0.0000, +0.0001], corrected p=0.0010)."
+    "sentence": "M2b_pca_reconstruction outperforms M0a_random on auc_pr (\u0394=0.0000, 95% CI [+0.0000, +0.0001], Holm-adjusted p <= 0.0210)."
   },
   {
     "model_a": "M0a_random",
@@ -42,10 +48,12 @@
     "diff": -2.9014253691062258e-05,
     "diff_ci_low": -7.28405323371729e-05,
     "diff_ci_high": -8.270293799646084e-06,
-    "p_value_corrected": 0.0009995002498750624,
+    "p_value_raw": 0.0009995002498750624,
+    "p_value_holm_adjusted": 0.020989505247376312,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M3a_iforest outperforms M0a_random on auc_pr (\u0394=0.0000, 95% CI [+0.0000, +0.0001], corrected p=0.0010)."
+    "sentence": "M3a_iforest outperforms M0a_random on auc_pr (\u0394=0.0000, 95% CI [+0.0000, +0.0001], Holm-adjusted p <= 0.0210)."
   },
   {
     "model_a": "M0a_random",
@@ -54,10 +62,12 @@
     "diff": -4.2845133949292644e-05,
     "diff_ci_low": -9.273267032511786e-05,
     "diff_ci_high": -1.739225255090586e-05,
-    "p_value_corrected": 0.0009995002498750624,
+    "p_value_raw": 0.0009995002498750624,
+    "p_value_holm_adjusted": 0.020989505247376312,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M3b_hbos outperforms M0a_random on auc_pr (\u0394=0.0000, 95% CI [+0.0000, +0.0001], corrected p=0.0010)."
+    "sentence": "M3b_hbos outperforms M0a_random on auc_pr (\u0394=0.0000, 95% CI [+0.0000, +0.0001], Holm-adjusted p <= 0.0210)."
   },
   {
     "model_a": "M0a_random",
@@ -66,10 +76,12 @@
     "diff": -8.729023744862802e-05,
     "diff_ci_low": -0.0006984534389919015,
     "diff_ci_high": -2.2678357786196153e-06,
-    "p_value_corrected": 0.021989005497251374,
+    "p_value_raw": 0.021989005497251374,
+    "p_value_holm_adjusted": 0.175912043978011,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M0a_random and M1_rules are not significantly different on auc_pr (\u0394=-0.0001, 95% CI [+0.0000, +0.0007], corrected p=0.0220)."
+    "sentence": "M0a_random and M1_rules are not significantly different on auc_pr (\u0394=-0.0001, 95% CI [+0.0000, +0.0007], Holm-adjusted p = 0.1759)."
   },
   {
     "model_a": "M0b_always_fail",
@@ -78,10 +90,12 @@
     "diff": -0.0006445003624646966,
     "diff_ci_low": -0.0012869764639286876,
     "diff_ci_high": -0.0002286471518133838,
-    "p_value_corrected": 0.0009995002498750624,
+    "p_value_raw": 0.0009995002498750624,
+    "p_value_holm_adjusted": 0.020989505247376312,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2a_pair_rarity outperforms M0b_always_fail on auc_pr (\u0394=0.0006, 95% CI [+0.0002, +0.0013], corrected p=0.0010)."
+    "sentence": "M2a_pair_rarity outperforms M0b_always_fail on auc_pr (\u0394=0.0006, 95% CI [+0.0002, +0.0013], Holm-adjusted p <= 0.0210)."
   },
   {
     "model_a": "M0b_always_fail",
@@ -90,10 +104,12 @@
     "diff": -3.57614486144059e-05,
     "diff_ci_low": -9.419961435099785e-05,
     "diff_ci_high": -1.2417041272440265e-05,
-    "p_value_corrected": 0.0009995002498750624,
+    "p_value_raw": 0.0009995002498750624,
+    "p_value_holm_adjusted": 0.020989505247376312,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2b_pca_reconstruction outperforms M0b_always_fail on auc_pr (\u0394=0.0000, 95% CI [+0.0000, +0.0001], corrected p=0.0010)."
+    "sentence": "M2b_pca_reconstruction outperforms M0b_always_fail on auc_pr (\u0394=0.0000, 95% CI [+0.0000, +0.0001], Holm-adjusted p <= 0.0210)."
   },
   {
     "model_a": "M0b_always_fail",
@@ -102,10 +118,12 @@
     "diff": -2.981838158168261e-05,
     "diff_ci_low": -7.556955291434646e-05,
     "diff_ci_high": -9.112643929015556e-06,
-    "p_value_corrected": 0.0009995002498750624,
+    "p_value_raw": 0.0009995002498750624,
+    "p_value_holm_adjusted": 0.020989505247376312,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M3a_iforest outperforms M0b_always_fail on auc_pr (\u0394=0.0000, 95% CI [+0.0000, +0.0001], corrected p=0.0010)."
+    "sentence": "M3a_iforest outperforms M0b_always_fail on auc_pr (\u0394=0.0000, 95% CI [+0.0000, +0.0001], Holm-adjusted p <= 0.0210)."
   },
   {
     "model_a": "M0b_always_fail",
@@ -114,10 +132,12 @@
     "diff": -4.3649261839913e-05,
     "diff_ci_low": -9.641162801702041e-05,
     "diff_ci_high": -1.784569510427421e-05,
-    "p_value_corrected": 0.0009995002498750624,
+    "p_value_raw": 0.0009995002498750624,
+    "p_value_holm_adjusted": 0.020989505247376312,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M3b_hbos outperforms M0b_always_fail on auc_pr (\u0394=0.0000, 95% CI [+0.0000, +0.0001], corrected p=0.0010)."
+    "sentence": "M3b_hbos outperforms M0b_always_fail on auc_pr (\u0394=0.0000, 95% CI [+0.0000, +0.0001], Holm-adjusted p <= 0.0210)."
   },
   {
     "model_a": "M0b_always_fail",
@@ -126,10 +146,12 @@
     "diff": -8.809436533924838e-05,
     "diff_ci_low": -0.0006976713310486052,
     "diff_ci_high": -3.872615691312547e-06,
-    "p_value_corrected": 0.004997501249375313,
+    "p_value_raw": 0.004997501249375313,
+    "p_value_holm_adjusted": 0.044977511244377814,
+    "at_resolution_floor": false,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M1_rules outperforms M0b_always_fail on auc_pr (\u0394=0.0001, 95% CI [+0.0000, +0.0007], corrected p=0.0050)."
+    "sentence": "M1_rules outperforms M0b_always_fail on auc_pr (\u0394=0.0001, 95% CI [+0.0000, +0.0007], Holm-adjusted p = 0.0450)."
   },
   {
     "model_a": "M2a_pair_rarity",
@@ -138,10 +160,12 @@
     "diff": 0.0006087389138502907,
     "diff_ci_low": 0.00021282507623325334,
     "diff_ci_high": 0.0012053331675288455,
-    "p_value_corrected": 0.0009995002498750624,
+    "p_value_raw": 0.0009995002498750624,
+    "p_value_holm_adjusted": 0.020989505247376312,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2a_pair_rarity outperforms M2b_pca_reconstruction on auc_pr (\u0394=0.0006, 95% CI [+0.0002, +0.0012], corrected p=0.0010)."
+    "sentence": "M2a_pair_rarity outperforms M2b_pca_reconstruction on auc_pr (\u0394=0.0006, 95% CI [+0.0002, +0.0012], Holm-adjusted p <= 0.0210)."
   },
   {
     "model_a": "M2a_pair_rarity",
@@ -150,10 +174,12 @@
     "diff": 0.000614681980883014,
     "diff_ci_low": 0.00021846698166217842,
     "diff_ci_high": 0.0012191477591949101,
-    "p_value_corrected": 0.0009995002498750624,
+    "p_value_raw": 0.0009995002498750624,
+    "p_value_holm_adjusted": 0.020989505247376312,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2a_pair_rarity outperforms M3a_iforest on auc_pr (\u0394=0.0006, 95% CI [+0.0002, +0.0012], corrected p=0.0010)."
+    "sentence": "M2a_pair_rarity outperforms M3a_iforest on auc_pr (\u0394=0.0006, 95% CI [+0.0002, +0.0012], Holm-adjusted p <= 0.0210)."
   },
   {
     "model_a": "M2a_pair_rarity",
@@ -162,10 +188,12 @@
     "diff": 0.0006008511006247836,
     "diff_ci_low": 0.00020867460990173385,
     "diff_ci_high": 0.0011987281912403415,
-    "p_value_corrected": 0.0009995002498750624,
+    "p_value_raw": 0.0009995002498750624,
+    "p_value_holm_adjusted": 0.020989505247376312,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2a_pair_rarity outperforms M3b_hbos on auc_pr (\u0394=0.0006, 95% CI [+0.0002, +0.0012], corrected p=0.0010)."
+    "sentence": "M2a_pair_rarity outperforms M3b_hbos on auc_pr (\u0394=0.0006, 95% CI [+0.0002, +0.0012], Holm-adjusted p <= 0.0210)."
   },
   {
     "model_a": "M2a_pair_rarity",
@@ -174,10 +202,12 @@
     "diff": 0.0005564059971254482,
     "diff_ci_low": -0.0002856588834735025,
     "diff_ci_high": 0.0012265985660462472,
-    "p_value_corrected": 0.13793103448275862,
+    "p_value_raw": 0.13793103448275862,
+    "p_value_holm_adjusted": 0.8275862068965517,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2a_pair_rarity and M1_rules are not significantly different on auc_pr (\u0394=0.0006, 95% CI [-0.0003, +0.0012], corrected p=0.1379)."
+    "sentence": "M2a_pair_rarity and M1_rules are not significantly different on auc_pr (\u0394=0.0006, 95% CI [-0.0003, +0.0012], Holm-adjusted p = 0.8276)."
   },
   {
     "model_a": "M2b_pca_reconstruction",
@@ -186,10 +216,12 @@
     "diff": 5.943067032723292e-06,
     "diff_ci_low": -3.0430931986177277e-07,
     "diff_ci_high": 2.4055905926499456e-05,
-    "p_value_corrected": 0.06096951524237881,
+    "p_value_raw": 0.06096951524237881,
+    "p_value_holm_adjusted": 0.4267866066966517,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2b_pca_reconstruction and M3a_iforest are not significantly different on auc_pr (\u0394=0.0000, 95% CI [-0.0000, +0.0000], corrected p=0.0610)."
+    "sentence": "M2b_pca_reconstruction and M3a_iforest are not significantly different on auc_pr (\u0394=0.0000, 95% CI [-0.0000, +0.0000], Holm-adjusted p = 0.4268)."
   },
   {
     "model_a": "M2b_pca_reconstruction",
@@ -198,10 +230,12 @@
     "diff": -7.887813225507098e-06,
     "diff_ci_low": -1.653217266369943e-05,
     "diff_ci_high": 8.661919697965895e-06,
-    "p_value_corrected": 0.2868565717141429,
+    "p_value_raw": 0.2868565717141429,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2b_pca_reconstruction and M3b_hbos are not significantly different on auc_pr (\u0394=-0.0000, 95% CI [-0.0000, +0.0000], corrected p=0.2869)."
+    "sentence": "M2b_pca_reconstruction and M3b_hbos are not significantly different on auc_pr (\u0394=-0.0000, 95% CI [-0.0000, +0.0000], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M2b_pca_reconstruction",
@@ -210,10 +244,12 @@
     "diff": -5.2332916724842473e-05,
     "diff_ci_low": -0.0006658473857915863,
     "diff_ci_high": 6.309828724894702e-05,
-    "p_value_corrected": 0.47976011994003,
+    "p_value_raw": 0.47976011994003,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M2b_pca_reconstruction and M1_rules are not significantly different on auc_pr (\u0394=-0.0001, 95% CI [-0.0001, +0.0007], corrected p=0.4798)."
+    "sentence": "M2b_pca_reconstruction and M1_rules are not significantly different on auc_pr (\u0394=-0.0001, 95% CI [-0.0001, +0.0007], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M3a_iforest",
@@ -222,10 +258,12 @@
     "diff": -1.383088025823039e-05,
     "diff_ci_low": -2.1870397001836366e-05,
     "diff_ci_high": -7.129258331241843e-06,
-    "p_value_corrected": 0.0009995002498750624,
+    "p_value_raw": 0.0009995002498750624,
+    "p_value_holm_adjusted": 0.020989505247376312,
+    "at_resolution_floor": true,
     "significant": true,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M3b_hbos outperforms M3a_iforest on auc_pr (\u0394=0.0000, 95% CI [+0.0000, +0.0000], corrected p=0.0010)."
+    "sentence": "M3b_hbos outperforms M3a_iforest on auc_pr (\u0394=0.0000, 95% CI [+0.0000, +0.0000], Holm-adjusted p <= 0.0210)."
   },
   {
     "model_a": "M3a_iforest",
@@ -234,10 +272,12 @@
     "diff": -5.8275983757565766e-05,
     "diff_ci_low": -0.0006687144242133499,
     "diff_ci_high": 4.62284847160132e-05,
-    "p_value_corrected": 0.40679660169915044,
+    "p_value_raw": 0.40679660169915044,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M3a_iforest and M1_rules are not significantly different on auc_pr (\u0394=-0.0001, 95% CI [-0.0000, +0.0007], corrected p=0.4068)."
+    "sentence": "M3a_iforest and M1_rules are not significantly different on auc_pr (\u0394=-0.0001, 95% CI [-0.0000, +0.0007], Holm-adjusted p = 1.0000)."
   },
   {
     "model_a": "M3b_hbos",
@@ -246,9 +286,11 @@
     "diff": -4.4445103499335376e-05,
     "diff_ci_low": -0.0006562066849867392,
     "diff_ci_high": 6.50216257874593e-05,
-    "p_value_corrected": 0.5537231384307846,
+    "p_value_raw": 0.5537231384307846,
+    "p_value_holm_adjusted": 1.0,
+    "at_resolution_floor": false,
     "significant": false,
     "method": "paired_campaign_bootstrap",
-    "sentence": "M3b_hbos and M1_rules are not significantly different on auc_pr (\u0394=-0.0000, 95% CI [-0.0001, +0.0007], corrected p=0.5537)."
+    "sentence": "M3b_hbos and M1_rules are not significantly different on auc_pr (\u0394=-0.0000, 95% CI [-0.0001, +0.0007], Holm-adjusted p = 1.0000)."
   }
 ]

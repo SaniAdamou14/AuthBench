@@ -30,14 +30,14 @@ def compute_f3(events: pl.LazyFrame) -> pl.LazyFrame:
         ).alias("_pair_key")
     )
 
-    by_pair = with_pair.sort(["_pair_key", "time"]).with_columns(
+    by_pair = with_pair.sort(["_pair_key", "time", "event_id"]).with_columns(
         [
             pl.int_range(0, pl.len()).over("_pair_key").alias("_pair_occurrence_index"),
             pl.col("time").shift(1).over("_pair_key").alias("_pair_prev_time"),
         ]
     )
 
-    by_time = by_pair.sort("time").with_columns(
+    by_time = by_pair.sort(["time", "event_id"]).with_columns(
         pl.int_range(0, pl.len()).alias("_global_occurrence_index")
     )
 
