@@ -94,6 +94,25 @@ reason](reports/lanl/tables/skipped_models.json).
 > property of the operating point. Full detail in
 > [`reports/lanl/RUN.md`](reports/lanl/RUN.md).
 
+### A robustness check on a wider window, with warm-up
+
+The limitation above is no longer only hypothetical. A second run, on hardware
+large enough to afford it, trains on days 0–7, validates on 8–10 and tests on
+11–13, with two warm-up days feeding every split's first events a real past —
+133,093,586 / 51,687,105 / 54,690,768 rows, **52 test-split campaigns** against
+the single day's 39. Full output:
+[`reports/lanl/wider_window_results/`](reports/lanl/wider_window_results/).
+
+The central finding holds, and on more campaigns: every scoreable model (M3b
+ECOD excluded for the same memory reason as before, at larger scale) reads
+**exactly 0% campaign recall at every budget from 10 through 500/day**, and
+M2a's ROC-AUC is 0.941 — 0.942 on the single day, to three figures the same
+finding on a test split five times the size. One number does move: M1 rules,
+the single-day run's only non-zero result (5.1% at 500/day), reads 0% here.
+Window width and warm-up both changed between the two runs, so the drop is
+reported rather than explained away — see the paper's
+[Threats to Validity](reports/paper/main.tex) for the full discussion.
+
 ## The same protocol on the synthetic sample
 
 ![Campaign recall vs. daily alert budget](reports/demo/figures/campaign_recall_vs_budget.png)
@@ -446,9 +465,12 @@ Being explicit about this is part of the point of the benchmark.
 **Done**
 
 - **The LANL run.** Days 0–13 converted, 39 campaigns evaluated, results in
-  [`reports/lanl/`](reports/lanl/RUN.md). One day of history per partition —
-  the binding limitation, and the reason `history_warmup_days` exists but is
-  set to 0.
+  [`reports/lanl/`](reports/lanl/RUN.md). One day of history per partition,
+  no warm-up — the binding limitation of this primary result.
+- **A wider-window robustness check**, with `history_warmup_days: 2` and a
+  3-day test split (52 campaigns), on rented hardware. Confirms the central
+  finding; see [above](#a-robustness-check-on-a-wider-window-with-warm-up)
+  and [`reports/lanl/wider_window_results/`](reports/lanl/wider_window_results/).
 
 **Runs end to end today**
 
@@ -478,9 +500,13 @@ Being explicit about this is part of the point of the benchmark.
   exists in `conf/split/*.yaml`; nothing reads it yet.
 - M5b GNN link prediction — raises `NotImplementedError` on purpose rather
   than shipping a decorative implementation.
-- `reports/paper/`. There is deliberately no `report` stage in `dvc.yaml`: a
-  stage depending on a `main.tex` that does not exist breaks `dvc repro` at
-  the last step for everyone.
+
+**The arXiv technical report** lives at
+[`reports/paper/main.tex`](reports/paper/main.tex) (build instructions in
+[`reports/paper/README.md`](reports/paper/README.md)). There is still
+deliberately no `report` stage in `dvc.yaml` — LaTeX compilation is not part
+of the reproducible pipeline `dvc repro` runs, only of the write-up built on
+top of its output.
 
 ## Development
 
