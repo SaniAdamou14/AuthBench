@@ -18,12 +18,18 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 
 import hydra
 import numpy as np
 import polars as pl
 from omegaconf import DictConfig
+
+try:
+    import resource
+except ImportError:  # Windows has no `resource` module.
+    resource = None  # type: ignore[assignment]
 
 from authbench.evaluate.metrics import ROC_AUC_WARNING, auc_pr
 from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
@@ -59,6 +65,46 @@ DEFAULT_SCORING_CHUNK_ROWS = 2_000_000
 # used 21, silently dropping every F2 history feature and all three F1
 # frequency encodings — i.e. benchmarking different models under the same
 # names in the two places that are supposed to agree.
+
+
+def _cap_address_space(fraction: float = 0.85) -> None:
+    """Best-effort: cap this process's virtual address space at `fraction` of
+    physical RAM, so a single oversized allocation raises a catchable
+    `MemoryError` instead of running the machine out of memory and triggering
+    the Linux OOM killer.
+
+    The distinction matters because `fit_and_score_all` below already catches
+    `MemoryError` per whole-split model and excludes just that one competitor
+    (see the comment on M3b_ecod there) -- a real OOM kill bypasses that
+    entirely and takes the whole process with it, including every model
+    already fitted and every score already computed for the row-local ones.
+    Measured on this pipeline: M3b_ecod's `decision_function` on a 55-million-
+    row test split climbed past 30 GB RSS plus 20 GB of swap and was still
+    growing when the kernel killed it (`total-vm` in `dmesg` read 114 GB) --
+    ECOD is transductive (see its docstring) and cannot be chunked to control
+    this, so the fix is to fail that one model fast and cleanly rather than
+    let the kernel decide what dies.
+
+    No-op if `resource` is unavailable (Windows) or physical memory can't be
+    read; callers then run at their previous, uncapped risk.
+    """
+    if resource is None or not hasattr(resource, "RLIMIT_AS"):
+        return
+    try:
+        page_size = os.sysconf("SC_PAGE_SIZE")
+        n_pages = os.sysconf("SC_PHYS_PAGES")
+    except (ValueError, OSError, AttributeError):
+        logger.warning("Could not read physical memory; whole-split scoring is uncapped.")
+        return
+    limit_bytes = int(page_size * n_pages * fraction)
+    try:
+        resource.setrlimit(resource.RLIMIT_AS, (limit_bytes, limit_bytes))
+        logger.info(
+            "Capped process address space at %.1f GB before whole-split scoring.",
+            limit_bytes / 1024**3,
+        )
+    except (ValueError, OSError) as exc:
+        logger.warning("Could not set a memory ceiling for whole-split scoring: %s", exc)
 
 
 def build_model_catalog(fit_sample_size: int | None = DEFAULT_FIT_SAMPLE_SIZE) -> list[object]:
@@ -177,18 +223,29 @@ def fit_and_score_all(
         whole_split = list(models)
         ordered_test = test
 
+    if whole_split:
+        _cap_address_space()
+
     for model in whole_split:
         name = model.name  # type: ignore[attr-defined]
         logger.info("Scoring %s over the whole split", name)
         try:
             scores = model.score(ordered_test)  # type: ignore[attr-defined]
-        except MemoryError as exc:
+        except (MemoryError, OSError) as exc:
             # One model that cannot be scored must not take the other seven
             # with it. This is not hypothetical: M3b_ecod is transductive, so
             # PyOD concatenates the fitted sample onto the frame being scored
             # and argsorts all 21 columns of the result — 3.89 GB of int64
             # indices for a 20-million-row split, which killed a run that had
-            # already spent twenty minutes building features.
+            # already spent twenty minutes building features on a smaller
+            # split, and on the full 55-million-row test split climbed past
+            # 30 GB RSS plus 20 GB of swap before the kernel OOM-killed the
+            # whole process outright (`_cap_address_space` above exists so
+            # that failure surfaces here as a catchable exception instead).
+            # `OSError` is included because an address-space-limit allocation
+            # failure surfaces as `OSError: [Errno 12] Cannot allocate memory`
+            # at some layers of the numpy/PyOD call stack rather than as
+            # `MemoryError` -- both mean the same thing here.
             #
             # The model is recorded as unevaluated, with the reason, and the
             # report says so. A benchmark that silently drops a competitor is
