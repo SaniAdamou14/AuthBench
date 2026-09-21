@@ -40,7 +40,7 @@ report its first results on real data from the Los Alamos National Laboratory
 
 On a test day of 19{,}870{,}848 authentication events containing 39 real
 red-team campaigns, \emph{no} model detects a single campaign at 10, 50 or 100
-alerts per day --- six of the seven measurably so, the seventh being a
+alerts per day: six of the seven measurably so, the seventh being a
 degenerate floor whose result is undetermined for a reason we report. One model
 catches two campaigns at 500 alerts per day, a budget no SOC staffs. More
 consequentially, the two evaluation registers are not merely different but
@@ -52,7 +52,7 @@ that detects nothing first and the only model that detects something last.
 
 We also report a control that we believe generalises beyond this benchmark. On a
 synthetic sample, the same rule-based model reaches 100\% campaign recall at a
-budget of 10 --- but a measured rule-level decomposition shows that a single rule
+budget of 10, but a measured rule-level decomposition shows that a single rule
 implementing the same predicate as the data generator carries $113\times$
 separation and 0.521 of the model's fitted weight. Against a red team that never
 read the rules, that model falls to 5.1\%. A synthetic benchmark cannot establish
@@ -85,8 +85,8 @@ a benchmark built so that the measurement is possible:
 \begin{enumerate}
   \item \textbf{A dual-register evaluation.} Every model is scored both in a
   \emph{literature-comparable} register (ROC-AUC, global precision@$k$, recall at
-  fixed FPR) --- reported so results can be placed next to published ones, never
-  to rank models --- and in an \emph{operational} register (AUC-PR, per-campaign
+  fixed FPR; reported so results can be placed next to published ones, never
+  to rank models) and in an \emph{operational} register (AUC-PR, per-campaign
   recall at a fixed \emph{daily} alert budget, time-to-detection, and budget for
   first detection).
 
@@ -139,8 +139,8 @@ an individual's own history.
 
 In Tuor et al.'s reported results, ROC-AUC and average precision move together
 across all ten configurations; no divergence comparable to the one we report
-appears. We do not read this as a contradiction. Their operational metric ---
-average daily percentile --- is continuous and forgiving, not a recall
+appears. We do not read this as a contradiction. Their operational metric,
+average daily percentile, is continuous and forgiving, not a recall
 constrained to a fixed daily alert budget corresponding to an analyst's real
 quota. The divergence we measure is a property of the operating point, and it is
 visible only when the operating point is imposed.
@@ -178,9 +178,9 @@ rate falls inside a configured range and aborts otherwise.
 
 \subsection{From events to campaigns}
 
-The red-team file contains 749 raw rows. After removing 34 exact duplicates ---
-\textbf{measured on the file}, rather than adopting the widely repeated secondary
-figure of 737 --- 715 distinct red-team events remain.
+The red-team file contains 749 raw rows. After removing 34 exact duplicates
+(\textbf{measured on the file}, rather than adopting the widely repeated secondary
+figure of 737), 715 distinct red-team events remain.
 
 These are not 715 independent attacks. They are a small number of
 lateral-movement campaigns, and evaluating per-event recall would both overstate
@@ -219,8 +219,8 @@ The split is shown in Table~\ref{tab:split}. It is one day per partition and
 skips the days between. This requires explanation, because it is not the split
 the specification originally proposed.
 
-The natural contiguous split --- train days 0--29, validation 30--39, test 40--57
---- \textbf{cannot be run at all}. The red team stops at day 29. That split
+The natural contiguous split (train days 0--29, validation 30--39, test 40--57)
+\textbf{cannot be run at all}. The red team stops at day 29. That split
 places every red-team event in the training partition and leaves validation and
 test with no positives whatsoever: every ranking metric would be undefined, and
 the rule model's weight calibration would have nothing to maximise. A unit test
@@ -232,8 +232,8 @@ exceed roughly 20M events without exhausting the 8\,GB reference machine.
 Days 0, 3, 4, 10 and 11 contain no red-team activity inside the converted window,
 which further constrains the choice.
 
-The gaps between partitions are not leakage --- nothing from day 6 or day 9
-reaches any model --- and testing on day 12 after training on day 5 is a
+The gaps between partitions are not leakage (nothing from day 6 or day 9
+reaches any model), and testing on day 12 after training on day 5 is a
 \emph{harder} generalisation test than testing on the following day would be.
 What the choice costs is one day of history per partition, which is the binding
 limitation on every number in this report and is discussed in
@@ -280,16 +280,16 @@ is not a protocol.
 Seven models were evaluated, from a catalogue of eight:
 
 \begin{itemize}
-  \item \textbf{M0a random} and \textbf{M0b always-fail} --- floors, present so
+  \item \textbf{M0a random} and \textbf{M0b always-fail}: floors, present so
   that every reported number has a reference point that cannot be beaten by
   accident.
-  \item \textbf{M1 rules} --- seven hand-written detection rules with weights
+  \item \textbf{M1 rules}: seven hand-written detection rules with weights
   calibrated on the validation split.
-  \item \textbf{M2a pair rarity} --- a statistical novelty score over
+  \item \textbf{M2a pair rarity}: a statistical novelty score over
   (source, destination) authentication pairs.
-  \item \textbf{M2b PCA reconstruction} --- reconstruction error under a
+  \item \textbf{M2b PCA reconstruction}: reconstruction error under a
   principal-component model.
-  \item \textbf{M3a Isolation Forest} and \textbf{M3b HBOS} --- standard
+  \item \textbf{M3a Isolation Forest} and \textbf{M3b HBOS}: standard
   unsupervised outlier detectors.
 \end{itemize}
 
@@ -298,12 +298,12 @@ The eighth, \textbf{M3b ECOD}, was excluded: its scoring raised
 fitted sample onto the frame being scored and argsorts all columns of the result.
 This is a property of the model, not of the harness, and it has a second
 consequence worth stating: ECOD is transductive, so an event's score depends on
-which other events are scored alongside it --- the same row scores 10.64 alone
+which other events are scored alongside it: the same row scores 10.64 alone
 and 10.81 among four hundred others. No label crosses the train/test boundary, so
 this is not leakage in the sense our guards address, and it is how ECOD is used
 in the literature. But a benchmark claiming a strictly temporal protocol owes its
 reader that sentence rather than leaving it in a library's source. This was found
-by a test asserting the opposite property --- that scoring a split piecewise
+by a test asserting the opposite property: that scoring a split piecewise
 gives the same answer as scoring it whole.
 
 \paragraph{No deep-learning model is evaluated here.} Feature families for graph
@@ -328,7 +328,7 @@ a delay of zero.
 \paragraph{Budget for first detection.} A recall table reading $0\%\ 0\%\ 0\%\
 0\%$ ranks every failed model as equally far from working. A model whose best
 campaign sits at rank 600 and one whose best sits at rank 9{,}000{,}000 print
-identically --- and that is precisely the regime this benchmark studies. We
+identically, and that is precisely the regime this benchmark studies. We
 therefore also report the smallest daily budget at which a model detects any
 campaign, computed exactly as the minimum rank over campaign events within their
 own day. On the synthetic sample it separates four models that the recall row
@@ -341,15 +341,15 @@ provenance, not selection. \textbf{The metric postdates the committed LANL run},
 as do the tie-break fix of Section~\ref{sec:threats} and the score-resolution
 diagnostics; that snapshot is frozen, and re-running it is precisely what the
 history limitation makes expensive. Reporting the metric on the synthetic sample
-only, and saying so, seemed better than either omitting it --- it is part of the
-protocol being described --- or quietly recomputing it against a run whose
+only, and saying so, seemed better than either omitting it (it is part of the
+protocol being described) or quietly recomputing it against a run whose
 published tables would then no longer match the code.
 
 \paragraph{Tie-breaking, stated rather than inherited.} ``The top 10 events of
 the day'' is not a question a coarse-scored model answers on its own: the
 always-fail floor puts 2{,}619 equally-scored events in competition for 8 places
 on the demo sample. Equal scores are ordered by $(\textit{time},
-\textit{event\_id})$ --- arrival order, label-free and total. Before this was made
+\textit{event\_id})$: arrival order, label-free and total. Before this was made
 explicit, ties fell to the frame's row order, which is alphabetical by user; the
 consequence for our own published floor row is reported in
 Section~\ref{sec:threats}. A zero-width tie bracket now certifies that the
@@ -378,7 +378,7 @@ would have flattered our results if left alone:
 
 \begin{itemize}
   \item \textbf{Degenerate resamples.} A ranking metric over zero positives is
-  undefined, but the underlying library returns $0.0$, so every model ties --- and
+  undefined, but the underlying library returns $0.0$, so every model ties, and
   ties count in both tails. With one campaign in a split, roughly 37\% of
   resamples are degenerate, flooring $p$ near 0.74. Degenerate resamples are
   discarded and redrawn, and the count is reported.
@@ -393,7 +393,7 @@ would have flattered our results if left alone:
   \item \textbf{A single campaign.} The sample size of a campaign-stratified
   bootstrap is the number of \emph{campaigns}. With one, every resample
   re-weights the same attack, no pairwise difference changes sign, and every
-  $p$-value lands on $2/(R+1)$ --- below Holm's threshold, so every comparison
+  $p$-value lands on $2/(R+1)$, below Holm's threshold, so every comparison
   reads ``outperforms''. The synthetic sample produced 21 out of 21 verdicts this
   way. A minimum of two campaigns is now required before any significance verdict
   is reported; point estimates and intervals are unchanged, only the verdict is
@@ -430,7 +430,7 @@ Two findings follow.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.92\textwidth]{../lanl/figures/campaign_recall_vs_budget.png}
+\includegraphics[width=0.92\textwidth]{campaign_recall_vs_budget.png}
 \caption{Campaign recall against daily alert budget on the LANL test day,
 reproduced as generated. Every curve lies on zero across the entire budget
 range; the single departure is the rule model reaching 5.1\% at 500 alerts per
@@ -446,9 +446,9 @@ matches the committed output byte for byte.)}
 No model detects a single campaign out of 39 at 10, 50 or 100 alerts per day.
 Six of the seven are measured at exactly zero; the seventh, the always-fail
 floor, is undetermined at every budget for a reason given in
-Section~\ref{sec:threats} --- and, being a degenerate floor, any nonzero recall it
+Section~\ref{sec:threats}; and, being a degenerate floor, any nonzero recall it
 showed would be an artifact of alert ordering rather than detection. One model
---- the rule-based heuristic --- catches two campaigns at 500 alerts per day, a
+(the rule-based heuristic) catches two campaigns at 500 alerts per day, a
 budget no SOC staffs for a single analyst.
 
 \subsection{The registers are anti-correlated, not merely different}
@@ -459,7 +459,7 @@ This is the benchmark's reason to exist, and it appears here on real attacks:
   \item \textbf{M2a scores ROC-AUC 0.942 and detects nothing} at any operational
   budget. A ROC-AUC of 0.94 passes without comment in a paper.
   \item \textbf{M1 has the lowest ROC-AUC of the five non-trivial models,
-  0.547} --- barely above the 0.50 the floors score by construction --- and is the
+  0.547} (barely above the 0.50 the floors score by construction) and is the
   only model that catches anything at all.
 \end{itemize}
 
@@ -475,7 +475,7 @@ Thirteen of the 21 pairwise comparisons are significant after Holm-Bonferroni
 correction. \textbf{Twelve of those thirteen are bounds, not measurements.} No
 resample out of 2000 placed the difference on the other side of zero, so their
 $p$-value is the bootstrap's own resolution floor and they are reported as
-Holm-adjusted $p \leq 0.0210$ against a threshold of 0.05 --- true, with a factor
+Holm-adjusted $p \leq 0.0210$ against a threshold of 0.05; true, with a factor
 of 2.4 in hand, but not a value the run resolved. The single exception, and the
 only pairwise verdict here whose $p$-value the bootstrap actually measured, is
 M0b always-fail versus M1 rules at Holm-adjusted $p = 0.0450$.
@@ -498,12 +498,12 @@ On the synthetic sample, M1 reached \textbf{100\% campaign recall at a budget of
 every machine-learning model at every budget.
 
 The narrative does not survive a rule-level decomposition
-(Table~\ref{tab:rules}). The generator emits each campaign as a chain --- the
-user authenticates $A \to B$, then $B \to C$ --- and rule R7 tests for exactly
+(Table~\ref{tab:rules}). The generator emits each campaign as a chain (the
+user authenticates $A \to B$, then $B \to C$), and rule R7 tests for exactly
 that: previous destination equals current source, within 30 minutes. The
 generator and the rule implement \textbf{the same predicate}. R7 separates
 malicious from benign by a factor of $113\times$, and the validation-fitted
-weights place 0.521 on it --- more than half the model's score.
+weights place 0.521 on it, more than half the model's score.
 
 \begin{table}[t]
 \centering
@@ -525,7 +525,7 @@ cannot quietly stop matching the run it describes.}
 \end{table}
 
 This is a property of a synthetic sample written by the same author as the rules,
-not a finding about heuristics --- and no amount of statistical care fixes it. A
+not a finding about heuristics, and no amount of statistical care fixes it. A
 campaign-stratified bootstrap will faithfully report a circular result with
 correct confidence intervals.
 
@@ -580,24 +580,24 @@ feeding every split's first events a real past (133{,}093{,}586 /
 single day's 39). Full output: \texttt{reports/lanl/wider\_window\_results/}.
 
 The central finding is unchanged, and if anything sharper. Every one of the
-seven scoreable models --- M3b ECOD excluded here for the same reason given
-in Section~\ref{sec:models}, at larger scale --- reads exactly 0\% campaign
+seven scoreable models (M3b ECOD excluded here for the same reason given
+in Section~\ref{sec:models}, at larger scale) reads exactly 0\% campaign
 recall at every budget from 10 through 500 alerts per day, over 52 campaigns
 rather than 39. The anti-correlation holds too: M2a's ROC-AUC is 0.941
 (0.942 on the single day) against zero operational recall, to three figures
 the same finding from a test split more than five times the size.
 
 One number does move, and it is reported here rather than only the numbers
-that confirm the paper's thesis. M1 rules --- Table~\ref{tab:results}'s only
-non-zero row, 5.1\% campaign recall at 500 alerts/day --- reads 0\% on the
+that confirm the paper's thesis. M1 rules (Table~\ref{tab:results}'s only
+non-zero row, 5.1\% campaign recall at 500 alerts/day) reads 0\% on the
 wider run, at every budget. Two things changed together between the runs,
 not one: three test days instead of one, and warm-up switched on for the
 first time on real data. Section~\ref{sec:threats}'s own measurement above is
 that warm-up roughly halves how often a pair is flagged never-seen-before;
 M1's R1 and R6 rules are built directly on that signal. A plausible reading
 is that warm-up did here what it was already shown to do on the synthetic
-sample --- shrink the over-flagging that let M1 catch two campaigns on an
-unwarmed-up test day --- rather than three days being harder to detect in
+sample: shrink the over-flagging that let M1 catch two campaigns on an
+unwarmed-up test day, rather than three days being harder to detect in
 than one. \textbf{This is not isolated}: separating window width from
 warm-up would need a third run holding one fixed, which is future work, not
 a claim made here.
@@ -605,14 +605,14 @@ a claim made here.
 \subsection{Cold start is encoded as ``normal'', and it biases toward our conclusion}
 
 An event with no prior history for its user does not receive a neutral feature
-value --- it receives the most normal one available. The hour-deviation feature is
+value: it receives the most normal one available. The hour-deviation feature is
 filled with $0.0$ for a user's first event in a partition, and $0.0$ is the
 \textbf{minimum} of that column's range; the failure-ratio features are likewise
 0 when there are no prior events to have failed.
 
 Measured on the synthetic test split rather than asserted: 3{,}299 of 8{,}049
 events (41\%) have no prior one-hour history; 350 events are a user's first in
-the split, and all 350 --- and no other event --- carry the sentinel value,
+the split, and all 350 (and no other event) carry the sentinel value,
 against a median deviation of 0.426 elsewhere and a 99th percentile of 3.046. Two
 of eleven malicious test events fall in that set.
 
@@ -626,15 +626,15 @@ to be found.
 It is not fixed, and the reason is a trade rather than an oversight: changing the
 sentinel changes the design matrix, which moves every vector-space model's scores
 and would desynchronise the published snapshot from the code that claims to
-produce it. The honest options --- a cold-start indicator column, or a sentinel
-outside the column's range --- are changes to the protocol and belong with a
+produce it. The honest options (a cold-start indicator column, or a sentinel
+outside the column's range) are changes to the protocol and belong with a
 re-run.
 
 \subsection{One floor row is undetermined rather than zero}
 
 M0b always-fail scores every event 0 or 1, so on a 19.9M-event test day its alert
 set at any budget is decided entirely by how equally-scored events are ordered.
-The published run used the ordering then in force --- the frame's own row order,
+The published run used the ordering then in force: the frame's own row order,
 alphabetical by user. \textbf{M0b's zeros are therefore a property of that
 ordering, not of the floor}, and should be read as undetermined. On the synthetic
 sample, the tie-break fix moved M0b from 0\% to 75\% at budget 500.
@@ -651,7 +651,7 @@ intervals or the pairwise comparisons, none of which depend on alert ordering.
   a modern cloud or hybrid environment.
 
   \item \textbf{Dataset age.} Eleven years old at the time of writing.
-  Authentication patterns have shifted --- widespread MFA, token-based
+  Authentication patterns have shifted: widespread MFA, token-based
   authentication. The \emph{protocol} remains valid; absolute performance numbers
   are not transferable to present-day environments.
 
@@ -681,7 +681,7 @@ analyst could staff.
 It does \textbf{not} show that deep learning fails at this task: no
 deep-learning model was evaluated here (Section~\ref{sec:models}).
 
-It does \textbf{not} show that heuristics beat learned models --- the comparison
+It does \textbf{not} show that heuristics beat learned models: the comparison
 between the rule model and the statistical one is explicitly not significant
 (Section~\ref{sec:results}).
 
@@ -703,9 +703,9 @@ evaluation and feature modules.
 
 The protocol is written against the full 1.05-billion-event corpus. Five changes
 brought a full run from roughly 161\,GB of disk and 439\,GB of RAM down to
-roughly 81\,GB and 49\,GB --- a day-window conversion, a feature store projected
+roughly 81\,GB and 49\,GB (a day-window conversion, a feature store projected
 to the columns actually read, bounded-sample fitting, day-chunked scoring, and a
-rank-ordered bootstrap --- and none of them moves a measured number: the
+rank-ordered bootstrap), and none of them moves a measured number: the
 synthetic report regenerates byte for byte after all five. A preflight command
 prints the budget for the machine it runs on and exits non-zero when the run does
 not fit, naming the event count that would.
@@ -724,7 +724,7 @@ We built a benchmark to ask whether reported anomaly-detection performance
 survives a realistic alert budget, and measured the answer on real red-team
 activity. It does not: none of seven models detects any of 39 campaigns at 10, 50
 or 100 alerts per day. The sharper finding is that the standard aggregate metric
-does not merely fail to predict operational value on this data --- it inverts the
+does not merely fail to predict operational value on this data: it inverts the
 ordering, placing a model that detects nothing above the only model that detects
 anything.
 
@@ -734,7 +734,7 @@ generator, and that only an adversary who did not read the rules can distinguish
 a good heuristic from a well-informed one.
 
 The most useful next steps are, in our view, a run with adequate history per
-partition --- the binding limitation on every number reported here --- and the
+partition (the binding limitation on every number reported here) and the
 evaluation of sequence and graph models under the same budget constraint, so that
 the question the benchmark was built to ask can finally be answered rather than
 posed.
