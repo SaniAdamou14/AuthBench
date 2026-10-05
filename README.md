@@ -5,15 +5,18 @@ alert budget?** A leak-free, budget-constrained benchmark on the LANL
 Comprehensive Multi-Source Cyber-Security Events dataset.
 
 [![CI](https://github.com/SaniAdamou14/AuthBench/actions/workflows/ci.yml/badge.svg)](https://github.com/SaniAdamou14/AuthBench/actions/workflows/ci.yml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23159767.svg)](https://doi.org/10.5281/zenodo.23159767)
+
+**Paper (preprint, Zenodo):** [doi.org/10.5281/zenodo.23159768](https://doi.org/10.5281/zenodo.23159768)
 
 > A SOC cannot triage more than a few dozen alerts per day per analyst. Most
 > published anomaly-detection results are reported at operating points no
-> analyst could ever use. AuthBench does not propose a new model — it
+> analyst could ever use. AuthBench does not propose a new model: it
 > measures, under a strictly temporal, leak-free protocol and a realistic
 > daily alert budget, what survives.
 >
-> **The question it was built to ask — how much of the published deep-learning
-> advantage over well-built heuristics survives that constraint — is not
+> **The question it was built to ask (how much of the published deep-learning
+> advantage over well-built heuristics survives that constraint) is not
 > answered here.** The LANL run evaluates seven heuristic, statistical and
 > classical outlier models; no deep model has been run on real data yet (see
 > [State of the project](#state-of-the-project)). What the run did find does not
@@ -38,13 +41,13 @@ campaigns** in the test split. Full provenance and caveats:
 | M1 rules | 0.00010 [0.00002, 0.00071] | 0.547 | 0% | 0% | 0% | **5.1%** |
 
 **Not one of the seven models detects a single campaign out of 39 at 10, 50 or
-100 alerts per day.** One catches two campaigns at 500 alerts/day — a budget no
+100 alerts per day.** One catches two campaigns at 500 alerts/day, a budget no
 SOC staffs for.
 
 > † **M0b's row predates the tie-break fix and should be read as
 > undetermined.** M0b scores every event 0 or 1, so on a test day of 19.9M
 > events its alert set is decided entirely by how equally-scored events are
-> ordered — and this run used the ordering that was later found to be
+> ordered, and this run used the ordering that was later found to be
 > `(src_user, time)`, i.e. alphabetical by user. Its zeros are a property of
 > that ordering, not of the floor. Every other row is unaffected: their scores
 > are continuous and leave the tie-break nothing to decide. The fix, and what
@@ -55,8 +58,8 @@ And the two registers are not merely different, they are **anti-correlated**:
 
 - **M2a scores ROC-AUC 0.942 and detects nothing.** 0.94 passes without comment
   in a paper.
-- **M1 has the lowest ROC-AUC of the five non-trivial models, 0.547 — barely
-  above the 0.50 the two floors score by construction — and is the only model
+- **M1 has the lowest ROC-AUC of the five non-trivial models, 0.547 (barely
+  above the 0.50 the two floors score by construction), and is the only model
   that catches anything at all.**
 
 Ranking the non-trivial models by the literature-comparable metric would put
@@ -66,17 +69,17 @@ this benchmark was built to measure, and it did not need a new model to show it.
 
 > **The obvious objection, and how to check it.** ROC-AUC credits a tied pair
 > 0.5, so a model whose score takes few distinct values is dragged toward 0.50
-> by arithmetic rather than by anything about the operating point — and M1's
+> by arithmetic rather than by anything about the operating point, and M1's
 > 0.547 could in principle be that and nothing else. Every run now publishes
 > `score_resolution` per model (distinct values, and the share of the split on
 > the single most crowded score) so the objection is settled by a number rather
 > than argued. On the demo sample M1 takes **7,750 distinct values over 8,049
-> events**, with 2% of the split on its largest tie — not a coarse score. The
+> events**, with 2% of the split on its largest tie: not a coarse score. The
 > LANL snapshot predates the field and will carry it on the next run; until
 > then that specific check is open for the 0.547, and saying so is cheaper than
 > having a reviewer find it.
 
-13 of 21 pairwise comparisons are significant after Holm-Bonferroni — and 12 of
+13 of 21 pairwise comparisons are significant after Holm-Bonferroni, and 12 of
 those 13 sit on the bootstrap's own resolution floor, so they are reported as
 `Holm-adjusted p ≤ 0.0210` against a threshold of 0.05, not as a measured
 p-value. [What that means, and why it is printed as a bound](#the-significant-results-are-bounds-not-measurements).
@@ -86,7 +89,7 @@ reason](reports/lanl/tables/skipped_models.json).
 > **One limitation decides how to read the zeros.** Each partition is a single
 > day with no warm-up history, so F3's novelty features are measured against
 > barely any past. On the demo sample, adding two warm-up days *halves*
-> `pair_is_new` — without history, half the pairs called "never seen" were only
+> `pair_is_new`: without history, half the pairs called "never seen" were only
 > unseen because there was no past to have seen them in. So "the models detect
 > nothing" and "one day is not enough history" are both live readings of the
 > 0% column, and the machine (8 GB) could not afford more. The
@@ -98,7 +101,7 @@ reason](reports/lanl/tables/skipped_models.json).
 
 The limitation above is no longer only hypothetical. A second run, on hardware
 large enough to afford it, trains on days 0–7, validates on 8–10 and tests on
-11–13, with two warm-up days feeding every split's first events a real past —
+11–13, with two warm-up days feeding every split's first events a real past:
 133,093,586 / 51,687,105 / 54,690,768 rows, **52 test-split campaigns** against
 the single day's 39. Full output:
 [`reports/lanl/wider_window_results/`](reports/lanl/wider_window_results/).
@@ -106,19 +109,19 @@ the single day's 39. Full output:
 The central finding holds, and on more campaigns: every scoreable model (M3b
 ECOD excluded for the same memory reason as before, at larger scale) reads
 **exactly 0% campaign recall at every budget from 10 through 500/day**, and
-M2a's ROC-AUC is 0.941 — 0.942 on the single day, to three figures the same
-finding on a test split five times the size. One number does move: M1 rules,
-the single-day run's only non-zero result (5.1% at 500/day), reads 0% here.
-Window width and warm-up both changed between the two runs, so the drop is
-reported rather than explained away — see the paper's
+M2a's ROC-AUC is 0.941, versus 0.942 on the single day, to three figures the
+same finding on a test split five times the size. One number does move: M1
+rules, the single-day run's only non-zero result (5.1% at 500/day), reads 0%
+here. Window width and warm-up both changed between the two runs, so the drop
+is reported rather than explained away; see the paper's
 [Threats to Validity](reports/paper/main.tex) for the full discussion.
 
 ## The same protocol on the synthetic sample
 
 ![Campaign recall vs. daily alert budget](reports/demo/figures/campaign_recall_vs_budget.png)
 
-Committed output of `make demo`, regenerated byte for byte by CI on every push
-— full provenance in [`reports/demo/RUN.md`](reports/demo/RUN.md). 37,844
+Committed output of `make demo`, regenerated byte for byte by CI on every push;
+full provenance in [`reports/demo/RUN.md`](reports/demo/RUN.md). 37,844
 synthetic events, 10 red-team campaigns, 4 of them in the test split. Kept
 because it is the **control** that makes the LANL result readable, not because
 it is a finding.
@@ -139,8 +142,8 @@ recall printed is whichever of them the ordering happened to reach. Every other
 model's score is continuous enough that the bracket collapses onto the point
 estimate, which is why only one row carries one.*
 
-**Read the Isolation Forest row twice.** ROC-AUC 0.798 — a number that would
-pass without comment in a paper — and it catches **nothing** at 10, 50 or 100
+**Read the Isolation Forest row twice.** ROC-AUC 0.798, a number that would
+pass without comment in a paper, and it catches **nothing** at 10, 50 or 100
 alerts a day. The two registers do not merely differ in scale; they rank
 differently and they disagree about whether the model works at all. That gap is
 what the benchmark exists to measure, and it does not depend on the sample being
@@ -149,21 +152,21 @@ realistic: it is a property of the operating point.
 **Then read the last column, which is the one that does not saturate.** Four
 models print `0% 0% 0%` and the recall row ranks them as equally far from
 working. They are not: M3b ECOD needs a budget of 83 to catch its first
-campaign, M2b PCA 114 — and M3a Isolation Forest needs **284**, M2a pair rarity
+campaign, M2b PCA 114; M3a Isolation Forest needs **284**, M2a pair rarity
 **294**, both worse than the random floor's 162. A column of zeros hid a
 factor of three between models it presented as identical, and hid two ML models
 losing to a random scorer.
 
 8 of the 21 pairwise comparisons are significant after Holm-Bonferroni; the
 other 13 are not, and are reported as not. All eight sit on the resolution
-floor and print as `Holm-adjusted p ≤ 0.0420` against a threshold of 0.05 —
+floor and print as `Holm-adjusted p ≤ 0.0420` against a threshold of 0.05;
 see [below](#the-significant-results-are-bounds-not-measurements). Four
 campaigns in a test split is a small sample and the intervals say so.
 
 ### M1's 100% is partly circular, and here is the measurement
 
 The rules do not win this sample on merit alone. `scripts/generate_demo_data.py`
-emits each campaign as a chain — the user authenticates A→B, then B→C — and M1's
+emits each campaign as a chain: the user authenticates A→B, then B→C, and M1's
 rule R7 tests for exactly that: *previous destination equals current source,
 within 30 minutes*. The generator and the rule implement **the same predicate**,
 so R7 was handed the answer:
@@ -180,7 +183,7 @@ That table is generated output, not prose: `reports/demo/tables/rule_discriminat
 rewritten by every `make demo` and covered by the reproducibility check, so
 the caveat cannot quietly stop matching the run it describes.
 
-M1's validation-fitted weights then put **0.521 on R7** — more than half its
+M1's validation-fitted weights then put **0.521 on R7**: more than half its
 score. So "well-built heuristics beat every ML model at every budget" is, on
 this sample, largely one tautological rule doing the work. R1 contributes
 genuinely (real lateral movement does create new user→host pairs); R4 turns out
@@ -189,7 +192,7 @@ than assumed.
 
 This is a property of a **synthetic sample written by the same author as the
 rules**, not a finding about heuristics, and no amount of statistical care fixes
-it — the campaign-stratified bootstrap will faithfully report a circular result
+it: the campaign-stratified bootstrap will faithfully report a circular result
 with correct confidence intervals.
 
 **The LANL run is the control, and it confirms the diagnosis.** Against a red
@@ -202,8 +205,8 @@ read your rules can.
 
 No 6 GB download and no 161 GB of disk required. `data/demo/` ships a small
 synthetic sample
-(versioned in git) shaped like LANL — same 9-column schema, same `?` null
-sentinel, machine accounts, per-user home machines — and carrying ten complete
+(versioned in git) shaped like LANL: same 9-column schema, same `?` null
+sentinel, machine accounts, per-user home machines, and carrying ten complete
 red-team lateral-movement campaigns.
 
 ```bash
@@ -246,7 +249,7 @@ gitignored: they are the working directory a run writes into, and
 | Period | 14 days |
 | Red-team events | 27, in 10 campaigns |
 | Campaigns per partition | train 3 · val 3 · **test 4** |
-| Positive rate | 7.1 × 10⁻⁴ (≈1,000× LANL's — a smoke test, not a scale model) |
+| Positive rate | 7.1 × 10⁻⁴ (≈1,000× LANL's, a smoke test, not a scale model) |
 | Split | train days 0–7, val 8–10, test 11–13 |
 
 Every partition carries campaigns, and the counts are load-bearing rather than
@@ -254,7 +257,7 @@ decorative. A validation window with no positives silently reduces M1's weight
 calibration to a single arbitrary random draw. A *test* window with only one
 campaign is worse: campaigns are the independent unit of the bootstrap, so one
 campaign is a sample size of one, and the comparison table comes back 21 pairs
-out of 21 "significant" off a single attack — which is what this sample used to
+out of 21 "significant" off a single attack, which is what this sample used to
 do. `tests/unit/test_demo_sample_integrity.py` guards both, and
 `authbench data generate-demo` regenerates the sample.
 
@@ -272,12 +275,12 @@ dvc repro
 
 **Activate the environment first.** `dvc repro` runs each stage's command in a
 subshell with the ambient `PATH`, so calling `.venv/bin/dvc` directly is not
-enough — the stage then fails with `'authbench' is not recognized`. Activating
+enough: the stage then fails with `'authbench' is not recognized`. Activating
 puts `authbench` and `python` where every stage can find them.
 
 **Run `authbench preflight` first, and read what it says.** The download is
 about 6 GB; converting all 58 days and building features is about **81 GB of
-disk and 49 GB of RAM** — down from 161 GB and 439 GB, see
+disk and 49 GB of RAM**, down from 161 GB and 439 GB, see
 [`docs/scaling.md`](docs/scaling.md) for what changed and what it cost (nothing:
 `reports/demo/` regenerates byte for byte after every one of those changes).
 
@@ -291,11 +294,11 @@ authbench data to-parquet data/raw/auth.txt.gz --out-dir data/interim/auth --day
 
 `preflight` exits non-zero when a run does not fit, and names the event count
 that would. Label every number a partial run produces with the window it came
-from — `to-parquet` refuses to reconcile a day window against the published
+from: `to-parquet` refuses to reconcile a day window against the published
 full-dataset row count rather than failing a check nobody could pass.
 
 The expected row count comes from `conf/dataset/lanl.yaml`, not from the
-command line — it is a published figure (1,051,430,459) and repeating it in
+command line: it is a published figure (1,051,430,459) and repeating it in
 `dvc.yaml`, in this README and in a shell history is how it eventually
 disagrees with itself.
 
@@ -336,7 +339,7 @@ LANL auth.txt.gz + redteam.txt.gz
 Two things are *fitted*, and both are fitted on the training split alone: the
 night window (`features.temporal.calibrate_night_window`) and the F1 category
 frequency tables (`features.event.fit_frequency_encoding`). Refitting either
-per split is a leak that no downstream check catches — it just makes the
+per split is a leak that no downstream check catches: it just makes the
 numbers better. `tests/unit/test_frequency_encoding.py` holds that line.
 
 Full design rationale: [`AuthBench_Specification.md`](AuthBench_Specification.md).
@@ -349,11 +352,11 @@ resampling pass shared by every model, so the intervals and the comparisons
 sit on the same sampling distribution and each difference is paired.
 
 Three floors sit under this. Two of them produce results that look exactly
-like a genuine "no difference" finding, and one produces the opposite — a
-clean sweep of "outperforms" — while having nothing to do with the models:
+like a genuine "no difference" finding, and one produces the opposite (a
+clean sweep of "outperforms") while having nothing to do with the models:
 
 - **Degenerate resamples.** A ranking metric over zero positives is
-  undefined, but scikit-learn returns 0.0 — so on such a resample every model
+  undefined, but scikit-learn returns 0.0, so on such a resample every model
   ties, and those ties land in both tails of a two-sided test. With one
   campaign in the test split, ~37% of resamples are degenerate and every
   p-value is floored near 0.74. They are discarded and redrawn;
@@ -369,7 +372,7 @@ clean sweep of "outperforms" — while having nothing to do with the models:
   bootstrap is the number of *campaigns*, not the number of events. With a
   single campaign in the test split, every resample is a re-weighting of the
   same attack: no pairwise difference can change sign, the tail count is zero,
-  and every p-value lands on the resolution floor `2/(R+1)` — which is *below*
+  and every p-value lands on the resolution floor `2/(R+1)`, which is *below*
   Holm's threshold, so all 21 demo comparisons came back "outperforms" off one
   campaign. That is the bootstrap's resolution being reported as evidence
   about the models. `stats_tests.MIN_CAMPAIGNS_FOR_SIGNIFICANCE` withholds the
@@ -380,7 +383,7 @@ clean sweep of "outperforms" — while having nothing to do with the models:
 
 The third floor above is not only a hazard for a one-campaign split. It applies,
 in a weaker form, to **almost every significant result this project has
-published** — so it is stated here rather than left for a reader to derive:
+published**, so it is stated here rather than left for a reader to derive:
 
 | run | significant | of those, on the resolution floor |
 |---|---:|---:|
@@ -389,7 +392,7 @@ published** — so it is stated here rather than left for a reader to derive:
 
 A pair lands on the floor when not one resample out of R put the difference on
 the other side of zero. The two-sided p-value is then `2/(R+1)` because that is
-the smallest number the bootstrap can express — not because anything was
+the smallest number the bootstrap can express, not because anything was
 measured there. Reported honestly, those comparisons say `Holm-adjusted
 p ≤ 0.0420` (demo) and `≤ 0.0210` (LANL) against a threshold of 0.05: true, and
 a factor of 1.2 and 2.4 of margin respectively. That is a real result and a thin
@@ -402,20 +405,20 @@ Three things follow, all of them now mechanical rather than editorial:
   whenever it is set.
 - `p_value_raw` and `p_value_holm_adjusted` are separate fields. The JSON key
   used to be a single `p_value_corrected` that carried the **uncorrected**
-  number — Holm was only ever applied as a decision rule, never folded into the
+  number; Holm was only ever applied as a decision rule, never folded into the
   value printed next to the word "corrected".
 - Raising `R` is what buys resolution. Nothing else does, and no amount of
   care with the wording substitutes for it.
 
-The one LANL comparison that is *not* on the floor — M0b always-fail versus M1
-rules — lands at Holm-adjusted `p = 0.0450`. That is the only pairwise verdict
+The one LANL comparison that is *not* on the floor (M0b always-fail versus M1
+rules) lands at Holm-adjusted `p = 0.0450`. That is the only pairwise verdict
 in the published run whose p-value the bootstrap actually resolved.
 
 ### And the alert budget had a floor of its own: the tie-break
 
 "Top 10 events of the day" is not a question a model answers on its own. A model
 whose score takes few distinct values leaves the ordering to whatever sorts the
-frame — and for most of this project's history that was **the row order**,
+frame, and for most of this project's history that was **the row order**,
 which after `features.temporal.compute_f4` is `(src_user, time)`. The published
 M0b always-fail row was therefore, literally, *the failures of the
 alphabetically earliest users*.
@@ -423,12 +426,12 @@ alphabetically earliest users*.
 Measured on the demo test split, M0b puts 2,619 equally-scored events in
 competition for 8 of day 11's places. Under the old ordering it caught nothing
 at any budget; under arrival order it catches 3 of 4 campaigns at budget 500.
-Neither number is wrong — the metric simply did not have enough information to
+Neither number is wrong: the metric simply did not have enough information to
 produce one, and said nothing about it.
 
 Three changes, in `evaluate/budget.py`:
 
-- ties break on `(time, event_id)` — arrival order, which is what a queue does
+- ties break on `(time, event_id)`: arrival order, which is what a queue does
   and what an analyst working a shift does. Label-free, total, and stated:
   `ALERT_ORDER_TIE_BREAK`.
 - `campaign_recall_bracket` reports what the tie could have cost or bought. The
@@ -446,8 +449,8 @@ the shading marks exactly the numbers that are soft.
 
 A recall table of `0% 0% 0% 0%` ranks every model that failed as equally far
 from succeeding. A model whose best campaign sits at rank 600 and one whose best
-sits at rank 9,000,000 print identically, and the benchmark's central claim —
-*nothing works at an operational budget* — is exactly the regime where that
+sits at rank 9,000,000 print identically, and the benchmark's central claim,
+*nothing works at an operational budget*, is exactly the regime where that
 table stops discriminating.
 
 A campaign is detected at budget `k` precisely when one of its events reaches
@@ -466,7 +469,7 @@ Being explicit about this is part of the point of the benchmark.
 
 - **The LANL run.** Days 0–13 converted, 39 campaigns evaluated, results in
   [`reports/lanl/`](reports/lanl/RUN.md). One day of history per partition,
-  no warm-up — the binding limitation of this primary result.
+  no warm-up: the binding limitation of this primary result.
 - **A wider-window robustness check**, with `history_warmup_days: 2` and a
   3-day test split (52 campaigns), on rented hardware. Confirms the central
   finding; see [above](#a-robustness-check-on-a-wider-window-with-warm-up)
@@ -480,9 +483,9 @@ Being explicit about this is part of the point of the benchmark.
   on validation), M2a pair-rarity, M2b PCA reconstruction, M3a Isolation
   Forest, M3b ECOD/HBOS.
 - Evaluation, in two registers the report keeps separate:
-  - *operational* — event and campaign recall at daily alert budgets,
+  - *operational*: event and campaign recall at daily alert budgets,
     time-to-detection per campaign, AUC-PR with campaign-stratified CIs;
-  - *literature-comparable* — ROC-AUC, global precision@k, recall at a fixed
+  - *literature-comparable*: ROC-AUC, global precision@k, recall at a fixed
     FPR, each reported for placement against published numbers, not ranking.
 - Pairwise AUC-PR comparisons across the whole model family, Holm-Bonferroni
   corrected. The report generator can only emit the word "outperforms" on the
@@ -490,23 +493,27 @@ Being explicit about this is part of the point of the benchmark.
 
 **Implemented and unit-tested, but not yet wired into the reported tables**
 
-- SHAP alert cards (`explain/`) — needs the `explain` extra.
-- F5 graph / F6 sequence features and the M4 deep / M5a graph models — these
+- SHAP alert cards (`explain/`): needs the `explain` extra.
+- F5 graph / F6 sequence features and the M4 deep / M5a graph models: these
   need the `deep` / `graph` extras and are not part of the default DVC stage.
 
 **Not implemented**
 
 - The R1 (unsupervised) / R2 (semi-supervised) training regimes. The key
   exists in `conf/split/*.yaml`; nothing reads it yet.
-- M5b GNN link prediction — raises `NotImplementedError` on purpose rather
+- M5b GNN link prediction: raises `NotImplementedError` on purpose rather
   than shipping a decorative implementation.
 
-**The arXiv technical report** lives at
+**The technical report** lives at
 [`reports/paper/main.tex`](reports/paper/main.tex) (build instructions in
-[`reports/paper/README.md`](reports/paper/README.md)). There is still
-deliberately no `report` stage in `dvc.yaml` — LaTeX compilation is not part
-of the reproducible pipeline `dvc repro` runs, only of the write-up built on
-top of its output.
+[`reports/paper/README.md`](reports/paper/README.md)); the same source,
+packaged for submission, is in [`arxiv_submission/`](arxiv_submission/main.tex).
+It is published as a preprint on Zenodo, DOI
+[10.5281/zenodo.23159768](https://doi.org/10.5281/zenodo.23159768), and is
+still pending arXiv endorsement in `cs.CR`. There is still deliberately no
+`report` stage in `dvc.yaml`: LaTeX compilation is not part of the
+reproducible pipeline `dvc repro` runs, only of the write-up built on top of
+its output.
 
 ## Development
 
@@ -527,7 +534,7 @@ Requires Python ≥3.11, <3.13. Optional extras: `classical` (PyOD), `deep`
 
 ## Limits
 
-- A single real dataset (LANL, 2015, one enterprise network) — transferability
+- A single real dataset (LANL, 2015, one enterprise network): transferability
   to modern cloud/MFA environments is not established.
 - Red-team labels are a partial ground truth: an unflagged event may still be
   a true compromise never caught at the time.
@@ -545,6 +552,6 @@ Scope of use: [`docs/ethics.md`](docs/ethics.md).
 
 ## License
 
-Code: Apache 2.0 (see `LICENSE`). LANL and CERT data are not redistributed —
+Code: Apache 2.0 (see `LICENSE`). LANL and CERT data are not redistributed:
 only the download scripts are, under the terms of each dataset's own license
 (see [`docs/ethics.md`](docs/ethics.md)).
