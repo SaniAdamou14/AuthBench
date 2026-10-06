@@ -297,7 +297,9 @@ def main(cfg: DictConfig) -> None:
         if name.strip()
     }
     if exclude_models:
-        logger.warning("Excluding from this run (AUTHBENCH_EXCLUDE_MODELS): %s", sorted(exclude_models))
+        logger.warning(
+            "Excluding from this run (AUTHBENCH_EXCLUDE_MODELS): %s", sorted(exclude_models)
+        )
     models = build_model_catalog(
         fit_sample_size=int(cfg.runtime.fit_sample_size) or None, exclude=exclude_models
     )
