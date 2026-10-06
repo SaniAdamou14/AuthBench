@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use this software or its results, please cite both the software and the paper below."
+title: AuthBench
+type: software
+version: 1.0.0
+date-released: 2026-10-06
+url: https://github.com/SaniAdamou14/AuthBench
+repository-code: https://github.com/SaniAdamou14/AuthBench
+license: Apache-2.0
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.23183808"
+    description: "Software archive for v1.0.0, this exact release"
+authors:
+  - family-names: Adamou Mahamane
+    given-names: Mahamane Sani
+    orcid: "https://orcid.org/0009-0001-5561-753X"
+    affiliation: University of the People
+preferred-citation:
+  type: preprint
+  title: "Aggregate Ranking Metrics Can Invert Operational Order: An Alert-Budget-Constrained Benchmark for Authentication Anomaly Detection"
+  authors:
+    - family-names: Adamou Mahamane
+      given-names: Mahamane Sani
+      orcid: "https://orcid.org/0009-0001-5561-753X"
+      affiliation: University of the People
+  year: 2026
+  month: 10
+  doi: "10.5281/zenodo.23159768"
+  url: "https://doi.org/10.5281/zenodo.23159768"

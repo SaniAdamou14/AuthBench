@@ -5,9 +5,11 @@ alert budget?** A leak-free, budget-constrained benchmark on the LANL
 Comprehensive Multi-Source Cyber-Security Events dataset.
 
 [![CI](https://github.com/SaniAdamou14/AuthBench/actions/workflows/ci.yml/badge.svg)](https://github.com/SaniAdamou14/AuthBench/actions/workflows/ci.yml)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23159767.svg)](https://doi.org/10.5281/zenodo.23159767)
+[![Paper DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23159767.svg)](https://doi.org/10.5281/zenodo.23159767)
+[![Software DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23183808.svg)](https://doi.org/10.5281/zenodo.23183808)
 
 **Paper (preprint, Zenodo):** [doi.org/10.5281/zenodo.23159768](https://doi.org/10.5281/zenodo.23159768)
+**This exact code version (v1.0.0, Zenodo):** [doi.org/10.5281/zenodo.23183808](https://doi.org/10.5281/zenodo.23183808)
 
 > A SOC cannot triage more than a few dozen alerts per day per analyst. Most
 > published anomaly-detection results are reported at operating points no
@@ -514,6 +516,12 @@ still pending arXiv endorsement in `cs.CR`. There is still deliberately no
 `report` stage in `dvc.yaml`: LaTeX compilation is not part of the
 reproducible pipeline `dvc repro` runs, only of the write-up built on top of
 its output.
+
+**This exact code version is archived on Zenodo too**, separately from the
+paper: the `v1.0.0` release, DOI
+[10.5281/zenodo.23183808](https://doi.org/10.5281/zenodo.23183808), via the
+GitHub-Zenodo integration. `CITATION.cff` carries both identifiers, and
+GitHub's "Cite this repository" button reads from it directly.
 
 ## Development
 
