@@ -212,15 +212,14 @@ sentinel, machine accounts, per-user home machines, and carrying ten complete
 red-team lateral-movement campaigns.
 
 ```bash
-make install     # uv venv + uv pip install -e ".[classical,dev]"
+make install     # uv sync --extra classical --extra dev --locked
 make demo        # ~40 s
 ```
 
 Or without `make`:
 
 ```bash
-uv venv --python 3.11 .venv
-uv pip install -e ".[classical,dev]" --python .venv
+uv sync --extra classical --extra dev --locked --python 3.11
 .venv/bin/authbench demo          # .venv\Scripts\authbench demo on Windows
 ```
 

@@ -3,20 +3,23 @@
 VENV := .venv
 PY := py -3.11 -m uv run --python $(VENV)
 
+# `--locked` everywhere below is load-bearing: it fails instead of silently
+# re-resolving if uv.lock and pyproject.toml disagree, which is what keeps
+# `reports/demo/` reproducible across machines and time instead of only on
+# the machine that happened to generate it. See the comment in
+# .github/workflows/ci.yml for the failure this was protecting against.
+
 # Enough for `make demo` and the test suite. NOT enough for `dvc repro`: that
 # needs DVC itself, which lives in the `tracking` extra — see install-lanl.
 install:
-	py -3.11 -m uv venv --python 3.11 $(VENV)
-	py -3.11 -m uv pip install -e ".[classical,dev]" --python $(VENV)
+	py -3.11 -m uv sync --extra classical --extra dev --locked --python 3.11
 
 # What the real-dataset run needs: the classical models, plus DVC and MLflow.
 install-lanl:
-	py -3.11 -m uv venv --python 3.11 $(VENV)
-	py -3.11 -m uv pip install -e ".[classical,tracking,dev]" --python $(VENV)
+	py -3.11 -m uv sync --extra classical --extra tracking --extra dev --locked --python 3.11
 
 install-all:
-	py -3.11 -m uv venv --python 3.11 $(VENV)
-	py -3.11 -m uv pip install -e ".[all]" --python $(VENV)
+	py -3.11 -m uv sync --extra all --locked --python 3.11
 
 lint:
 	$(PY) ruff check src tests scripts

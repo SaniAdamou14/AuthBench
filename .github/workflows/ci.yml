@@ -17,10 +17,15 @@ jobs:
       - name: Set up Python
         run: uv python install 3.11
 
-      - name: Create venv and install dependencies
-        run: |
-          uv venv --python 3.11 .venv
-          uv pip install -e ".[classical,dev]" --python .venv
+      # `--locked` is load-bearing, not a style preference: it fails the
+      # build instead of silently re-resolving if uv.lock and pyproject.toml
+      # ever disagree. Without it, a fresh install can quietly resolve newer
+      # numpy/scipy/scikit-learn than the ones `reports/demo/` was generated
+      # with, and the very next check below starts failing for a reason
+      # that has nothing to do with this project's own code -- which is
+      # exactly what happened before this file existed.
+      - name: Install dependencies from the lockfile
+        run: uv sync --extra classical --extra dev --locked
 
       # scripts/ is in scope: generate_demo_data.py produces the sample the
       # whole demo pipeline and two test modules run against, so it is

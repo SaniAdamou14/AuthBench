@@ -376,7 +376,7 @@
     },
     "score_resolution": {
       "n_events": 8049,
-      "n_distinct_scores": 7009,
+      "n_distinct_scores": 7006,
       "largest_tie_fraction": 0.0006211951795254069
     },
     "auc_pr_ci_low": 0.000253404213275439,
@@ -385,7 +385,7 @@
   },
   {
     "model": "M2b_pca_reconstruction",
-    "auc_pr": 0.004048588601656749,
+    "auc_pr": 0.004048343861096427,
     "operational": {
       "budgets": [
         10,
@@ -490,7 +490,7 @@
       ]
     },
     "literature_comparable": {
-      "roc_auc": 0.7835056210273926,
+      "roc_auc": 0.7834943111131217,
       "precision_at_k_global": {
         "10": 0.0,
         "50": 0.0,
@@ -508,12 +508,12 @@
       "largest_tie_fraction": 0.00012423903590508137
     },
     "auc_pr_ci_low": 0.0007088771302146312,
-    "auc_pr_ci_high": 0.01354526708113257,
+    "auc_pr_ci_high": 0.013544915844864036,
     "auc_pr_ci_confidence": 0.95
   },
   {
     "model": "M3a_iforest",
-    "auc_pr": 0.004197113624643508,
+    "auc_pr": 0.00419657627204758,
     "operational": {
       "budgets": [
         10,
@@ -577,7 +577,7 @@
           "n_contested_days": 0
         }
       ],
-      "budget_for_first_detection": 284,
+      "budget_for_first_detection": 282,
       "time_to_detection": [
         {
           "budget": 10,
@@ -618,7 +618,7 @@
       ]
     },
     "literature_comparable": {
-      "roc_auc": 0.7977448030943926,
+      "roc_auc": 0.7975525345517881,
       "precision_at_k_global": {
         "10": 0.0,
         "50": 0.0,
@@ -635,8 +635,8 @@
       "n_distinct_scores": 8043,
       "largest_tie_fraction": 0.0003727171077152441
     },
-    "auc_pr_ci_low": 0.0007034908555071226,
-    "auc_pr_ci_high": 0.01052873908476036,
+    "auc_pr_ci_low": 0.000703444598325025,
+    "auc_pr_ci_high": 0.010517692539645513,
     "auc_pr_ci_confidence": 0.95
   },
   {
