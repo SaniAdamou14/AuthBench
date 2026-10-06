@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+from collections.abc import Callable
 from pathlib import Path
 
 import hydra
@@ -59,7 +60,7 @@ def featurize(
     night_window: NightWindow,
     frequency_encoding: FrequencyEncoding,
     *,
-    checkpoint_fn=None,
+    checkpoint_fn: Callable[[pl.LazyFrame, str], pl.LazyFrame] | None = None,
     split_name: str = "",
 ) -> pl.LazyFrame:
     """`checkpoint_fn`, when given, is called between feature families (a

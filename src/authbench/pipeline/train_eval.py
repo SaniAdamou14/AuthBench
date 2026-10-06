@@ -36,7 +36,7 @@ from authbench.evaluate.summary import (
     score_column,
 )
 from authbench.features import MODEL_FEATURE_COLUMNS
-from authbench.models.base import DEFAULT_FIT_SAMPLE_SIZE
+from authbench.models.base import DEFAULT_FIT_SAMPLE_SIZE, AnomalyScorer
 from authbench.models.classical import ECODScorer, HBOSScorer, IsolationForestScorer
 from authbench.models.floors import AlwaysFailScorer, RandomScorer
 from authbench.models.rules import RulesScorer
@@ -78,7 +78,7 @@ def build_model_catalog(
     fit_sample_size: int | None = DEFAULT_FIT_SAMPLE_SIZE,
     *,
     exclude: set[str] | None = None,
-) -> list[object]:
+) -> list[AnomalyScorer]:
     """The catalog, *unfitted*. `main` is the single place that fits — an
     earlier version fitted M1 here and then refit every model in the loop,
     which at LANL scale meant paying for M1's per-user aggregation twice and
@@ -98,7 +98,7 @@ def build_model_catalog(
     only catches a graceful allocation failure, not a kernel OOM kill, which
     is what a model this size actually gets.
     """
-    catalog = [
+    catalog: list[AnomalyScorer] = [
         RandomScorer(),
         AlwaysFailScorer(),
         PairRarityScorer(),
@@ -109,12 +109,12 @@ def build_model_catalog(
         RulesScorer(),
     ]
     if exclude:
-        catalog = [m for m in catalog if m.name not in exclude]  # type: ignore[attr-defined]
+        catalog = [m for m in catalog if m.name not in exclude]
     return catalog
 
 
 def fit_and_score_all(
-    models: list[object],
+    models: list[AnomalyScorer],
     train: pl.LazyFrame,
     val: pl.LazyFrame,
     test: pl.LazyFrame,
@@ -142,9 +142,9 @@ def fit_and_score_all(
     skipped: dict[str, str] = {}
 
     for model in models:
-        name: str = model.name  # type: ignore[attr-defined]
+        name: str = model.name
         logger.info("Fitting %s", name)
-        model.fit(train)  # type: ignore[attr-defined]
+        model.fit(train)
         # M1 alone has a second, label-aware fitting step. It runs after
         # `fit` (which re-derives the thresholds its rules are built on)
         # and against the validation split only — never train, never test.
@@ -167,19 +167,16 @@ def fit_and_score_all(
             len(whole_split),
         )
         eval_parts: list[pl.DataFrame] = []
-        chunk_scores: dict[str, list[np.ndarray]] = {
-            m.name: []  # type: ignore[attr-defined]
-            for m in chunkable
-        }
+        chunk_scores: dict[str, list[np.ndarray]] = {m.name: [] for m in chunkable}
         for offset in range(0, n_rows, chunk_rows):
             chunk = test.slice(offset, chunk_rows).collect()
             eval_parts.append(chunk.select(EVAL_COLUMNS))
             for model in chunkable:
-                name = model.name  # type: ignore[attr-defined]
+                name = model.name
                 if name in skipped:
                     continue
                 try:
-                    scores = model.score(chunk.lazy())  # type: ignore[attr-defined]
+                    scores = model.score(chunk.lazy())
                 except MemoryError as exc:
                     skipped[name] = f"{type(exc).__name__}: {exc}"
                     logger.error("%s failed on a chunk and is EXCLUDED: %s", name, exc)
@@ -207,10 +204,10 @@ def fit_and_score_all(
         ordered_test = test
 
     for model in whole_split:
-        name = model.name  # type: ignore[attr-defined]
+        name = model.name
         logger.info("Scoring %s over the whole split", name)
         try:
-            scores = model.score(ordered_test)  # type: ignore[attr-defined]
+            scores = model.score(ordered_test)
         except (MemoryError, OSError) as exc:
             # One model that cannot be scored must not take the other seven
             # with it. This is not hypothetical: M3b_ecod is transductive, so
@@ -241,11 +238,11 @@ def fit_and_score_all(
             continue
         scored = scored.with_columns(pl.Series(score_column(name), scores))
 
-    evaluated = [m for m in models if m.name not in skipped]  # type: ignore[attr-defined]
+    evaluated = [m for m in models if m.name not in skipped]
     if not evaluated:
         raise RuntimeError("Every model failed to score; there is nothing to report.")
     return (
-        scored.select([*EVAL_COLUMNS, *[score_column(m.name) for m in evaluated]]),  # type: ignore[attr-defined]
+        scored.select([*EVAL_COLUMNS, *[score_column(m.name) for m in evaluated]]),
         skipped,
     )
 
@@ -303,7 +300,7 @@ def main(cfg: DictConfig) -> None:
     models = build_model_catalog(
         fit_sample_size=int(cfg.runtime.fit_sample_size) or None, exclude=exclude_models
     )
-    model_names: list[str] = [m.name for m in models]  # type: ignore[attr-defined]
+    model_names: list[str] = [m.name for m in models]
     scored, skipped = fit_and_score_all(models, train, val, test)
     if skipped:
         model_names = [n for n in model_names if n not in skipped]
