@@ -49,7 +49,7 @@ jobs:
             --omit="src/authbench/features/graph.py" \
             --fail-under=85
 
-      - name: Full pipeline on demo sample (US-103, NFR-04: must finish well under 5 minutes)
+      - name: "Full pipeline on demo sample (US-103, NFR-04: must finish well under 5 minutes)"
         run: |
           .venv/bin/python -m authbench.cli demo
         timeout-minutes: 5
