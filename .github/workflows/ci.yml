@@ -67,12 +67,7 @@ jobs:
       # This caught a real one: Polars' `group_by` gives no ordering guarantee,
       # so the bootstrap's campaign blocks were reshuffled between runs and
       # every confidence interval drifted while the point estimates held still.
-      # TEMPORARY: continue-on-error so this run's own reports/ gets uploaded
-      # as an artifact despite the known Windows-vs-Linux float drift below,
-      # for a one-time resync from CI's own platform. Revert this flag in the
-      # same commit that re-pins reports/demo/ to that artifact's output.
       - name: Committed reference results must regenerate byte for byte
-        continue-on-error: true
         run: |
           git diff --exit-code --stat -- reports/demo/tables reports/demo/data_quality.json \
             || { echo "::error::reports/demo/ drifted — a seeded run is no longer reproducible."; exit 1; }
