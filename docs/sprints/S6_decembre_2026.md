@@ -238,3 +238,21 @@ Priorités : **M** = doit, **S** = devrait, **C** = pourrait. Points : même éc
 - King et Huang (Euler), NDSS 2022 : ndss-symposium.org/wp-content/uploads/2022-107A-paper.pdf
 - DIMVA 2027 : dimva.org/dimva2027/ · TMLR : jmlr.org/tmlr/editorial-policies.html · endossement arXiv : blog.arxiv.org/2026/01/21/attention-authors-updated-endorsement-policy
 - Azure for Students : azure.microsoft.com/en-us/free/students · Kaggle : kaggle.com/docs/notebooks
+
+## 9. Après la revue simulée du 21 octobre (round 1)
+
+Trois relecteurs indépendants : deux « révision majeure », un « rejet en l'état, resoumission encouragée ». Réponse point par point : `reports/paper/review_round1.md`. Le texte a été révisé (titre, cadrage en étude de cas, loi nulle exacte de b\*, corrélations avec p exactes et sans M1, diagnostics de M2a, comparaison avec DECADES, ADSAGE et UltraLMD++). Ce qui exige un nouveau run devient le cœur du sprint.
+
+**Nouveaux tickets**
+
+- **S6-23 · M · 3 pts** : bootstrap révisé. R = 10 000 ; rééchantillonnage par compte plutôt que par campagne ; intervalles BCa ou studentisés ; erreur de Monte Carlo publiée ; docstrings « stratified » corrigées.
+- **S6-24 · S · 3 pts** : variance d'ajustement. Cinq graines et sous-échantillons pour PCA, Isolation Forest, HBOS et M1, et bootstrap à grappes côté bénin (par utilisateur source) en analyse de sensibilité.
+- **S6-25 · S · 3 pts** : variante à seuil fixe. Seuil calibré sur la validation pour viser k alertes par jour ; volume d'alertes et rappel réels sur le test.
+- **S6-26 · M · 5 pts** : découpage harmonisé de Larroche (2026) en configuration principale. Entraînement sur les 41 premières heures, test sur toute l'activité red team ensuite, jours 30 à 57 pour les faux positifs.
+- **S6-27 · S · 2 pts** : rareté invariante dans le temps (dénominateur fixé sur l'entraînement), pour supprimer le classement « le plus tardif d'abord » de M2a.
+- **S6-28 · M · 5 pts** : côté source. Nouveauté et rareté (utilisateur, source) et (source, destination), règle « machine source connue » (ADSAGE) et règle UA de Bowman.
+- **S6-29 · M · 5 pts** : univers et unités. Univers LogOn seul, en plus de l'univers complet ; budgets en événements, en arêtes (source, destination, heure) et en utilisateurs-jours ; un modèle d'effectif SOC sourcé pour fixer la plage de budgets.
+
+**Priorité de décembre (capacité d'environ 40 h)** : S6-26, S6-28, S6-05/06, S6-20, puis S6-09 (Euler) si le temps le permet. S6-23 et S6-29 tournent dans le même run. S6-24, S6-25 et S6-27 passent en S7 si nécessaire.
+
+**Recommandation sur la v2 publique (décision à Mahamane)** : ne pas publier la v2 sur Zenodo avant ce run. Le texte révisé est honnête, mais la revue montre que sa contribution empirique n'est pas encore au niveau d'une publication ; la v2 publique doit être la version d'après le sprint.

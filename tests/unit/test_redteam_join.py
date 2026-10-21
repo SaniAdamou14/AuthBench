@@ -191,6 +191,10 @@ def test_split_label_summary_counts_and_measures_source_concentration() -> None:
     assert (summary["events"], summary["positives"], summary["campaigns"]) == (5, 4, 3)
     assert (summary["first_day"], summary["last_day"]) == (3, 4)
     assert summary["top_source_host_share"] == 0.75
+    assert summary["days"] == [
+        {"day": 3, "events": 2, "positives": 2},
+        {"day": 4, "events": 3, "positives": 2},
+    ]
     assert summary["source_hosts"] == [
         {"src_computer": "C1", "positives": 3, "campaigns": 2},
         {"src_computer": "C2", "positives": 1, "campaigns": 1},

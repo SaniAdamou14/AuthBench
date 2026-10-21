@@ -36,40 +36,49 @@ preparation; version 1 is archived at
 ## The result
 
 Measured on **real LANL data**: train days 0–7, validation 8–10, test 11–13,
-two days of history before each partition. The test partition holds
+with two days of history before validation and test (training starts cold at
+day 0). The test partition holds
 54,690,768 authentication events and 282 red-team events in **52 campaigns**.
 Provenance and caveats:
 [`reports/lanl/wider_window_results/RUN.md`](reports/lanl/wider_window_results/RUN.md).
 
-| Model | AUC-PR [95% CI] | ROC-AUC | Camp. @10 | @50 | @100 | @500 | Budget for 1st detection |
-|---|---|---:|---:|---:|---:|---:|---:|
-| M0a random *(floor)* | 5.05e-6 [2.37e-6, 9.54e-6] | 0.488 | 0% | 0% | 0% | 0% | 85,070 |
-| M0b always-fail *(floor)* | 5.16e-6 [2.52e-6, 8.98e-6] | 0.496 | 0% | 0% | 0% | 0% | 5,505,419 |
-| M1 rules | 4.69e-4 [1.88e-4, 9.37e-4] | 0.563 | 0% | 0% | 0% | 0% | **999** |
-| M2a pair rarity | **7.75e-4** [2.57e-4, 1.66e-3] | **0.941** | 0% | 0% | 0% | 0% | 2,852 |
-| M2b PCA reconstruction | 3.50e-5 [2.01e-5, 5.78e-5] | 0.930 | 0% | 0% | 0% | 0% | 1,569 |
-| M3a Isolation Forest | 1.92e-5 [7.91e-6, 3.86e-5] | 0.876 | 0% | 0% | 0% | 0% | 141,522 |
-| M3b HBOS | 3.32e-5 [1.26e-5, 6.91e-5] | 0.884 | 0% | 0% | 0% | 0% | 104,963 |
+| Model | AUC-PR [95% CI] | ROC-AUC | Recall @ FPR 1e-4 | Camp. recall @10–500 | Budget for 1st detection | P(random ≤ it) |
+|---|---|---:|---:|---:|---:|---:|
+| M0a random *(floor)* | 5.05e-6 [2.37e-6, 9.54e-6] | 0.488 | 0.0% | 0% | 85,070 | 69.7% |
+| M0b always-fail *(floor)* | 5.16e-6 [2.52e-6, 8.98e-6] | 0.496 | 0.0% | 0% | 5,505,419 | 100% |
+| M1 rules | 4.69e-4 [1.88e-4, 9.37e-4] | 0.563 | **3.9%** | 0% | **999** | **1.4%** |
+| M2a pair rarity | **7.75e-4** [2.57e-4, 1.66e-3] | **0.941** | 2.1% | 0% | 2,852 | 3.9% |
+| M2b PCA reconstruction | 3.50e-5 [2.01e-5, 5.78e-5] | 0.930 | 0.4% | 0% | 1,569 | 2.2% |
+| M3a Isolation Forest | 1.92e-5 [7.91e-6, 3.86e-5] | 0.876 | 0.0% | 0% | 141,522 | 86.3% |
+| M3b HBOS | 3.32e-5 [1.26e-5, 6.91e-5] | 0.884 | 0.0% | 0% | 104,963 | 77.1% |
 
 **Not one of the seven detects a single campaign at 10, 50, 100 or 500 alerts
 per day, whatever the order of tied scores**: every tie bracket is `[0, 0]`.
 
-**The last column is what the zeros hide.** It is the smallest daily budget at
-which a model detects anything. The rule engine needs 999 alerts a day; PCA
-1,569; pair rarity 2,852. Isolation Forest and HBOS need more than the random
-floor, although their ROC-AUC is 0.876 and 0.884.
+**The budget for first detection is what the zeros hide**, and it has to be
+read against chance. Under a uniformly random ranking of these test days it has
+an exact distribution (`evaluate.budget.random_first_detection_survival`):
+median 49,373, central 95% range [1,806, 261,368]; a random ranking detects a
+campaign within 500 alerts with probability 0.7%. Only the rule engine (999:
+1.4% of random rankings do as well) and PCA (1,569: 2.2%) fall below that range.
+Pair rarity (3.9%) is inside it, and Isolation Forest (86.3%) and HBOS (77.1%)
+are indistinguishable from a random ranking, although their ROC-AUC is 0.876 and
+0.884. (M0a's 85,070 is one draw
+of that distribution, not a threshold.)
 
-**ROC-AUC does not track that ordering.** Over the five non-trivial models,
-the Spearman correlation between ROC-AUC and the budget for first detection is
-−0.10 (Kendall 0.00); for AUC-PR it is 0.70 (Kendall 0.60). The ends are
-inverted: the best ROC-AUC (pair rarity, 0.941) is third operationally, the
-worst (rules, 0.563) is first. Five models make these coefficients a
-description of this catalogue, not an estimate for detectors in general.
+**Orderings.** Over the five non-trivial models, Spearman's correlation with
+the budget for first detection is −0.10 for ROC-AUC, 0.70 for AUC-PR and 0.87
+for recall at FPR 1e-4. Exact permutation p-values: 0.95, 0.23, 0.10; none is
+significant with five models. Without M1, ROC-AUC and AUC-PR order the other
+four identically (both 0.80): the contrast rests on the one label-calibrated
+detector.
 
-18 of 21 pairwise AUC-PR differences are significant after Holm-Bonferroni, all
-18 at the bootstrap's resolution floor (`Holm-adjusted p ≤ 0.0210`). Pair rarity
-versus rules is **not** significant (`p = 0.333`). M3b ECOD was excluded before
-fitting (memory) and is recorded as such.
+Pairwise AUC-PR: 18 of 21 differences reach a Holm-adjusted value at the
+bootstrap's floor (0.0210); pair rarity versus rules does not (0.333). With
+R = 2000 the floor is a Monte Carlo estimate whose 95% bound (0.063) exceeds
+0.05, and every resample contains the same intrusion, so these describe the
+stability of the ordering under resampling of the compromised accounts, not
+significance across intrusions. M3b ECOD was excluded before fitting (memory).
 
 > **Three facts bound every number above.**
 > 1. **One intrusion, not 52.** 275 of the 282 test red-team events, and 50 of
@@ -134,7 +143,8 @@ realistic: it is a property of the operating point.
 models print `0% 0% 0%` and the recall row ranks them as equally far from
 working. They are not: M3b ECOD needs a budget of 83 to catch its first
 campaign, M2b PCA 114; M3a Isolation Forest needs **282**, M2a pair rarity
-**294**, both worse than the random floor's 162. A column of zeros hid a
+**294**, both above the random floor's single draw of 162 (one realisation
+of a random ranking, not a threshold). A column of zeros hid a
 factor of three between models it presented as identical, and hid two ML models
 losing to a random scorer.
 
@@ -439,9 +449,9 @@ A campaign is detected at budget `k` precisely when one of its events reaches
 rank `k` or better in its own day, so the smallest budget that detects anything
 is the minimum rank over all campaign events: one pass, exact, no sweep. On the
 demo sample it separates four models the recall row called identical (83 / 114 /
-282 / 294) and shows two of them losing to the random floor. On the LANL
-wider window it spans 999 to 141,522 alerts a day, and again two models (HBOS and
-Isolation Forest) lose to the random floor. `authbench demo`
+282 / 294). On the LANL wider window it spans 999 to 141,522 alerts a day,
+and `random_first_detection_survival` places each value against its exact
+distribution under a random ranking. `authbench demo`
 prints it as `Budget→1st`; `metrics_summary.json` carries it under
 `operational.budget_for_first_detection`.
 

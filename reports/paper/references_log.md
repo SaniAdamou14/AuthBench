@@ -275,3 +275,10 @@ Candidates found, all left unverified:
   (preprint, v1, issued 2026-10-05).
 - The `annotation` fields were moved out of `references.bib` because biblatex-apa prints
   them; the notes above and below this section are the complete record.
+
+## Additions after review round 1 (2026-10-21)
+
+- **mcclish1989**: Crossref record 10.1177/0272989x8900900307 (author Donna Katzman McClish; Medical Decision Making 9(3), 190-195, August 1989).
+- **ho2021hopper**: USENIX presentation page (title, seven authors in order, pp. 3093-3110, ISBN 978-1-939133-24-3); abstract: "a 94.5% detection rate across over 300 realistic attack scenarios" and "an average of <9 alerts per day".
+- **tuor2017**: arXiv API record 1710.00811 (five authors, published 2017-10-02; comment "Proceedings of AI for Cyber Security Workshop at AAAI 2017"). Workshop proceedings record not retrieved, so cited as the arXiv version with the comment as addendum.
+- **amin2019cadence**: Crossref record 10.1145/3338501.3357368 (title "CADENCE", subtitle "Conditional Anomaly Detection for Events Using Noise-Contrastive Estimation", AISec '19, pp. 71-82, 2019-11-11).

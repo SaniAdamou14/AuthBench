@@ -175,6 +175,13 @@ def split_label_summary(labeled: pl.LazyFrame) -> dict[str, object]:
         .sort(["positives", "src_computer"], descending=[True, False])
         .collect()
     )
+    # Per-day sizes are what an alert budget is applied to, and what a random-ranking null needs.
+    by_day = (
+        labeled.group_by("day")
+        .agg(pl.len().alias("events"), pl.col("is_malicious").sum().alias("positives"))
+        .sort("day")
+        .collect()
+    )
     counts = {name: int(value) for name, value in totals.row(0, named=True).items()}
     positives, events = counts["positives"], counts["events"]
     return {
@@ -183,4 +190,5 @@ def split_label_summary(labeled: pl.LazyFrame) -> dict[str, object]:
         "n_source_hosts": by_source.height,
         "top_source_host_share": int(by_source["positives"][0]) / positives if positives else None,
         "source_hosts": by_source.to_dicts(),
+        "days": [{k: int(v) for k, v in row.items()} for row in by_day.iter_rows(named=True)],
     }

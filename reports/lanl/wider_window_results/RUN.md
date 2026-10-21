@@ -56,11 +56,14 @@ the same concentration for the whole dataset.
 - **No campaign is detected at any operational budget, whatever the tie order**: every
   `campaign_recall_tie_bracket` is `[0, 0]`. M0b, the only coarse score, had 413,567 tied events
   competing at each budget and still detects nothing under the most favourable order.
-- **The budget for first detection separates what the zeros do not.** Isolation Forest and HBOS
-  need more alerts than the random floor.
-- **Orderings.** Over the five non-trivial models, the ROC-AUC ordering against the ordering by
-  budget for first detection: Spearman ρ = −0.10, Kendall τ = 0.00. AUC-PR against the same:
-  ρ = 0.70, τ = 0.60. Five models; descriptive only.
+- **The budget for first detection separates what the zeros do not**, read against its exact
+  distribution under a random ranking (median 49,373, central 95% range [1,806, 261,368]). Share
+  of random rankings that do as well: rules 1.4%, PCA 2.2% (both beat chance), pair rarity 3.9%
+  (inside the range), HBOS 77.1% and Isolation Forest 86.3% (indistinguishable from chance). The M0a value is one
+  draw of that distribution, not a threshold.
+- **Orderings.** Spearman against the budget for first detection: ROC-AUC −0.10, AUC-PR 0.70,
+  recall at FPR 1e-4 0.87 (exact p 0.95, 0.23, 0.10). Without M1, ROC-AUC and AUC-PR both give
+  0.80. Five models; descriptive only.
 - **Significance (AUC-PR).** 18 of 21 differences significant after Holm, all 18 at the
   resolution floor (Holm-adjusted p ≤ 0.0210). Not significant: M0a vs M0b, M2b vs M3b HBOS,
   and **M2a vs M1** (Holm-adjusted p = 0.333).

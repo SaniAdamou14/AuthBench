@@ -24,6 +24,48 @@
         "positives": 3,
         "campaigns": 1
       }
+    ],
+    "days": [
+      {
+        "day": 0,
+        "events": 15740768,
+        "positives": 0
+      },
+      {
+        "day": 1,
+        "events": 17562411,
+        "positives": 10
+      },
+      {
+        "day": 2,
+        "events": 15585892,
+        "positives": 15
+      },
+      {
+        "day": 3,
+        "events": 13473124,
+        "positives": 0
+      },
+      {
+        "day": 4,
+        "events": 13398148,
+        "positives": 0
+      },
+      {
+        "day": 5,
+        "events": 18557382,
+        "positives": 21
+      },
+      {
+        "day": 6,
+        "events": 19381578,
+        "positives": 3
+      },
+      {
+        "day": 7,
+        "events": 19394283,
+        "positives": 1
+      }
     ]
   },
   "val": {
@@ -45,6 +87,23 @@
         "src_computer": "C22409",
         "positives": 5,
         "campaigns": 1
+      }
+    ],
+    "days": [
+      {
+        "day": 8,
+        "events": 19374688,
+        "positives": 261
+      },
+      {
+        "day": 9,
+        "events": 18141723,
+        "positives": 5
+      },
+      {
+        "day": 10,
+        "events": 14170694,
+        "positives": 0
       }
     ]
   },
@@ -72,6 +131,23 @@
         "src_computer": "C19932",
         "positives": 2,
         "campaigns": 1
+      }
+    ],
+    "days": [
+      {
+        "day": 11,
+        "events": 14012543,
+        "positives": 0
+      },
+      {
+        "day": 12,
+        "events": 19870848,
+        "positives": 207
+      },
+      {
+        "day": 13,
+        "events": 20807377,
+        "positives": 75
       }
     ]
   }

@@ -1,15 +1,17 @@
 """Generate every number, table and figure of the paper from the committed run outputs.
 
 Writes `reports/paper/generated/`: `numbers.tex` (macros), one `.tex` table per
-table, and the figures. Nothing in the paper is typed by hand; CI regenerates
-this directory and fails if it differs from the committed copy.
+table, and the figure. Nothing in the paper is typed by hand; CI regenerates
+the `.tex` files and fails if they differ from the committed copies.
 """
 
 from __future__ import annotations
 
 import csv
+import itertools
 import json
 import math
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -18,8 +20,12 @@ import matplotlib.ticker
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
-from scipy.stats import kendalltau, spearmanr  # noqa: E402
+from scipy.stats import hypergeom, kendalltau, spearmanr  # noqa: E402
 
+from authbench.evaluate.budget import (  # noqa: E402
+    random_first_detection_quantile,
+    random_first_detection_survival,
+)
 from authbench.evaluate.stats_tests import minimum_resamples_for_family  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,7 +42,7 @@ LABELS = {
     "M2b_pca_reconstruction": "M2b PCA",
     "M3a_iforest": "M3a Isolation Forest",
     "M3b_hbos": "M3b HBOS",
-    "M3b_ecod": "M3b ECOD",
+    "M3b_ecod": "M3c ECOD",
 }
 MACRO_NAMES = {
     "M0a_random": "Random",
@@ -48,8 +54,28 @@ MACRO_NAMES = {
     "M3b_hbos": "Hbos",
     "M3b_ecod": "Ecod",
 }
+DAY_NAMES = {11: "Eleven", 12: "Twelve", 13: "Thirteen"}
 FLOORS = ("M0a_random", "M0b_always_fail")
 ORDER = list(LABELS)
+METRICS = {
+    "roc_auc": ("RocAuc", "ROC-AUC"),
+    "auc_pr": ("AucPr", "AUC-PR"),
+    "recall_fpr": ("RecallFpr", r"Recall at FPR $10^{-4}$"),
+}
+FPR_KEY = "0.0001"
+RESAMPLES = 2000
+ALPHA = 0.05
+# Label offsets in points, chosen so no label crosses a point, a bar or a reference line.
+LABEL_OFFSETS = {
+    "M1_rules": (5, -2),
+    "M2a_pair_rarity": (-22, 6),
+    "M2b_pca_reconstruction": (-30, -11),
+    "M3a_iforest": (-62, 5),
+    "M3b_hbos": (5, -9),
+}
+
+
+RIGHT_PANEL_OFFSETS = {"M3a_iforest": (5, 4), "M1_rules": (4, -11)}
 
 
 def _load(path: Path) -> Any:
@@ -71,8 +97,8 @@ def _sci(value: float, digits: int = 2) -> str:
     return f"{value / 10**exponent:.{digits}f} \\times 10^{{{exponent}}}"
 
 
-def _pct(value: float) -> str:
-    return f"{100 * value:.1f}\\%"
+def _pct(value: float, digits: int = 1) -> str:
+    return f"{100 * value:.{digits}f}\\%"
 
 
 def _macro_name(*parts: str) -> str:
@@ -96,16 +122,46 @@ def _non_trivial(models: dict[str, dict[str, Any]]) -> list[str]:
     return [m for m in ORDER if m in models and m not in FLOORS]
 
 
-def _rank_agreement(models: dict[str, dict[str, Any]], key: str) -> tuple[float, float]:
-    """Rank correlation between a threshold-free metric and the budget for first detection (lower is better)."""
-    names = _non_trivial(models)
-    metric = [_metric(models[m], key) for m in names]
-    budget = [-models[m]["operational"]["budget_for_first_detection"] for m in names]
-    return float(spearmanr(metric, budget).statistic), float(kendalltau(metric, budget).statistic)
-
-
 def _metric(row: dict[str, Any], key: str) -> float:
-    return float(row["auc_pr"] if key == "auc_pr" else row["literature_comparable"][key])
+    if key == "auc_pr":
+        return float(row["auc_pr"])
+    if key == "recall_fpr":
+        return float(row["literature_comparable"]["recall_at_fixed_fpr"][FPR_KEY])
+    return float(row["literature_comparable"][key])
+
+
+def _budget(row: dict[str, Any]) -> int:
+    return int(row["operational"]["budget_for_first_detection"])
+
+
+def _correlation(
+    models: dict[str, dict[str, Any]], names: list[str], key: str, kendall: bool = False
+) -> float:
+    """Rank correlation of a threshold-free metric with the operational order (lower budget is better)."""
+    metric = [_metric(models[m], key) for m in names]
+    budget = [-_budget(models[m]) for m in names]
+    return float((kendalltau if kendall else spearmanr)(metric, budget).statistic)
+
+
+def _exact_p(models: dict[str, dict[str, Any]], names: list[str], key: str, kendall: bool) -> float:
+    """Two-sided exact permutation p-value: every assignment of the budgets to the detectors, ties kept."""
+    metric = [_metric(models[m], key) for m in names]
+    budgets = [-_budget(models[m]) for m in names]
+    statistic: Callable[..., Any] = kendalltau if kendall else spearmanr
+    observed = abs(float(statistic(metric, budgets).statistic))
+    values = [
+        abs(float(statistic(metric, list(p)).statistic)) for p in itertools.permutations(budgets)
+    ]
+    return sum(v >= observed - 1e-12 for v in values) / len(values)
+
+
+def _clopper_pearson_zero(trials: int, confidence: float) -> float:
+    """One-sided upper bound on a proportion after zero successes in `trials`."""
+    return 1.0 - float((1.0 - confidence) ** (1.0 / trials))
+
+
+def _test_days(splits: dict[str, Any]) -> list[tuple[int, int]]:
+    return [(d["events"], d["positives"]) for d in splits["test"]["days"]]
 
 
 def _split_macros(macros: Macros, splits: dict[str, dict[str, Any]]) -> None:
@@ -121,6 +177,24 @@ def _split_macros(macros: Macros, splits: dict[str, dict[str, Any]]) -> None:
         macros.add(f"{prefix}TopHostShare", _pct(split["top_source_host_share"]))
         macros.add(f"{prefix}SourceHosts", _int(split["n_source_hosts"]))
     macros.add("TopHost", splits["test"]["source_hosts"][0]["src_computer"])
+    for day in splits["test"]["days"]:
+        name = DAY_NAMES[day["day"]]
+        macros.add(f"WideTestDay{name}Events", _int(day["events"]))
+        macros.add(f"WideTestDay{name}Positives", _int(day["positives"]))
+
+
+def _diagnostics_macros(macros: Macros, diagnostics: dict[str, Any]) -> None:
+    for row in diagnostics["new_pairs_per_day"]:
+        if row["day"] in DAY_NAMES:
+            macros.add(f"WideNewPairsDay{DAY_NAMES[row['day']]}", _int(row["new_pairs"]))
+    for row in diagnostics["malicious_at_first_second_of_pair_per_day"]:
+        macros.add(f"WideMaliciousNewDay{DAY_NAMES[row['day']]}", _int(row["at_first_second"]))
+    macros.add(
+        "WideMachineSourceShare", _pct(diagnostics["machine_source_events"] / diagnostics["events"])
+    )
+    macros.add("WideMachineMalicious", _int(diagnostics["malicious_from_machine_accounts"]))
+    truncated = diagnostics["campaigns_truncated_at_partition_end"]
+    macros.add("WideTruncatedCampaigns", str(len(truncated)))
 
 
 def _results_macros(macros: Macros, tag: str, models: dict[str, dict[str, Any]]) -> None:
@@ -129,32 +203,77 @@ def _results_macros(macros: Macros, tag: str, models: dict[str, dict[str, Any]])
         literature, operational = row["literature_comparable"], row["operational"]
         macros.add(f"{prefix}RocAuc", f"{literature['roc_auc']:.3f}")
         macros.add(f"{prefix}AucPr", _sci(row["auc_pr"]))
-        recall = operational["campaign_recall"]
-        macros.add(f"{prefix}RecallAtFiveHundred", _pct(recall[-1]))
+        macros.add(f"{prefix}RecallAtFiveHundred", _pct(operational["campaign_recall"][-1]))
+        macros.add(f"{prefix}RecallFpr", _pct(literature["recall_at_fixed_fpr"][FPR_KEY]))
         budget = operational.get("budget_for_first_detection")
         if budget is not None:
             macros.add(f"{prefix}FirstDetection", _int(budget))
 
 
-def _results_table(path: Path, models: dict[str, dict[str, Any]], *, first_detection: bool) -> None:
+def _results_table(
+    path: Path, models: dict[str, dict[str, Any]], days: list[tuple[int, int]]
+) -> None:
     rows = []
     for model in ORDER:
         if model not in models:
             continue
         row = models[model]
-        recall = row["operational"]["campaign_recall"]
+        budget = _budget(row)
+        null = 1 - random_first_detection_survival(days, budget)
         label = LABELS[model] + (" (floor)" if model in FLOORS else "")
         cells = [
             label,
             f"${_sci(row['auc_pr'])}$",
             f"[${_sci(row['auc_pr_ci_low'])}$, ${_sci(row['auc_pr_ci_high'])}$]",
             f"{row['literature_comparable']['roc_auc']:.3f}",
-            *[f"{100 * r:.1f}" for r in recall],
+            _pct(_metric(row, "recall_fpr")),
+            _int(budget),
+            _pct(null),
         ]
-        if first_detection:
-            cells.append(_int(row["operational"]["budget_for_first_detection"]))
         rows.append(" & ".join(cells) + r" \\")
     path.write_text("\n".join(rows) + "\n", encoding="utf-8")
+
+
+def _one_day_table(path: Path, models: dict[str, dict[str, Any]]) -> None:
+    rows = []
+    for model in ORDER:
+        if model not in models:
+            continue
+        row = models[model]
+        recall = row["operational"]["campaign_recall"]
+        undetermined = model == "M0b_always_fail"
+        cells = [
+            LABELS[model] + (" (floor)" if model in FLOORS else ""),
+            f"${_sci(row['auc_pr'])}$",
+            f"[${_sci(row['auc_pr_ci_low'])}$, ${_sci(row['auc_pr_ci_high'])}$]",
+            f"{row['literature_comparable']['roc_auc']:.3f}",
+            *["n/a" if undetermined else f"{100 * r:.1f}" for r in recall],
+        ]
+        rows.append(" & ".join(cells) + r" \\")
+    path.write_text("\n".join(rows) + "\n", encoding="utf-8")
+
+
+def _correlation_tables(macros: Macros, models: dict[str, dict[str, Any]]) -> None:
+    names = _non_trivial(models)
+    summary, leave_out = [], []
+    for key, (macro, label) in METRICS.items():
+        rho, tau = _correlation(models, names, key), _correlation(models, names, key, True)
+        p_rho, p_tau = _exact_p(models, names, key, False), _exact_p(models, names, key, True)
+        without_rules = _correlation(models, [m for m in names if m != "M1_rules"], key)
+        macros.add(f"WideSpearman{macro}", f"{rho:.2f}")
+        macros.add(f"WideKendall{macro}", f"{tau:.2f}")
+        macros.add(f"WideSpearmanP{macro}", f"{p_rho:.2f}")
+        macros.add(f"WideKendallP{macro}", f"{p_tau:.2f}")
+        macros.add(f"WideSpearman{macro}WithoutRules", f"{without_rules:.2f}")
+        summary.append(
+            f"{label} & {rho:.2f} & {p_rho:.2f} & {tau:.2f} & {p_tau:.2f} & {without_rules:.2f} \\\\"
+        )
+    for dropped in names:
+        kept = [m for m in names if m != dropped]
+        values = [f"{_correlation(models, kept, key):.2f}" for key in METRICS]
+        leave_out.append(" & ".join([LABELS[dropped], *values]) + r" \\")
+    (OUT / "table_correlations.tex").write_text("\n".join(summary) + "\n", encoding="utf-8")
+    (OUT / "table_leave_one_out.tex").write_text("\n".join(leave_out) + "\n", encoding="utf-8")
 
 
 def _split_table(path: Path, splits: dict[str, dict[str, Any]]) -> None:
@@ -181,7 +300,7 @@ def _pairwise_table(path: Path, comparisons: list[dict[str, Any]]) -> None:
     rows = []
     for c in comparisons:
         p = c["p_value_holm_adjusted"]
-        rendered = (
+        adjusted = (
             f"$\\leq {p:.4f}$" if c["at_resolution_floor"] else f"${p:.4f}$" if p < 1 else "$1$"
         )
         rows.append(
@@ -191,8 +310,8 @@ def _pairwise_table(path: Path, comparisons: list[dict[str, Any]]) -> None:
                     LABELS[c["model_b"]],
                     f"${_sci(c['diff'])}$",
                     f"[${_sci(c['diff_ci_low'])}$, ${_sci(c['diff_ci_high'])}$]",
-                    rendered,
-                    "yes" if c["significant"] else "no",
+                    f"${c['p_value_raw']:.4f}$",
+                    adjusted,
                 ]
             )
             + r" \\"
@@ -208,7 +327,6 @@ def _rules_table(path: Path, rules: list[dict[str, str]]) -> None:
             " & ".join(
                 [
                     r["rule"].replace("_", r"\_"),
-                    r["mitre"],
                     f"{float(r['mean_score_benign']):.4f}",
                     f"{float(r['mean_score_malicious']):.4f}",
                     f"{float(ratio):.1f}" if ratio else "n/a",
@@ -220,36 +338,36 @@ def _rules_table(path: Path, rules: list[dict[str, str]]) -> None:
     path.write_text("\n".join(rows) + "\n", encoding="utf-8")
 
 
-# Label offsets in points, chosen so no label crosses a point or a reference line.
-LABEL_OFFSETS = {
-    "M1_rules": (5, -2),
-    "M2a_pair_rarity": (-22, 6),
-    "M2b_pca_reconstruction": (-30, -11),
-    "M3a_iforest": (-62, 5),
-    "M3b_hbos": (5, -9),
-}
-
-
-def _figure(path: Path, models: dict[str, dict[str, Any]], random_budget: int) -> None:
+def _figure(path: Path, models: dict[str, dict[str, Any]], days: list[tuple[int, int]]) -> None:
+    low, median, high = (random_first_detection_quantile(days, q) for q in (0.025, 0.5, 0.975))
     plt.rcParams.update({"font.family": "serif", "font.size": 9, "pdf.fonttype": 42})
     fig, axes = plt.subplots(1, 2, figsize=(7.0, 3.0), sharey=True)
-    for ax, key, xlabel, floor_x, floor_align in (
-        (axes[0], "roc_auc", "ROC-AUC (literature register)", 0.02, "left"),
-        (axes[1], "auc_pr", "AUC-PR, log scale", 0.98, "right"),
+    for ax, key, xlabel in (
+        (axes[0], "roc_auc", "ROC-AUC"),
+        (axes[1], "auc_pr", "AUC-PR (log scale)"),
     ):
-        ax.axhspan(1, 500, color="0.9", zorder=0)
-        ax.axhline(random_budget, color="0.35", linestyle="--", linewidth=0.8, zorder=1)
+        ax.axhspan(1, 500, color="0.92", zorder=0)
+        ax.axhspan(low, high, color="0.80", zorder=0.5)
+        ax.axhline(median, color="0.35", linestyle="--", linewidth=0.8, zorder=1)
         for model in _non_trivial(models):
-            x = _metric(models[model], key)
-            y = models[model]["operational"]["budget_for_first_detection"]
+            x, y = _metric(models[model], key), _budget(models[model])
+            if key == "auc_pr":
+                row = models[model]
+                ax.errorbar(
+                    x,
+                    y,
+                    xerr=[[x - row["auc_pr_ci_low"]], [row["auc_pr_ci_high"] - x]],
+                    fmt="none",
+                    ecolor="black",
+                    elinewidth=0.6,
+                    capsize=2,
+                    zorder=2,
+                )
             ax.scatter(x, y, s=16, color="black", zorder=3)
-            offset = (5, 4) if key == "auc_pr" and model == "M3a_iforest" else LABEL_OFFSETS[model]
+            offset = RIGHT_PANEL_OFFSETS.get(model) if key == "auc_pr" else None
+            offset = offset or LABEL_OFFSETS[model]
             ax.annotate(
-                LABELS[model],
-                (x, y),
-                xytext=offset,
-                textcoords="offset points",
-                fontsize=7,
+                LABELS[model], (x, y), xytext=offset, textcoords="offset points", fontsize=7
             )
         ax.set_yscale("log")
         ax.set_xlabel(xlabel)
@@ -262,12 +380,9 @@ def _figure(path: Path, models: dict[str, dict[str, Any]], random_budget: int) -
             fontsize=7,
             ha="right",
         )
-        ax.text(
-            floor_x, 0.83, "M0a random floor", transform=ax.transAxes, fontsize=7, ha=floor_align
-        )
     axes[0].set_xlim(0.5, 1.0)
     axes[1].set_xscale("log")
-    axes[1].set_xlim(1e-5, 2e-3)
+    axes[1].set_xlim(5e-6, 3e-3)
     axes[1].xaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
     axes[0].set_ylabel("Daily budget for first detection")
     axes[0].set_ylim(1, 10**6)
@@ -283,53 +398,67 @@ def main() -> None:
     wide = _by_model(_load(WIDE / "metrics_summary.json"))
     one_day = _by_model(_load(ONE_DAY / "metrics_summary.json"))
     splits = _load(WIDE / "split_summary.json")
+    diagnostics = _load(WIDE / "diagnostics.json")
     wide_pairs = _load(WIDE / "pairwise_comparisons.json")
     one_day_pairs = _load(ONE_DAY / "tables" / "pairwise_comparisons.json")
     with (DEMO / "rule_discrimination.csv").open(encoding="utf-8") as handle:
         rules = list(csv.DictReader(handle))
     demo = _by_model(_load(DEMO / "demo_results.json"))
+    days = _test_days(splits)
 
     _split_macros(macros, splits)
+    _diagnostics_macros(macros, diagnostics)
     _results_macros(macros, "wide", wide)
     _results_macros(macros, "oneday", one_day)
     _results_macros(macros, "demo", demo)
-
-    for tag, models in (("Wide", wide), ("Demo", demo)):
-        for key, name in (("roc_auc", "RocAuc"), ("auc_pr", "AucPr")):
-            rho, tau = _rank_agreement(models, key)
-            macros.add(f"{tag}Spearman{name}", f"{rho:.2f}")
-            macros.add(f"{tag}Kendall{name}", f"{tau:.2f}")
+    _correlation_tables(macros, wide)
     macros.add("WideNonTrivialModels", str(len(_non_trivial(wide))))
-    macros.add("MinResamplesTwentyOne", _int(minimum_resamples_for_family(21, 0.05)))
-    macros.add("MinResamplesTwentyEight", _int(minimum_resamples_for_family(28, 0.05)))
+
+    for q, name in ((0.025, "Low"), (0.5, "Median"), (0.975, "High")):
+        macros.add(f"WideNullFirstDetection{name}", _int(random_first_detection_quantile(days, q)))
+    for model in _non_trivial(wide) + ["M0a_random"]:
+        percentile = 1 - random_first_detection_survival(days, _budget(wide[model]))
+        macros.add(f"Wide{MACRO_NAMES[model]}NullPercentile", _pct(percentile))
+
+    within = 1 - random_first_detection_survival(days, 500)
+    macros.add("WideNullWithinFiveHundred", _pct(within))
+    campaigns = splits["test"]["campaigns"]
+    macros.add("WideZeroRecallUpper", _pct(_clopper_pearson_zero(campaigns, 0.95)))
+    macros.add("MinResamplesTwentyOne", _int(minimum_resamples_for_family(21, ALPHA)))
+    macros.add("MinResamplesTwentyEight", _int(minimum_resamples_for_family(28, ALPHA)))
+    floor_bound = min(1.0, 21 * 2 * _clopper_pearson_zero(RESAMPLES, 0.95))
+    macros.add("WideFloorMonteCarloUpper", f"{floor_bound:.3f}")
+    certified = math.ceil(math.log(1 - 0.95) / math.log(1 - ALPHA / (2 * 21)))
+    macros.add("WideResamplesForCertifiedFloor", _int(certified))
 
     for tag, pairs in (("Wide", wide_pairs), ("Oneday", one_day_pairs)):
         macros.add(f"{tag}PairsTotal", str(len(pairs)))
         macros.add(f"{tag}PairsSignificant", str(sum(c["significant"] for c in pairs)))
         macros.add(f"{tag}PairsAtFloor", str(sum(c["at_resolution_floor"] for c in pairs)))
-        floor = min(c["p_value_holm_adjusted"] for c in pairs)
-        macros.add(f"{tag}HolmFloor", f"{floor:.4f}")
+        macros.add(f"{tag}HolmFloor", f"{min(c['p_value_holm_adjusted'] for c in pairs):.4f}")
+    inner = [c for c in wide_pairs if c["model_a"] not in FLOORS and c["model_b"] not in FLOORS]
+    macros.add("WideNonTrivialPairs", str(len(inner)))
+    macros.add("WideNonTrivialPairsSignificant", str(sum(c["significant"] for c in inner)))
+
+    one_day_campaigns = 39
+    detected = round(one_day["M1_rules"]["operational"]["campaign_recall"][-1] * one_day_campaigns)
+    fisher = hypergeom.sf(detected - 1, one_day_campaigns + campaigns, detected, one_day_campaigns)
+    macros.add("SingleDayFisherP", f"{fisher:.2f}")
+
     rules_by_id = {r["rule"]: r for r in rules}
-    macros.add(
-        "DemoRSevenRatio", f"{float(rules_by_id['R7_lateral_chain']['separation_ratio']):.0f}"
-    )
-    macros.add(
-        "DemoRSevenWeight", f"{float(rules_by_id['R7_lateral_chain']['calibrated_weight']):.3f}"
-    )
+    seven = rules_by_id["R7_lateral_chain"]
+    macros.add("DemoRSevenRatio", f"{float(seven['separation_ratio']):.0f}")
+    macros.add("DemoRSevenWeight", f"{float(seven['calibrated_weight']):.3f}")
     tie = wide["M0b_always_fail"]["operational"]["tie_exposure"][0]["n_contenders"]
     macros.add("WideFloorTieContenders", _int(tie))
 
     macros.write(OUT / "numbers.tex")
     _split_table(OUT / "table_split.tex", splits)
-    _results_table(OUT / "table_results_wide.tex", wide, first_detection=True)
-    _results_table(OUT / "table_results_oneday.tex", one_day, first_detection=False)
+    _results_table(OUT / "table_results_wide.tex", wide, days)
+    _one_day_table(OUT / "table_results_oneday.tex", one_day)
     _pairwise_table(OUT / "table_pairwise_wide.tex", wide_pairs)
     _rules_table(OUT / "table_rules_demo.tex", rules)
-    _figure(
-        OUT / "figure_first_detection.pdf",
-        wide,
-        wide["M0a_random"]["operational"]["budget_for_first_detection"],
-    )
+    _figure(OUT / "figure_first_detection.pdf", wide, days)
 
 
 if __name__ == "__main__":
