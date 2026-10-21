@@ -25,7 +25,7 @@ jobs:
       # that has nothing to do with this project's own code -- which is
       # exactly what happened before this file existed.
       - name: Install dependencies from the lockfile
-        run: uv sync --extra classical --extra dev --locked
+        run: uv sync --extra classical --extra deep --extra graph --extra dev --locked
 
       # scripts/ is in scope: generate_demo_data.py produces the sample the
       # whole demo pipeline and two test modules run against, so it is
@@ -39,19 +39,18 @@ jobs:
       - name: Type check (mypy)
         run: .venv/bin/python -m mypy src
 
-      - name: Unit + integration tests (with coverage gate on evaluate/, features/ and ingest/)
+      - name: Unit + integration tests (with coverage gate on evaluate/, features/, ingest/ and models/)
         run: |
           .venv/bin/python -m pytest --cov=authbench --cov-report=xml --cov-report=term-missing
-          # features/graph.py (F5) requires the optional `graph` extra (networkx/node2vec),
-          # not installed in this job — omitted from the gate, not from the test suite.
+          # The deep and graph extras are installed above (CPU-only torch, see
+          # pyproject.toml), so M4, M5 and F5 are tested here rather than skipped.
           #
           # ingest/ is in the gate because it is the code that will run once,
           # unattended, for hours, over 1.05 billion rows: the download and the
           # Parquet conversion. It sat at 0% covered while the metrics it feeds
           # were held to 85%.
           .venv/bin/python -m coverage report \
-            --include="src/authbench/evaluate/*,src/authbench/features/*,src/authbench/ingest/*" \
-            --omit="src/authbench/features/graph.py" \
+            --include="src/authbench/evaluate/*,src/authbench/features/*,src/authbench/ingest/*,src/authbench/models/*" \
             --fail-under=85
 
       - name: "Full pipeline on demo sample (US-103, NFR-04: must finish well under 5 minutes)"

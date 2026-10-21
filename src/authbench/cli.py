@@ -206,6 +206,11 @@ def data_download(
         envvar="AUTHBENCH_LANL_USAGE",
         help="Usage statement for LANL's data-use form.",
     ),
+    files: list[str] | None = typer.Option(
+        None,
+        "--file",
+        help="Only these files, by key in conf/dataset/<dataset>.yaml (e.g. --file redteam). Default: all.",
+    ),
 ) -> None:
     """US-101: resumable, checksum-verified download of the raw LANL files.
 
@@ -225,15 +230,23 @@ def data_download(
     # not depend on LANL being up, and should not need an email address at all.
     # `dvc repro` re-runs this stage every time the pipeline is rebuilt, and
     # US-101's promise is that doing so downloads nothing.
+    wanted = list(files or cfg.fence.filenames)
+    unknown = sorted(set(wanted) - set(cfg.fence.filenames))
+    if unknown:
+        raise typer.BadParameter(
+            f"Unknown file key(s) {unknown}; known: {sorted(cfg.fence.filenames)}.",
+            param_hint="--file",
+        )
     satisfied: dict[str, str] = {}
-    for key, filename in cfg.fence.filenames.items():
+    for key in wanted:
+        filename = cfg.fence.filenames[key]
         dest = out_dir / filename
         expected = cfg.sha256.get(key)
         if expected is not None and dest.exists() and sha256_of(dest) == expected:
             satisfied[key] = expected
             console.print(f"[green]{key}[/]: {dest} already present and verified, skipping.")
 
-    outstanding = [k for k in cfg.fence.filenames if k not in satisfied]
+    outstanding = [k for k in wanted if k not in satisfied]
     if not outstanding:
         console.print("[green]Nothing to download — every file matches its recorded SHA-256.[/]")
         return
@@ -481,8 +494,9 @@ def demo(
     M0/M1/M2 -> evaluate -> tables) and print a results summary.
 
     Deliberately scoped to the dependency-light models (floors, rules,
-    pair-rarity) so `make demo` only requires the `classical` extra — the
-    heavier deep/graph models are exercised by the full (non-demo) pipeline.
+    statistical and classical outlier models) so `make demo` only requires the
+    `classical` extra. The autoencoders join the full pipeline when
+    `runtime.deep_models` is true; M4c and M5 are not wired into any pipeline yet.
     """
     import time
 

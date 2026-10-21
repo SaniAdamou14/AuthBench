@@ -112,7 +112,8 @@ class RulesScorer(BaseAnomalyScorer):
     """
 
     name = "M1_rules"
-    requires_labels = False
+    # Unsupervised fit, but the weights are calibrated on validation labels (`calibrate_weights`).
+    requires_labels = True
     # Stated here, not inherited. `BaseAnomalyScorer` defaults this to False,
     # which happens to be right for M1 — but a safe default and a decision read
     # identically, and this one is load-bearing: R6 asks whether this user has

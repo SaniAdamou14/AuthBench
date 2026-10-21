@@ -1,11 +1,11 @@
 """DVC `train_eval` stage: feature store -> fitted models -> evaluation tables/figures.
 
 Trains the dependency-light catalog (M0 floors, M1 rules, M2 stats, M3
-classical) end to end and writes the comparison tables. Deep (M4) and graph
-(M5) models are heavier, optional-extra runs — invoke them individually via
-`authbench train model=ae` (Hydra model group) once `authbench[deep]` /
-`authbench[graph]` are installed, rather than bundling them into the default
-stage that every contributor's machine must be able to run.
+classical) end to end and writes the comparison tables. The autoencoders
+(M4a, M4b) join the same catalog, scored under the same protocol, when
+`runtime.deep_models` is true and the `deep` extra is installed; they are off
+by default so the stage still runs on a machine without PyTorch. M4c and M5
+need the F6/F5 feature families, which the feature store does not carry yet.
 
 Scoring is separated from evaluation on purpose. Every model scores the test
 split first, all scores land on one slim frame, and a single
@@ -20,11 +20,12 @@ import json
 import logging
 import os
 from pathlib import Path
+from typing import Any
 
 import hydra
 import numpy as np
 import polars as pl
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from authbench.evaluate.metrics import ROC_AUC_WARNING, auc_pr
 from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
@@ -54,6 +55,9 @@ logger = logging.getLogger(__name__)
 #: score, only how many are computed at a time.
 DEFAULT_SCORING_CHUNK_ROWS = 2_000_000
 
+# Descriptive keys of `conf/model/*.yaml` that are not constructor arguments.
+_MODEL_CONFIG_METADATA = frozenset({"name", "id", "family", "requires_labels"})
+
 # The design matrix is `features.MODEL_FEATURE_COLUMNS`, shared with
 # `authbench demo`. It used to be redeclared here, and the two copies had
 # drifted: this stage was fitting M2b/M3a/M3b on 14 columns while the demo
@@ -78,6 +82,7 @@ def build_model_catalog(
     fit_sample_size: int | None = DEFAULT_FIT_SAMPLE_SIZE,
     *,
     exclude: set[str] | None = None,
+    deep_models: bool = False,
 ) -> list[AnomalyScorer]:
     """The catalog, *unfitted*. `main` is the single place that fits — an
     earlier version fitted M1 here and then refit every model in the loop,
@@ -108,9 +113,26 @@ def build_model_catalog(
         HBOSScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size),
         RulesScorer(),
     ]
+    if deep_models:
+        catalog.extend(_deep_catalog(fit_sample_size))
     if exclude:
         catalog = [m for m in catalog if m.name not in exclude]
     return catalog
+
+
+def _deep_catalog(fit_sample_size: int | None) -> list[AnomalyScorer]:
+    """M4a and M4b, configured from `conf/model/ae.yaml` and `conf/model/vae.yaml`."""
+    from authbench.models.deep import AutoencoderScorer, VAEScorer
+
+    def params(name: str) -> dict[str, Any]:
+        cfg = OmegaConf.to_container(OmegaConf.load(CONF_DIR / "model" / f"{name}.yaml"))
+        assert isinstance(cfg, dict)
+        return {str(k): v for k, v in cfg.items() if k not in _MODEL_CONFIG_METADATA}
+
+    return [
+        AutoencoderScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size, **params("ae")),
+        VAEScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size, **params("vae")),
+    ]
 
 
 def fit_and_score_all(
@@ -298,7 +320,9 @@ def main(cfg: DictConfig) -> None:
             "Excluding from this run (AUTHBENCH_EXCLUDE_MODELS): %s", sorted(exclude_models)
         )
     models = build_model_catalog(
-        fit_sample_size=int(cfg.runtime.fit_sample_size) or None, exclude=exclude_models
+        fit_sample_size=int(cfg.runtime.fit_sample_size) or None,
+        exclude=exclude_models,
+        deep_models=bool(cfg.runtime.get("deep_models", False)),
     )
     model_names: list[str] = [m.name for m in models]
     scored, skipped = fit_and_score_all(models, train, val, test)

@@ -25,6 +25,7 @@ class Node2VecIsolationForestScorer(BaseAnomalyScorer):
 
     name = "M5a_node2vec_iforest"
     requires_labels = False
+    scores_row_locally = True
 
     def __init__(self, embedding_col: str = "graph_user_embedding", seed: int = 42) -> None:
         self.embedding_col = embedding_col

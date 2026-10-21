@@ -8,4 +8,6 @@ epochs: 30
 batch_size: 512
 learning_rate: 1.0e-3
 kl_weight: 1.0
+patience: 3
+holdout_fraction: 0.1
 seed: 42

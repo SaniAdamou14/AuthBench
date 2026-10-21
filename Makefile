@@ -9,14 +9,15 @@ PY := py -3.11 -m uv run --python $(VENV)
 # the machine that happened to generate it. See the comment in
 # .github/workflows/ci.yml for the failure this was protecting against.
 
-# Enough for `make demo` and the test suite. NOT enough for `dvc repro`: that
-# needs DVC itself, which lives in the `tracking` extra — see install-lanl.
+# What CI installs: `make demo` and the full test suite, deep and graph models
+# included (CPU-only torch). NOT enough for `dvc repro`, which needs DVC itself
+# from the `tracking` extra: see install-lanl.
 install:
-	py -3.11 -m uv sync --extra classical --extra dev --locked --python 3.11
+	py -3.11 -m uv sync --extra classical --extra deep --extra graph --extra dev --locked --python 3.11
 
-# What the real-dataset run needs: the classical models, plus DVC and MLflow.
+# What the real-dataset run needs: the catalog including the autoencoders, plus DVC and MLflow.
 install-lanl:
-	py -3.11 -m uv sync --extra classical --extra tracking --extra dev --locked --python 3.11
+	py -3.11 -m uv sync --extra classical --extra deep --extra tracking --extra dev --locked --python 3.11
 
 install-all:
 	py -3.11 -m uv sync --extra all --locked --python 3.11

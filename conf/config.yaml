@@ -40,6 +40,8 @@ runtime:
   # model's scores and rank order, so on a small machine memory, not core count,
   # should set this. 0 means "one per CPU".
   bootstrap_workers: 4
+  # M4a/M4b in the train_eval catalog. Needs the `deep` extra; off so the stage runs without PyTorch.
+  deep_models: false
 
 hydra:
   run:
