@@ -71,6 +71,12 @@ jobs:
           git diff --exit-code --stat -- reports/demo/tables reports/demo/data_quality.json \
             || { echo "::error::reports/demo/ drifted — a seeded run is no longer reproducible."; exit 1; }
 
+      - name: Report numbers, tables and figure must regenerate from the committed runs
+        run: |
+          .venv/bin/python scripts/paper_assets.py
+          git diff --exit-code --stat -- 'reports/paper/generated/*.tex' \
+            || { echo "::error::reports/paper/generated/ is stale; run scripts/paper_assets.py."; exit 1; }
+
       - name: Upload report artifacts
         uses: actions/upload-artifact@v4
         with:

@@ -20,6 +20,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 from scipy.stats import kendalltau, spearmanr  # noqa: E402
 
+from authbench.evaluate.stats_tests import minimum_resamples_for_family  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[1]
 WIDE = ROOT / "reports" / "lanl" / "wider_window_results"
 ONE_DAY = ROOT / "reports" / "lanl"
@@ -298,6 +300,8 @@ def main() -> None:
             macros.add(f"{tag}Spearman{name}", f"{rho:.2f}")
             macros.add(f"{tag}Kendall{name}", f"{tau:.2f}")
     macros.add("WideNonTrivialModels", str(len(_non_trivial(wide))))
+    macros.add("MinResamplesTwentyOne", _int(minimum_resamples_for_family(21, 0.05)))
+    macros.add("MinResamplesTwentyEight", _int(minimum_resamples_for_family(28, 0.05)))
 
     for tag, pairs in (("Wide", wide_pairs), ("Oneday", one_day_pairs)):
         macros.add(f"{tag}PairsTotal", str(len(pairs)))

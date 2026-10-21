@@ -1,5 +1,18 @@
 # Sprint S6 : décembre 2026
 
+> **Mise à jour du 21 octobre 2026 (soir), après la passe de préparation.** Fait avant le sprint, sur la branche `fix/pre-sprint-audit` :
+> - **S6-01** papier et README : erreurs E1 et E2 retirées, papier v2 réécrit sur le run élargi (références APA en cours de vérification), README, méthodologie, limites et spécification corrigés avec notes datées.
+> - **S6-02** vocabulaire stable, **S6-03** `--file redteam`, **S6-08** M4a/M4b à l'échelle et déterministes : faits et testés.
+> - **S6-04** mesuré sans téléchargement, sur les partitions étiquetées du run élargi : 275 des 282 positifs du test et 50 des 52 campagnes viennent de C17693 (`split_summary.json`).
+> - Défauts D1 à D11 corrigés, plus cinq trouvés en écrivant les tests (D12 à D16 : F5 sur fenêtre vide, `min_count` de node2vec, clustering et Adamic-Adar identiquement nuls sur graphe biparti, exclusions absentes de `skipped_models.json`).
+>
+> **Nouveaux tickets issus de l'audit :**
+> - **S6-20 · M · 3 pts** : normalisation de M1 ajustée sur l'entraînement (fonction de répartition empirique par règle) au lieu du rang dans la partition notée, qui rend M1 transductif.
+> - **S6-21 · S · 5 pts** : F6 en flux pour LANL (la matérialisation de 32 retards par événement ne tient pas en mémoire), condition de S6-12.
+> - **S6-22 · S · 2 pts** : réécrire le marqueur de début froid (indicateur explicite au lieu de la valeur 0, la plus « normale »), avec le run n° 1.
+>
+> S6-09 (Euler), S6-05/06 (registre et courbe exacte), S6-07, S6-10, S6-11 restent le cœur du sprint.
+
 > Établi le 21 octobre 2026 à partir de la lecture du dépôt (code, spécification, papier, sorties LANL publiées), de la suite de tests exécutée en local et de trois recherches documentaires sur sources primaires. Chaque constat ci-dessous porte sa preuve : fichier et ligne, commande exécutée ou source citée. Ce qui n'a pas pu être vérifié est marqué **[non vérifié]**.
 
 ## 0. Objectif du sprint

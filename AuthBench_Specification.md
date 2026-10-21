@@ -24,6 +24,23 @@ Version 1.0 — 25 juillet 2026
 
 ---
 
+> **Corrections datées (21 octobre 2026).** Cette spécification est le plan
+> d'origine ; elle n'est pas réécrite. Ce qui a été mesuré depuis la contredit sur
+> les points suivants, et c'est la mesure qui fait foi :
+> 1. **Red team** : 749 lignes, 34 doublons exacts, **715** événements distincts
+>    (et non 737) ; activité limitée aux jours 1 à 29.
+> 2. **Découpage 1–30 / 31–40 / 41–58** : inexécutable, il met toute la red team
+>    en entraînement. Découpage évalué : jours 0–7 / 8–10 / 11–13 avec deux jours
+>    d'échauffement (`conf/split/temporal.yaml`).
+> 3. **Accès aux données** : LANL exige un formulaire (courriel et usage déclaré),
+>    il n'y a pas de téléchargement direct.
+> 4. **Score Adamic-Adar de la paire (§4.1)** : identiquement nul entre un
+>    utilisateur et une machine dans un graphe biparti ; retiré de F5. Le
+>    coefficient de clustering est le coefficient biparti.
+> 5. **Indépendance des campagnes** : 97,5 % des événements red team du test
+>    viennent d'un seul hôte source (C17693) ; les campagnes ne sont pas des
+>    intrusions indépendantes.
+
 ## Sommaire
 
 1. Positionnement et question de recherche

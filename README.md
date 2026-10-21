@@ -8,8 +8,10 @@ Comprehensive Multi-Source Cyber-Security Events dataset.
 [![Paper DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23159767.svg)](https://doi.org/10.5281/zenodo.23159767)
 [![Software DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23183808.svg)](https://doi.org/10.5281/zenodo.23183808)
 
-**Paper (preprint, Zenodo):** [doi.org/10.5281/zenodo.23159768](https://doi.org/10.5281/zenodo.23159768)
-**This exact code version (v1.0.0, Zenodo):** [doi.org/10.5281/zenodo.23183808](https://doi.org/10.5281/zenodo.23183808)
+**Report:** [`reports/paper/main.tex`](reports/paper/main.tex) (version 2, in
+preparation; version 1 is archived at
+[doi.org/10.5281/zenodo.23159768](https://doi.org/10.5281/zenodo.23159768)).
+**Code of version 1.0.0:** [doi.org/10.5281/zenodo.23183808](https://doi.org/10.5281/zenodo.23183808).
 
 > A SOC cannot triage more than a few dozen alerts per day per analyst. Most
 > published anomaly-detection results are reported at operating points no
@@ -19,104 +21,81 @@ Comprehensive Multi-Source Cyber-Security Events dataset.
 >
 > **The question it was built to ask (how much of the published deep-learning
 > advantage over well-built heuristics survives that constraint) is not
-> answered here.** The LANL run evaluates seven heuristic, statistical and
-> classical outlier models; no deep model has been run on real data yet (see
-> [State of the project](#state-of-the-project)). What the run did find does not
-> depend on that comparison, and is sharper than expected: at an operational
-> budget the two evaluation registers are not merely different but
-> *anti-correlated*.
+> answered yet.** The LANL runs evaluate seven heuristic, statistical and
+> classical outlier detectors; the deep models are implemented and tested but
+> have not run on real data (see [State of the project](#state-of-the-project)).
+
+> **Correction notice (21 October 2026).** Version 1 of the report contains two
+> errors. It attributes "87.0 average precision" to Tuor et al. (2018), whose
+> "AP" is the *average percentile* of malicious events in a daily ranking; and
+> it states that no published work on LANL reports a budget-constrained metric
+> next to the aggregate one on the same models, which is false (Larroche 2025,
+> UltraLMD++; see also DECADES and ADSAGE). Version 2 corrects both and is
+> built on the wider-window run below.
 
 ## The result
 
-Measured on **real LANL data**, 19,870,848 authentication events, **39 red-team
-campaigns** in the test split. Full provenance and caveats:
-[`reports/lanl/RUN.md`](reports/lanl/RUN.md).
+Measured on **real LANL data**: train days 0–7, validation 8–10, test 11–13,
+two days of history before each partition. The test partition holds
+54,690,768 authentication events and 282 red-team events in **52 campaigns**.
+Provenance and caveats:
+[`reports/lanl/wider_window_results/RUN.md`](reports/lanl/wider_window_results/RUN.md).
 
-| Model | AUC-PR [95% CI] | ROC-AUC | Camp. @10 | @50 | @100 | @500 |
-|---|---|---:|---:|---:|---:|---:|
-| M0a random *(floor)* | 0.00001 [0.00000, 0.00002] | 0.500 | 0% | 0% | 0% | 0% |
-| M0b always-fail *(floor)* † | 0.00001 [0.00000, 0.00002] | 0.496 | 0% | 0% | 0% | 0% |
-| **M2a pair rarity** | **0.00065** [0.00023, 0.00131] | **0.942** | 0% | 0% | 0% | 0% |
-| M2b PCA reconstruction | 0.00005 [0.00002, 0.00011] | 0.893 | 0% | 0% | 0% | 0% |
-| M3a Isolation Forest | 0.00004 [0.00001, 0.00010] | 0.872 | 0% | 0% | 0% | 0% |
-| M3b HBOS | 0.00005 [0.00002, 0.00012] | 0.875 | 0% | 0% | 0% | 0% |
-| M1 rules | 0.00010 [0.00002, 0.00071] | 0.547 | 0% | 0% | 0% | **5.1%** |
+| Model | AUC-PR [95% CI] | ROC-AUC | Camp. @10 | @50 | @100 | @500 | Budget for 1st detection |
+|---|---|---:|---:|---:|---:|---:|---:|
+| M0a random *(floor)* | 5.05e-6 [2.37e-6, 9.54e-6] | 0.488 | 0% | 0% | 0% | 0% | 85,070 |
+| M0b always-fail *(floor)* | 5.16e-6 [2.52e-6, 8.98e-6] | 0.496 | 0% | 0% | 0% | 0% | 5,505,419 |
+| M1 rules | 4.69e-4 [1.88e-4, 9.37e-4] | 0.563 | 0% | 0% | 0% | 0% | **999** |
+| M2a pair rarity | **7.75e-4** [2.57e-4, 1.66e-3] | **0.941** | 0% | 0% | 0% | 0% | 2,852 |
+| M2b PCA reconstruction | 3.50e-5 [2.01e-5, 5.78e-5] | 0.930 | 0% | 0% | 0% | 0% | 1,569 |
+| M3a Isolation Forest | 1.92e-5 [7.91e-6, 3.86e-5] | 0.876 | 0% | 0% | 0% | 0% | 141,522 |
+| M3b HBOS | 3.32e-5 [1.26e-5, 6.91e-5] | 0.884 | 0% | 0% | 0% | 0% | 104,963 |
 
-**Not one of the seven models detects a single campaign out of 39 at 10, 50 or
-100 alerts per day.** One catches two campaigns at 500 alerts/day, a budget no
-SOC staffs for.
+**Not one of the seven detects a single campaign at 10, 50, 100 or 500 alerts
+per day, whatever the order of tied scores**: every tie bracket is `[0, 0]`.
 
-> † **M0b's row predates the tie-break fix and should be read as
-> undetermined.** M0b scores every event 0 or 1, so on a test day of 19.9M
-> events its alert set is decided entirely by how equally-scored events are
-> ordered, and this run used the ordering that was later found to be
-> `(src_user, time)`, i.e. alphabetical by user. Its zeros are a property of
-> that ordering, not of the floor. Every other row is unaffected: their scores
-> are continuous and leave the tie-break nothing to decide. The fix, and what
-> it changed on the demo sample, is [below](#and-the-alert-budget-had-a-floor-of-its-own-the-tie-break);
-> re-running LANL is what would resolve this one, and that has not been done.
+**The last column is what the zeros hide.** It is the smallest daily budget at
+which a model detects anything. The rule engine needs 999 alerts a day; PCA
+1,569; pair rarity 2,852. Isolation Forest and HBOS need more than the random
+floor, although their ROC-AUC is 0.876 and 0.884.
 
-And the two registers are not merely different, they are **anti-correlated**:
+**ROC-AUC does not track that ordering.** Over the five non-trivial models,
+the Spearman correlation between ROC-AUC and the budget for first detection is
+−0.10 (Kendall 0.00); for AUC-PR it is 0.70 (Kendall 0.60). The ends are
+inverted: the best ROC-AUC (pair rarity, 0.941) is third operationally, the
+worst (rules, 0.563) is first. Five models make these coefficients a
+description of this catalogue, not an estimate for detectors in general.
 
-- **M2a scores ROC-AUC 0.942 and detects nothing.** 0.94 passes without comment
-  in a paper.
-- **M1 has the lowest ROC-AUC of the five non-trivial models, 0.547 (barely
-  above the 0.50 the two floors score by construction), and is the only model
-  that catches anything at all.**
+18 of 21 pairwise AUC-PR differences are significant after Holm-Bonferroni, all
+18 at the bootstrap's resolution floor (`Holm-adjusted p ≤ 0.0210`). Pair rarity
+versus rules is **not** significant (`p = 0.333`). M3b ECOD was excluded before
+fitting (memory) and is recorded as such.
 
-Ranking the non-trivial models by the literature-comparable metric would put
-the model that detects nothing first, and the only model that detects something
-last. That is what
-this benchmark was built to measure, and it did not need a new model to show it.
+> **Three facts bound every number above.**
+> 1. **One intrusion, not 52.** 275 of the 282 test red-team events, and 50 of
+>    the 52 campaigns, start from one source host, C17693; the labelled LANL
+>    activity is a single simulated intrusion (Larroche, 2026). Campaigns are
+>    the bootstrap's resampling unit, so the intervals describe the accounts
+>    and phases of one operation, not a population of attacks.
+> 2. **Unequal access to labels.** M1's rule weights are calibrated on
+>    validation labels; every other model is unsupervised with default
+>    hyperparameters.
+> 3. **Two transductive models.** M1 rank-normalises its rules within the
+>    scored partition and ECOD recomputes its distributions from the scored
+>    matrix: no label crosses the boundary, but scores depend on the test
+>    distribution.
+>
+> Full list: [`docs/limitations.md`](docs/limitations.md).
 
-> **The obvious objection, and how to check it.** ROC-AUC credits a tied pair
-> 0.5, so a model whose score takes few distinct values is dragged toward 0.50
-> by arithmetic rather than by anything about the operating point, and M1's
-> 0.547 could in principle be that and nothing else. Every run now publishes
-> `score_resolution` per model (distinct values, and the share of the split on
-> the single most crowded score) so the objection is settled by a number rather
-> than argued. On the demo sample M1 takes **7,750 distinct values over 8,049
-> events**, with 2% of the split on its largest tie: not a coarse score. The
-> LANL snapshot predates the field and will carry it on the next run; until
-> then that specific check is open for the 0.547, and saying so is cheaper than
-> having a reviewer find it.
+### The earlier single-day run
 
-13 of 21 pairwise comparisons are significant after Holm-Bonferroni, and 12 of
-those 13 sit on the bootstrap's own resolution floor, so they are reported as
-`Holm-adjusted p ≤ 0.0210` against a threshold of 0.05, not as a measured
-p-value. [What that means, and why it is printed as a bound](#the-significant-results-are-bounds-not-measurements).
-M3b_ecod could not be evaluated and is [declared, with the
-reason](reports/lanl/tables/skipped_models.json).
-
-> **One limitation decides how to read the zeros.** Each partition is a single
-> day with no warm-up history, so F3's novelty features are measured against
-> barely any past. On the demo sample, adding two warm-up days *halves*
-> `pair_is_new`: without history, half the pairs called "never seen" were only
-> unseen because there was no past to have seen them in. So "the models detect
-> nothing" and "one day is not enough history" are both live readings of the
-> 0% column, and the machine (8 GB) could not afford more. The
-> ROC-AUC-versus-recall anti-correlation above is *not* affected: it is a
-> property of the operating point. Full detail in
-> [`reports/lanl/RUN.md`](reports/lanl/RUN.md).
-
-### A robustness check on a wider window, with warm-up
-
-The limitation above is no longer only hypothetical. A second run, on hardware
-large enough to afford it, trains on days 0–7, validates on 8–10 and tests on
-11–13, with two warm-up days feeding every split's first events a real past:
-133,093,586 / 51,687,105 / 54,690,768 rows, **52 test-split campaigns** against
-the single day's 39. Full output:
-[`reports/lanl/wider_window_results/`](reports/lanl/wider_window_results/).
-
-The central finding holds, and on more campaigns: every scoreable model (M3b
-ECOD excluded for the same memory reason as before, at larger scale) reads
-**exactly 0% campaign recall at every budget from 10 through 500/day**, and
-M2a's ROC-AUC is 0.941, versus 0.942 on the single day, to three figures the
-same finding on a test split five times the size. One number does move: M1
-rules, the single-day run's only non-zero result (5.1% at 500/day), reads 0%
-here. Window width and warm-up both changed between the two runs, so the drop
-is reported rather than explained away; see the paper's
-[Threats to Validity](reports/paper/main.tex) for the full discussion.
+The first LANL run (23 August 2026), on an 8 GB machine, used one day per
+partition (train day 5, validation day 8, test day 12, 39 campaigns) and no
+warm-up: [`reports/lanl/RUN.md`](reports/lanl/RUN.md). Its ROC-AUC values are
+close to the run above (pair rarity 0.942 against 0.941); its one non-zero
+operational result, M1 catching 2 of 39 campaigns at 500 alerts/day, does not
+survive the wider window and warm-up. Both factors changed together, so the
+change is reported, not attributed.
 
 ## The same protocol on the synthetic sample
 
@@ -133,8 +112,8 @@ it is a finding.
 | M0a random *(floor)* | 0.0016 [0.0005, 0.0039] | 0.497 | 0% | 0% | 0% | 50% | 162 |
 | M0b always-fail *(floor)* | 0.0014 [0.0002, 0.0030] | 0.491 | 0% | 0% *[0–50]* | 0% *[0–100]* | 75% *[0–100]* | 165 |
 | M2a pair rarity | 0.0025 [0.0003, 0.0107] | 0.477 | 0% | 0% | 0% | 25% | 294 |
-| M2b PCA reconstruction | 0.0040 [0.0007, 0.0135] | 0.784 | 0% | 0% | 0% | 75% | 114 |
-| M3a Isolation Forest | 0.0042 [0.0007, 0.0105] | 0.798 | 0% | 0% | 0% | 75% | 284 |
+| M2b PCA reconstruction | 0.0040 [0.0007, 0.0135] | 0.783 | 0% | 0% | 0% | 75% | 114 |
+| M3a Isolation Forest | 0.0042 [0.0007, 0.0105] | 0.798 | 0% | 0% | 0% | 75% | 282 |
 | M3b ECOD | 0.0046 [0.0005, 0.0187] | 0.690 | 0% | 0% | 25% | 50% | 83 |
 | **M1 rules** | **0.3305 [0.0840, 0.6423]** | 0.911 | **100%** | **100%** | **100%** | **100%** | **1** |
 
@@ -154,7 +133,7 @@ realistic: it is a property of the operating point.
 **Then read the last column, which is the one that does not saturate.** Four
 models print `0% 0% 0%` and the recall row ranks them as equally far from
 working. They are not: M3b ECOD needs a budget of 83 to catch its first
-campaign, M2b PCA 114; M3a Isolation Forest needs **284**, M2a pair rarity
+campaign, M2b PCA 114; M3a Isolation Forest needs **282**, M2a pair rarity
 **294**, both worse than the random floor's 162. A column of zeros hid a
 factor of three between models it presented as identical, and hid two ML models
 losing to a random scorer.
@@ -179,7 +158,7 @@ so R7 was handed the answer:
 | R6 new auth type | 0.1539 | 0.5455 | 3.5× |
 | R1 new pair | 0.3950 | 1.0000 | 2.5× |
 | R4 off-hours | 0.7237 | 0.6406 | 0.9× *(no discrimination)* |
-| R2 / R3 / R5 | — | 0.0000 | never fire |
+| R2 / R3 / R5 | 0.0127 / 0.0326 / 2.5547 | 0.0000 | never fire on a malicious event |
 
 That table is generated output, not prose: `reports/demo/tables/rule_discrimination.csv`,
 rewritten by every `make demo` and covered by the reproducibility check, so
@@ -197,9 +176,10 @@ rules**, not a finding about heuristics, and no amount of statistical care fixes
 it: the campaign-stratified bootstrap will faithfully report a circular result
 with correct confidence intervals.
 
-**The LANL run is the control, and it confirms the diagnosis.** Against a red
-team that never heard of R7, the same M1 falls from 100% at budget 10 to 5.1% at
-budget 500 and 0% everywhere else. A synthetic benchmark cannot tell you whether
+**The LANL runs are the control, and they confirm the diagnosis.** Against a
+red team that never heard of R7, the same M1 detects no campaign within 500
+alerts a day on the wider-window run (its first detection needs 999), and 2 of
+39 at 500 on the single-day run. A synthetic benchmark cannot tell you whether
 your heuristic is good or merely well-informed; only an adversary who did not
 read your rules can.
 
@@ -389,7 +369,8 @@ published**, so it is stated here rather than left for a reader to derive:
 | run | significant | of those, on the resolution floor |
 |---|---:|---:|
 | demo (R = 1000, 21 pairs) | 8 | **8** |
-| LANL (R = 2000, 21 pairs) | 13 | **12** |
+| LANL single day (R = 2000, 21 pairs) | 13 | **12** |
+| LANL wider window (R = 2000, 21 pairs) | 18 | **18** |
 
 A pair lands on the floor when not one resample out of R put the difference on
 the other side of zero. The two-sided p-value is then `2/(R+1)` because that is
@@ -411,9 +392,9 @@ Three things follow, all of them now mechanical rather than editorial:
 - Raising `R` is what buys resolution. Nothing else does, and no amount of
   care with the wording substitutes for it.
 
-The one LANL comparison that is *not* on the floor (M0b always-fail versus M1
-rules) lands at Holm-adjusted `p = 0.0450`. That is the only pairwise verdict
-in the published run whose p-value the bootstrap actually resolved.
+The one comparison of the single-day run that is *not* on the floor (M0b
+always-fail versus M1 rules) lands at Holm-adjusted `p = 0.0450`. On the wider
+window, every significant verdict is on the floor.
 
 ### And the alert budget had a floor of its own: the tie-break
 
@@ -458,7 +439,9 @@ A campaign is detected at budget `k` precisely when one of its events reaches
 rank `k` or better in its own day, so the smallest budget that detects anything
 is the minimum rank over all campaign events: one pass, exact, no sweep. On the
 demo sample it separates four models the recall row called identical (83 / 114 /
-284 / 294) and shows two of them losing to the random floor. `authbench demo`
+282 / 294) and shows two of them losing to the random floor. On the LANL
+wider window it spans 999 to 141,522 alerts a day, and again two models (HBOS and
+Isolation Forest) lose to the random floor. `authbench demo`
 prints it as `Budget→1st`; `metrics_summary.json` carries it under
 `operational.budget_for_first_detection`.
 
@@ -468,13 +451,11 @@ Being explicit about this is part of the point of the benchmark.
 
 **Done**
 
-- **The LANL run.** Days 0–13 converted, 39 campaigns evaluated, results in
-  [`reports/lanl/`](reports/lanl/RUN.md). One day of history per partition,
-  no warm-up: the binding limitation of this primary result.
-- **A wider-window robustness check**, with `history_warmup_days: 2` and a
-  3-day test split (52 campaigns), on rented hardware. Confirms the central
-  finding; see [above](#a-robustness-check-on-a-wider-window-with-warm-up)
-  and [`reports/lanl/wider_window_results/`](reports/lanl/wider_window_results/).
+- **The wider-window LANL run** (primary): train 0–7, validation 8–10, test
+  11–13, two warm-up days, 52 test campaigns, on rented hardware.
+  [`reports/lanl/wider_window_results/`](reports/lanl/wider_window_results/RUN.md).
+- **The single-day LANL run** (superseded, kept): one day per partition, no
+  warm-up, 39 test campaigns. [`reports/lanl/RUN.md`](reports/lanl/RUN.md).
 
 **Runs end to end today**
 
@@ -492,11 +473,20 @@ Being explicit about this is part of the point of the benchmark.
   corrected. The report generator can only emit the word "outperforms" on the
   significant branch (`render_comparison_sentence`).
 
-**Implemented and unit-tested, but not yet wired into the reported tables**
+**Implemented and unit-tested, not yet run on LANL**
 
+- M4a autoencoder and M4b VAE: in the `train_eval` catalog when
+  `runtime.deep_models: true` (needs the `deep` extra). Bounded, seeded,
+  early-stopped fitting; deterministic, row-local scoring.
+- F6 sequences on a train-fitted vocabulary, and M4c next-destination LSTM;
+  F5 graph features (bipartite clustering, PageRank, Louvain, node2vec) and
+  M5a. Neither family is in the feature store yet: F6 needs a streaming
+  design to fit LANL's partitions in memory.
 - SHAP alert cards (`explain/`): needs the `explain` extra.
-- F5 graph / F6 sequence features and the M4 deep / M5a graph models: these
-  need the `deep` / `graph` extras and are not part of the default DVC stage.
+
+Until 21 October 2026 this section described M4, M5 and F5 as unit-tested
+when no test covered them. Writing the tests found sixteen defects, all fixed
+in commit `c0099e9`.
 
 **Not implemented**
 
@@ -507,11 +497,10 @@ Being explicit about this is part of the point of the benchmark.
 
 **The technical report** lives at
 [`reports/paper/main.tex`](reports/paper/main.tex) (build instructions in
-[`reports/paper/README.md`](reports/paper/README.md)); the same source,
-packaged for submission, is in [`arxiv_submission/`](arxiv_submission/main.tex).
-It is published as a preprint on Zenodo, DOI
-[10.5281/zenodo.23159768](https://doi.org/10.5281/zenodo.23159768), and is
-still pending arXiv endorsement in `cs.CR`. There is still deliberately no
+[`reports/paper/README.md`](reports/paper/README.md), including arXiv
+packaging). Version 1 is published as a preprint on Zenodo, DOI
+[10.5281/zenodo.23159768](https://doi.org/10.5281/zenodo.23159768); version 2
+is in preparation, and arXiv submission in `cs.CR` awaits an endorsement. There is still deliberately no
 `report` stage in `dvc.yaml`: LaTeX compilation is not part of the
 reproducible pipeline `dvc repro` runs, only of the write-up built on top of
 its output.
@@ -532,8 +521,10 @@ make demo        # the full pipeline on the demo sample
 make preflight   # disk/RAM budget for a full LANL run on this machine
 ```
 
-CI runs all four on every push and PR, plus a coverage gate of 85% on
-`evaluate/` and `features/`, and uploads `reports/` as an artifact.
+CI runs all four on every push and PR, with the `deep` and `graph` extras
+installed (CPU-only torch), a coverage gate of 85% on `evaluate/`,
+`features/`, `ingest/` and `models/`, a byte-for-byte check of the demo
+results, and uploads `reports/` as an artifact.
 
 Requires Python ≥3.11, <3.13. Optional extras: `classical` (PyOD), `deep`
 (torch), `graph` (networkx/node2vec), `explain` (shap), `dashboard`
@@ -545,8 +536,10 @@ Requires Python ≥3.11, <3.13. Optional extras: `classical` (PyOD), `deep`
   to modern cloud/MFA environments is not established.
 - Red-team labels are a partial ground truth: an unflagged event may still be
   a true compromise never caught at the time.
+- One intrusion: 97.5% of the test red-team events start from one host, so
+  campaigns are not independent attacks.
 - Campaign grouping has no canonical definition; the gap threshold is a
-  published, sensitivity-tested parameter rather than a hidden constant.
+  published parameter, and its sensitivity analysis has not been run yet.
 - No adaptive adversary: LANL's red team was not evading these specific models.
 
 Full discussion: [`docs/limitations.md`](docs/limitations.md).

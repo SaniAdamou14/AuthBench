@@ -18,13 +18,19 @@ enforced by `tests/unit/test_no_test_leakage.py`.
 
 Boundaries live in `conf/split/temporal.yaml`, expressed in 0-indexed `day = time // 86400`:
 
-| Partition | Days (0-indexed) | Events | Campaigns |
-|---|---|---:|---:|
-| Train | 5 | 18,557,382 | 4 |
-| Validation | 8 | 19,374,688 | 45 |
-| Test | 12 | 19,870,848 | 39 |
+| Partition | Days (0-indexed) | Events | Positives | Campaigns |
+|---|---|---:|---:|---:|
+| Train | 0–7 | 133,093,586 | 50 | 11 |
+| Validation | 8–10 | 51,687,105 | 266 | 45 |
+| Test | 11–13 | 54,690,768 | 282 | 52 |
 
-**One day each, and not contiguous.** The spec's own split (train 1–30, validation 31–40,
+Each partition also reads `history_warmup_days: 2` days before its first day,
+featurised but never written, so its first events have a past. This is the
+evaluated configuration (`reports/lanl/wider_window_results/`). The first LANL
+run used one day per partition (train 5, validation 8, test 12) without warm-up,
+because an 8 GB machine could not hold more; it is kept in `reports/lanl/RUN.md`.
+
+**Why not the spec's split.** The spec's own split (train 1–30, validation 31–40,
 test 41–58, i.e. 0–29 / 30–39 / 40–57 here) cannot be run at all: the red team stops at
 day 29, so it puts every one of the 749 red-team events in train and leaves validation and
 test with none. Every ranking metric would be undefined and M1's weight calibration would
@@ -32,15 +38,11 @@ have nothing to maximise. `conf/dataset/lanl.yaml` records `redteam_active_days`
 this reason, and `tests/unit/test_split_has_positives.py` refuses a split that repeats the
 mistake.
 
-The three constraints that do admit a solution — campaigns in every partition, temporal
-order (5 < 8 < 12), and no partition above ~20M events on an 8 GB machine — are set out in
-full in `conf/split/temporal.yaml`. What the answer costs is **one day of history per
-partition**, which is the binding limitation on the published LANL numbers; see
-[`limitations.md`](limitations.md) and [`../reports/lanl/RUN.md`](../reports/lanl/RUN.md).
-
-The gaps between partitions are not a leak — nothing from day 6 or 9 reaches any model —
-and testing on day 12 after training on day 5 is a harder generalisation test than the next
-day would be.
+The constraints that a LANL split must satisfy (campaigns in every partition, temporal
+order, red-team activity only on days 1 to 29, and a partition size the machine can hold)
+are set out in `conf/split/temporal.yaml`. Day 11 holds no red-team event, so the test
+positives are on days 12 and 13. Each `split_summary.json` records, per partition, the
+events, positives, campaigns and the source hosts of the positives.
 
 `authbench.split.temporal.verify_temporal_order` raises `LeakageError` unless
 `max(train.time) < min(val.time)` and `max(val.time) < min(test.time)`.
@@ -126,11 +128,13 @@ to rank models:
   which is *not* the per-day operating point above.
 - **Recall at fixed FPR**.
 
-The gap between the registers is the project's whole thesis, and both runs show it. On the
-demo sample M3a reaches ROC-AUC 0.798 and catches nothing at 10, 50 or 100 alerts/day. On
-LANL the two registers are not merely different but **anti-correlated**: M2a scores 0.942 and
-detects none of the 39 campaigns at any budget, while M1 has the lowest ROC-AUC of the five
-non-trivial models (0.547) and is the only one that detects anything at all.
+The gap between the registers is the project's thesis, and both runs show it. On the demo
+sample M3a reaches ROC-AUC 0.798 and catches nothing at 10, 50 or 100 alerts/day. On the
+LANL wider window no model detects a campaign at any budget up to 500, and the ordering by
+ROC-AUC does not track the ordering by budget for first detection (Spearman −0.10 over the
+five non-trivial models; AUC-PR: 0.70). The best ROC-AUC (M2a, 0.941) is third
+operationally and the worst (M1, 0.563) first. With five models these coefficients are
+descriptive: "decoupled", not "anti-correlated", is the claim the data support.
 
 ## Uncertainty and pairwise comparisons (US-128)
 
@@ -161,7 +165,7 @@ within each — which is exactly the uniform draw over the combined list, at a c
 not involve materializing one Python object per benign event. `build_campaign_blocks` keeps
 the explicit form as the readable reference the tests check against.
 
-## One model is transductive, and it is not the one you would guess
+## Two models are transductive
 
 `M3b_ecod` is not a pure "fit here, apply there" model. PyOD's
 `ECOD.decision_function` recomputes the empirical cumulative distribution from the matrix it
@@ -176,8 +180,22 @@ its reader that sentence rather than leaving it in a library's source.
 It was found by `tests/unit/test_chunked_scoring.py`, which exists to assert the opposite —
 that scoring a split piecewise gives the same answer as scoring it whole. `M3a_iforest`,
 `M3b_hbos`, `M2b_pca_reconstruction` and `M0b_always_fail` pass that test; ECOD does not, and
-`AnomalyScorer.scores_row_locally` records which is which. So does M1, for a different and
-intended reason: R6 and R7 look backwards across the split by design.
+`AnomalyScorer.scores_row_locally` records which is which.
+
+**M1 is transductive too.** `rules._rank_normalize` divides each rule's rank by the size of
+the frame being scored, so an event's M1 score depends on the distribution of the other test
+events; the weights are calibrated on validation ranks computed the same way. No label is
+involved. Fitting the normalisation (an empirical CDF per rule) on the training partition
+would remove the property, and is planned with the next run because it changes M1's scores.
+M1 is also not row-local for an intended reason: R6 and R7 look backwards across the split.
+
+## Labels
+
+M1 is the only model that uses labels: its weights maximise AUC-PR on the validation
+partition (200 Dirichlet draws, seeded), and `RulesScorer.requires_labels` is `True`. Every
+other model is unsupervised, with default hyperparameters, and never reads the validation
+partition. This favours M1 and is stated as such in the report; an equal tuning budget for
+every model is planned.
 
 ## Scale
 

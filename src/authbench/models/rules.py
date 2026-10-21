@@ -48,7 +48,7 @@ RULES: list[RuleSpec] = [
 
 
 def _rank_normalize(expr: pl.Expr) -> pl.Expr:
-    """Percentile rank in [0, 1] — the common scale every rule score is combined on."""
+    """Percentile rank in [0, 1] within the scored frame, so M1 is transductive (docs/methodology.md)."""
     return expr.rank(method="average") / pl.len()
 
 

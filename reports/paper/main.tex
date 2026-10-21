@@ -20,6 +20,9 @@
 \usepackage[capitalise,noabbrev]{cleveref}
 
 \input{generated/numbers.tex}
+\makeatletter
+\newcommand{\tablerows}[1]{\@@input #1 }
+\makeatother
 
 \newcommand{\AuthBench}{\textsc{AuthBench}}
 \newcommand{\Rcamp}{R_{\mathrm{camp}}}
@@ -109,7 +112,7 @@ The campaign is the resampling unit of the bootstrap (\cref{sec:uncertainty}), s
 \toprule
 Partition & Days & Events & Positives & Campaigns & Positive rate & From \TopHost{} \\
 \midrule
-\input{generated/table_split.tex}
+\tablerows{generated/table_split.tex}
 \bottomrule
 \end{tabular}
 \end{threeparttable}
@@ -146,7 +149,7 @@ M0a random & Uniform random score (floor) & no & yes \\
 M0b always-fail & 1 for a failed authentication, 0 otherwise (floor) & no & yes \\
 M1 rules & Seven rules (\cref{app:rules}), each rank-normalised within the scored partition, combined by a weighted sum; weights chosen among 200 Dirichlet draws to maximise validation AUC-PR & validation & no \\
 M2a pair rarity & $-\log\bigl((n_{p}+1)/(n+1)\bigr)$, with $n_p$ the earlier occurrences of the (user, destination) pair and $n$ all earlier events in the window & no & yes \\
-M2b PCA & Mean squared reconstruction error of standardised features under PCA retaining 95\% of the variance \parencite{shyu2003pca,lakhina2004} & no & yes \\
+M2b PCA & Mean squared reconstruction error of standardised features under PCA retaining 95\% of the variance \parencite{lakhina2004} & no & yes \\
 M3a Isolation Forest & 200 trees, 256 samples per tree \parencite{liu2008iforest} & no & yes \\
 M3b HBOS & Histogram-based outlier score with default parameters \parencite{goldstein2012hbos} & no & yes \\
 M3b ECOD & Empirical-CDF outlier score \parencite{li2022ecod}; not evaluated & no & no \\
@@ -198,7 +201,7 @@ Events of one campaign are dependent, so resampling events independently would u
 \begin{equation}
 p = \min\!\left(1, \frac{2\,(t+1)}{R+1}\right), \qquad t = \min\bigl(\#\{\Delta^{*} \le 0\}, \#\{\Delta^{*} \ge 0\}\bigr),
 \end{equation}
-and the family of 21 pairwise comparisons is corrected by the procedure of \textcite{holm1979}. When $t = 0$, no resample placed the difference on the other side of zero and $p$ equals its floor $2/(R+1)$; such $p$-values are reported as upper bounds. The number of resamples is chosen so that the floor, multiplied by the number of comparisons, stays below the significance level; with fewer than 1{,}119 resamples, Holm's procedure could not declare any of the 21 differences significant. No significance verdict is issued when fewer than two campaigns are present, because resampling a single campaign cannot vary the campaign composition.
+and the family of 21 pairwise comparisons is corrected by the procedure of \textcite{holm1979}. When $t = 0$, no resample placed the difference on the other side of zero and $p$ equals its floor $2/(R+1)$; such $p$-values are reported as upper bounds. The number of resamples must make the floor, multiplied by the number of comparisons, fall below the significance level: with fewer than \MinResamplesTwentyOne{} resamples, Holm's procedure could not declare any of 21 differences significant, and with fewer than \MinResamplesTwentyEight{} any of the 28 differences of the full eight-detector catalogue. No significance verdict is issued when fewer than two campaigns are present, because resampling a single campaign cannot vary the campaign composition.
 
 \section{Results}
 \label{sec:results}
@@ -207,16 +210,16 @@ and the family of 21 pairwise comparisons is corrected by the procedure of \text
 
 \begin{table}[t]
 \centering
-\small
+\footnotesize
 \begin{threeparttable}
 \caption{Results on the test partition (days 11--13, \WideTestCampaigns{} campaigns). Campaign recall at daily budgets of 10, 50, 100 and 500 alerts, in percent. The last column is the budget of first detection $b^{*}$, in alerts per day.}
 \label{tab:results}
-\setlength{\tabcolsep}{4pt}
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lllrrrrrr@{}}
 \toprule
 Detector & AUC-PR & 95\% interval & ROC-AUC & @10 & @50 & @100 & @500 & $b^{*}$ \\
 \midrule
-\input{generated/table_results_wide.tex}
+\tablerows{generated/table_results_wide.tex}
 \bottomrule
 \end{tabular}
 \begin{tablenotes}\footnotesize
@@ -263,7 +266,7 @@ Before the LANL run, the protocol was exercised on a synthetic sample whose gene
 \toprule
 Rule & ATT\&CK & Benign & Malicious & Ratio & Weight \\
 \midrule
-\input{generated/table_rules_demo.tex}
+\tablerows{generated/table_rules_demo.tex}
 \bottomrule
 \end{tabular}
 \begin{tablenotes}\footnotesize
@@ -316,8 +319,8 @@ The LANL data are public and de-identified, and their use requires citation of t
 \label{app:features}
 \begin{table}[h]
 \centering
-\small
-\begin{tabular}{@{}llp{9.2cm}@{}}
+\footnotesize
+\begin{tabular}{@{}llp{6.4cm}@{}}
 \toprule
 Family & Feature & Definition \\
 \midrule
@@ -363,13 +366,13 @@ R7 & The user's previous destination equals the current source, within 30 minute
 \label{app:pairwise}
 \begin{table}[h]
 \centering
-\small
-\setlength{\tabcolsep}{4pt}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}llllll@{}}
 \toprule
-Detector A & Detector B & $\Delta$ AUC-PR & 95\% interval & Holm-adjusted $p$ & Significant \\
+Detector A & Detector B & $\Delta$ AUC-PR & 95\% interval & Holm $p$ & Sig. \\
 \midrule
-\input{generated/table_pairwise_wide.tex}
+\tablerows{generated/table_pairwise_wide.tex}
 \bottomrule
 \end{tabular}
 \end{table}
@@ -385,7 +388,7 @@ Training on day 5 (\num{18557382} events, 21 positives, 4 campaigns), validation
 \toprule
 Detector & AUC-PR & 95\% interval & ROC-AUC & @10 & @50 & @100 & @500 \\
 \midrule
-\input{generated/table_results_oneday.tex}
+\tablerows{generated/table_results_oneday.tex}
 \bottomrule
 \end{tabular}
 \end{table}
