@@ -421,7 +421,11 @@ def main(cfg: DictConfig) -> None:
     )
     # Published, not just logged: a reader must be able to see which
     # competitors are missing from the comparison and why.
-    (tables_dir / "skipped_models.json").write_text(json.dumps(skipped, indent=2))
+    excluded = {
+        name: "excluded before fitting (AUTHBENCH_EXCLUDE_MODELS)"
+        for name in sorted(exclude_models)
+    }
+    (tables_dir / "skipped_models.json").write_text(json.dumps({**excluded, **skipped}, indent=2))
 
     (tables_dir / "pairwise_comparisons.json").write_text(
         json.dumps([c.to_dict() for c in comparisons], indent=2)

@@ -113,6 +113,10 @@ def _lookup(
     return lambda key: float(table.get(f"{prefix}{key}", default))
 
 
+def _embedding(table: dict[str, list[float]], default: list[float]) -> Callable[[str], list[float]]:
+    return lambda key: table.get(f"u:{key}", default)
+
+
 def attach_graph_features(
     events: pl.LazyFrame, all_events: pl.LazyFrame, config: GraphFeatureConfig
 ) -> pl.LazyFrame:
@@ -157,7 +161,7 @@ def attach_graph_features(
                 .cast(pl.Int64)
                 .alias("graph_user_community"),
                 user.map_elements(
-                    lambda key: feats.embeddings.get(f"u:{key}", zero_embedding),
+                    _embedding(feats.embeddings, zero_embedding),
                     return_dtype=pl.List(pl.Float64),
                 ).alias("graph_user_embedding"),
             )

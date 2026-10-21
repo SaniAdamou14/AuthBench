@@ -1,785 +1,393 @@
 \documentclass[11pt,a4paper]{article}
 
-\usepackage{cmap}
-\usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{booktabs}
-\usepackage{graphicx}
-\usepackage{hyperref}
-\usepackage{url}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
 \usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\sisetup{group-separator={,}, group-minimum-digits=4}
+\usepackage{threeparttable}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage[english]{babel}
+\usepackage{csquotes}
+\usepackage[style=apa,backend=biber,uniquename=init,maxcitenames=2]{biblatex}
+\addbibresource{references.bib}
+\usepackage[hidelinks]{hyperref}
+\usepackage[capitalise,noabbrev]{cleveref}
 
-\hypersetup{
-  colorlinks=true,
-  linkcolor=black,
-  citecolor=black,
-  urlcolor=blue
-}
+\input{generated/numbers.tex}
 
-\title{Aggregate Ranking Metrics Can Invert Operational Order:\\
-An Alert-Budget-Constrained Benchmark for\\
-Authentication Anomaly Detection}
+\newcommand{\AuthBench}{\textsc{AuthBench}}
+\newcommand{\Rcamp}{R_{\mathrm{camp}}}
+\newcommand{\Rev}{R_{\mathrm{ev}}}
 
-\author{Mahamane Sani Adamou Mahamane\\
+\title{Aggregate Ranking Metrics Do Not Predict Detection Under an Alert Budget:\\
+A Leak-Free Benchmark of Authentication Anomaly Detectors on the LANL Data}
+
+\author{Mahamane Sani Adamou Mahamane\\[2pt]
 \small University of the People\\
-\small \texttt{saniadamou778@gmail.com}\\
-\small AuthBench: \url{https://github.com/SaniAdamou14/AuthBench}}
+\small \href{mailto:saniadamou778@gmail.com}{\texttt{saniadamou778@gmail.com}}\\
+\small ORCID \href{https://orcid.org/0009-0001-5561-753X}{0009-0001-5561-753X}}
 
-\date{September 2026}
+\date{October 2026 \\ \small Version 2. Code, data pointers and run outputs: \url{https://github.com/SaniAdamou14/AuthBench}}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-A security operations centre can triage a few dozen alerts per analyst per day.
-Most published anomaly-detection results are reported at operating points no
-analyst could ever staff. We present \textbf{AuthBench}, a leak-free,
-alert-budget-constrained benchmark for authentication-log anomaly detection, and
-report its first results on real data from the Los Alamos National Laboratory
-(LANL) Comprehensive Multi-Source Cyber-Security Events dataset.
-
-On a test day of 19{,}870{,}848 authentication events containing 39 real
-red-team campaigns, \emph{no} model detects a single campaign at 10, 50 or 100
-alerts per day: six of the seven measurably so, the seventh being a
-degenerate floor whose result is undetermined for a reason we report. One model
-catches two campaigns at 500 alerts per day, a budget no SOC staffs. More
-consequentially, the two evaluation registers are not merely different but
-\textbf{anti-correlated}: the model with
-the best ROC-AUC (0.942) detects nothing at any budget, while the only model that
-detects anything has the lowest ROC-AUC of the five non-trivial models (0.547).
-Ranking these models by the literature-comparable metric would place the model
-that detects nothing first and the only model that detects something last.
-
-We also report a control that we believe generalises beyond this benchmark. On a
-synthetic sample, the same rule-based model reaches 100\% campaign recall at a
-budget of 10, but a measured rule-level decomposition shows that a single rule
-implementing the same predicate as the data generator carries $113\times$
-separation and 0.521 of the model's fitted weight. Against a red team that never
-read the rules, that model falls to 5.1\%. A synthetic benchmark cannot establish
-whether a heuristic is good or merely well-informed.
-
-We state the binding limitations explicitly, including one that biases in the
-direction that flatters our own conclusion. The benchmark proposes no new model;
-it measures what survives a realistic operating point.
+\noindent Security operations centres (SOCs) can investigate only a limited number of alerts per analyst and per day, yet anomaly detectors for authentication logs are usually compared by threshold-free ranking metrics such as the area under the ROC curve. We present \AuthBench{}, an open benchmark that evaluates detectors under a strictly temporal protocol whose absence of leakage is enforced by code, and that reports, next to the usual metrics, campaign-level recall under a fixed daily alert budget and the exact daily budget at which a detector first detects any campaign. On the authentication log of the Los Alamos National Laboratory (LANL) comprehensive cyber-security events data (training on days 0--7, validation on days 8--10 and testing on days 11--13, with two days of history before each partition; \WideTestEvents{} test events containing \WideTestPositives{} red-team events grouped into \WideTestCampaigns{} campaigns), none of seven detectors (two floors, a rule engine, two statistical scores and two classical outlier detectors) detects a single campaign at 10 to 500 alerts per day, whatever the order of tied scores. The daily budget needed for a first detection ranges from \WideRulesFirstDetection{} alerts for the rule engine to \WideIForestFirstDetection{} for Isolation Forest, and two detectors with a ROC-AUC above 0.87 need more alerts than a random score. Over the five non-trivial detectors, the ordering induced by ROC-AUC does not track the operational ordering (Spearman $\rho = \WideSpearmanRocAuc$), whereas the ordering induced by the area under the precision-recall curve tracks it more closely ($\rho = \WideSpearmanAucPr$); with five detectors these coefficients are descriptive. Three qualifications bound the result and are measured rather than assumed: \WideTestTopHostShare{} of the red-team test events originate from a single host, so the campaigns are not independent intrusions; the rule engine is calibrated on validation labels whereas the other detectors use none; and no deep or graph-based detector has yet been evaluated under the protocol. A synthetic control shows how a rule engine can reach perfect recall on data whose generator shares its decision predicate, and detect nothing within the operational range against a red team that did not.
 \end{abstract}
 
 \section{Introduction}
+\label{sec:introduction}
 
-Anomaly detection in authentication logs has an uncomfortable disconnect at its
-centre: the metric a paper reports and the protection an organisation actually
-receives can point in opposite directions.
+An anomaly detector deployed in an enterprise network is consumed through an alert queue. Each day, analysts investigate the highest-ranked events until their capacity is exhausted, and the detector is useful only if an attack appears within that capacity. Interviews with SOC practitioners describe alert streams dominated by false positives \parencite{alahmadi2022}, and automated triage has been proposed to combat the resulting alert fatigue \parencite{hassan2019nodoze}. The base-rate argument of \textcite{axelsson2000} explains why: when attacks are rare, even a small false-positive rate produces an alert stream dominated by false alarms.
 
-The mechanism is not subtle. Authentication telemetry in an enterprise network
-carries positive rates on the order of $10^{-5}$ to $10^{-7}$. At that base rate,
-a classifier that always predicts ``benign'' achieves accuracy above 99.9999\%,
-and a ranking metric computed over the full period can remain high for a model
-whose highest-ranked events on any given day contain no attack at all. Axelsson's
-base-rate argument~\cite{axelsson2000} made this point for intrusion detection a
-quarter-century ago; Sommer and Paxson~\cite{sommer2010} made it for machine
-learning specifically. The field has continued to report aggregate metrics
-anyway.
+Authentication logs are an extreme instance of this regime. In the LANL data used here, the positive rate of the test partition is $\WideTestRate$. Detectors for such data are nevertheless commonly summarised by threshold-free metrics, most often the area under the ROC curve (ROC-AUC), which aggregates the ranking over every operating point, including those no SOC could staff. The precision-recall curve is known to be more informative than the ROC curve under class imbalance \parencite{davis2006,saito2015}, and evaluation pitfalls such as temporal snooping and inappropriate performance measures are documented across security machine learning \parencite{arp2022,pendlebury2019,sommer2010}. What remains less documented is the measurement itself: on real attack data, how far does the ordering of detectors by an aggregate metric diverge from their ordering at a budget an analyst can work through?
 
-What is missing is not the argument but the measurement. This paper contributes
-a benchmark built so that the measurement is possible:
-
+This paper makes four contributions.
 \begin{enumerate}
-  \item \textbf{A dual-register evaluation.} Every model is scored both in a
-  \emph{literature-comparable} register (ROC-AUC, global precision@$k$, recall at
-  fixed FPR; reported so results can be placed next to published ones, never
-  to rank models) and in an \emph{operational} register (AUC-PR, per-campaign
-  recall at a fixed \emph{daily} alert budget, time-to-detection, and budget for
-  first detection).
-
-  \item \textbf{A strictly temporal, leak-free protocol} with mechanical
-  enforcement: a split guard that raises on any ordering violation, an
-  architecture test forbidding model and feature code from importing the
-  test-partition loader, and causal windowing primitives that exclude the current
-  event's own timestamp.
-
-  \item \textbf{The measured result on real attacks}, reported in
-  Section~\ref{sec:results}: at any operational budget, the two registers are
-  anti-correlated.
-
-  \item \textbf{A circularity control} (Section~\ref{sec:circularity}) showing
-  that the same benchmark run on a synthetic sample produces a result that is
-  largely an artifact of the generator sharing a predicate with the model.
+\item \textbf{An evaluation protocol for budgeted detection} (\cref{sec:evaluation}). Events are ranked within each day; a campaign is detected at budget $k$ when one of its events is among the $k$ highest-ranked events of its day. We show that campaign recall at every budget is determined by one number per campaign, its detection budget, which yields an exact curve and the budget of first detection in a single pass. Ties are broken by a stated, label-free order and bracketed by their best and worst cases, and uncertainty is estimated by a paired, campaign-level bootstrap that reports when a $p$-value is only a bound.
+\item \textbf{A leak-free benchmark whose temporal discipline is enforced by code} (\cref{sec:protocol}). A guard raises an error on any overlap between partitions, an architecture test forbids model and feature code from importing the test partition, windowed features are computed by causal primitives, and every fitted quantity is fitted on the training partition only.
+\item \textbf{Measurements on the LANL red-team data} (\cref{sec:results}) for a rule engine, statistical scores and classical outlier detectors, including the relation between the threshold-free orderings and the operational ordering.
+\item \textbf{Diagnostics that bound the claims} (\cref{sec:circularity,sec:threats}): the concentration of the red-team events on one source host, the transductive behaviour of two detectors, a cold-start encoding bias, and a control for circularity between a data generator and a rule.
 \end{enumerate}
+The benchmark proposes no new detector. Its claims concern evaluation, and their scope is stated in \cref{sec:scope}.
 
-We deliberately do not propose a new detector. The benchmark's claim is about
-evaluation, and a new model would only invite the reader to evaluate \emph{it} by
-the metrics we are arguing against.
+\section{Related work}
+\label{sec:related}
 
-\section{Background and related work}
+\paragraph{Evaluation pitfalls in security machine learning.}
+\textcite{axelsson2000} established the base-rate fallacy for intrusion detection, and \textcite{sommer2010} argued that anomaly detection differs from the closed-world classification settings in which machine learning usually succeeds. \textcite{pendlebury2019} showed that spatial and temporal experimental bias inflates malware classification results. \textcite{arp2022} identified ten recurring pitfalls, among them data snooping, inappropriate performance measures and the base-rate fallacy, and \textcite{apruzzese2023sok} assessed the practical value of machine learning for network intrusion detection. Leakage in data mining more generally is formalised by \textcite{kaufman2012leakage}. \AuthBench{} turns several of these recommendations into mechanical checks and applies them to authentication data.
 
-\paragraph{The critique is classical.}
-Axelsson~\cite{axelsson2000} established the base-rate fallacy for intrusion
-detection: at realistic base rates, even very low false-positive rates yield
-alert streams dominated by false alarms. Sommer and Paxson~\cite{sommer2010}
-extended the argument to machine-learning-based detection and received the IEEE
-S\&P Test of Time Award in 2020 for it. More recently, TESSERACT~\cite{tesseract}
-and Arp et al.~\cite{arp2022} named temporal snooping and base-rate neglect as
-recurring, specific methodological errors in security machine learning, with
-measured consequences for reported performance.
+\paragraph{Metrics under class imbalance.}
+ROC-AUC is invariant to the class ratio, whereas precision is not; \textcite{davis2006} related the two curves, and \textcite{saito2015} showed empirically that the precision-recall plot is the more informative one on imbalanced data. Neither curve, however, encodes a capacity constraint per unit of time, which is what an alert budget imposes.
 
-Our contribution is not to restate these arguments but to build an evaluation
-harness in which their consequences are measured on real red-team activity, and
-to report what happens to a model catalogue under that harness.
+\paragraph{Detection on the LANL data.}
+The LANL comprehensive cyber-security events data \parencite{kent2015dataset,kent2016chapter} pairs 58 days of enterprise authentication events with labelled red-team activity, and its authentication graph has been characterised by \textcite{kent2015authgraphs}. \textcite{turcotte2016} model users relative to peer groups by Poisson factorisation. \textcite{tuor2018} apply recurrent language models to log lines; their operational metric is the average percentile of malicious events in a daily ranking, not average precision. \textcite{brown2018} add attention mechanisms to that family. \textcite{bowman2020} learn node embeddings on the authentication graph, training on the 40 days without reported malicious activity and testing on the 18 days with it; their best detector reports 635 true positives against 107{,}960 false positives. \textcite{king2022euler} cast lateral-movement detection as temporal link prediction (Euler) and train on the snapshots that precede the first anomalous edge. \textcite{xu2024argus} (Argus) and \textcite{paudel2022pikachu} (Pikachu) propose further graph-based detectors, and \textcite{gokstorp2024} apply transformer sequence models to the same logs.
 
-\paragraph{Detection on the LANL dataset.}
-The LANL Comprehensive Multi-Source Cyber-Security Events
-dataset~\cite{kent2015} is among the few public corpora pairing real enterprise
-authentication telemetry with labelled red-team activity. Two methodologically
-distinct lines of work use it. Tuor et al.~\cite{tuor2018} apply recurrent
-neural network language models at the event level, reporting up to 0.876 ROC-AUC
-and 87.0 average precision at user-day granularity, and up to 0.98 ROC-AUC at
-event granularity for their character-level model. Turcotte et
-al.~\cite{turcotte2016} take a peer-based approach, using Poisson factorisation
-to identify anomalies relative to comparable user groups rather than relative to
-an individual's own history.
+\paragraph{Budgeted evaluation and recent re-evaluations.}
+Budget-based metrics have been used on LANL before, and \AuthBench{} builds on them rather than introducing the idea. \textcite{garchery2020adsage} report cumulative recall at daily budgets of investigated user-days and find that a rule flagging previously unseen source computers performs on par with their graph-based detector. \textcite{larroche2021decades} report detection rates for a fixed daily budget of investigated events alongside a truncated ROC area. \textcite{larroche2025ultralmd} report, for the same detectors, ROC-AUC, average precision and the recall obtained when the top $B$ edges of each hourly window are investigated; in one of their configurations, the detector with the higher ROC-AUC has the lower budgeted recall. Two 2026 studies re-evaluate published detectors under harmonised conditions. \textcite{larroche2026fair} harmonise the preprocessing and labelling of LANL and OpTC, show that published average precision values do not survive the harmonisation (for Argus on LANL, 32.27 as originally reported against $0.09 \pm 0.04$ re-evaluated, in their Table~5), and note that almost all LANL red-team authentications come from one source host. \textcite{zhao2026gids} decompose graph-based intrusion detectors into interchangeable stages and find that an encoder-free control ranks first by average precision on two of four datasets.
 
-In Tuor et al.'s reported results, ROC-AUC and average precision move together
-across all ten configurations; no divergence comparable to the one we report
-appears. We do not read this as a contradiction. Their operational metric,
-average daily percentile, is continuous and forgiving, not a recall
-constrained to a fixed daily alert budget corresponding to an analyst's real
-quota. The divergence we measure is a property of the operating point, and it is
-visible only when the operating point is imposed.
+\paragraph{Positioning.}
+\AuthBench{} differs from these works in its unit and its question. It scores individual authentication events, ranks them within each day, and evaluates at the level of red-team campaigns; it compares rules, statistical scores and classical outlier detectors under one protocol; and it asks how the orderings induced by threshold-free metrics relate to the ordering at a fixed daily budget. Its first-detection budget generalises the budgeted recall of the works above from a set of budgets to the exact budget at which each campaign is first caught.
 
-To our knowledge, no published work on LANL reports a budget-constrained
-operational metric alongside the standard aggregate metric on the same models.
-
-\section{Dataset, labelling and campaign construction}
+\section{Data, labels and campaigns}
+\label{sec:data}
 
 \subsection{Source}
+We use the authentication log of the LANL comprehensive cyber-security events data \parencite{kent2015dataset}: 1{,}051{,}430{,}459 events over 58 days from one enterprise Windows Active Directory environment, with one-second timestamps starting at an arbitrary epoch. Each event records a source and destination user, a source and destination computer, an authentication type, a logon type, an orientation and an outcome. The file is verified against a recorded SHA-256 digest before use. The authentication type is missing for about 55\% of events and the logon type for about 14\%; missingness is encoded as a dedicated indicator rather than imputed. Machine accounts, whose names end in \texttt{\$}, are flagged and kept. Failed authentications appear only for users who succeed at least once in the data, so no conclusion is drawn about attacks on non-existent accounts.
 
-We use the LANL authentication log (\texttt{auth.txt.gz}, SHA-256
-\texttt{9c6b0cc2\ldots f672}, 7{,}626{,}505{,}158 bytes), containing
-1{,}051{,}430{,}459 authentication events over 58 days from one enterprise
-Windows/Active Directory environment in 2015.
+\subsection{Labels}
+The red-team file contains 749 lines, of which 34 are exact duplicates, leaving 715 distinct red-team events; the figure of 737 found in secondary sources is not reproduced by the file. Authentication events are labelled malicious by an exact join on the four red-team fields: time, user (with domain), source computer and destination computer. A looser join, for example on time alone, would inflate the number of positives. Red-team activity spans days 1 to 29; the remaining 29 days contain no labelled positive.
 
-Several dataset quirks are handled explicitly rather than silently. The
-\texttt{auth\_type} field is null for approximately 55\% of events and
-\texttt{logon\_type} for approximately 14\%; the \texttt{?} sentinel is converted
-to a dedicated boolean rather than imputed. Timestamps begin at epoch 1 with
-one-second resolution and no timezone, so the night window used by temporal
-features is calibrated empirically from the training split rather than assumed.
-Machine accounts (\texttt{\$} suffix) constitute most of the volume and are
-flagged, never dropped or coerced. Failure events exist only for users who
-succeeded somewhere, so no conclusion is drawn about brute-force activity against
-nonexistent accounts.
+\subsection{Campaigns}
+Red-team events are not independent observations. We group them into campaigns per user (with domain): two consecutive red-team events of the same user belong to the same campaign when they are separated by at most $g$ hours, with $g = 24$. No canonical grouping exists in the literature, and the threshold is a published parameter whose sensitivity analysis is planned (\cref{sec:threats}).
 
-\subsection{Labelling}
-
-Red-team labels are joined on the full quadruplet
-$(\textit{time}, \textit{user}, \textit{domain}, \textit{src\_computer},
-\textit{dst\_computer})$, never on time alone: a looser join silently inflates
-the positive count. The pipeline additionally asserts that the observed positive
-rate falls inside a configured range and aborts otherwise.
-
-\subsection{From events to campaigns}
-
-The red-team file contains 749 raw rows. After removing 34 exact duplicates
-(\textbf{measured on the file}, rather than adopting the widely repeated secondary
-figure of 737), 715 distinct red-team events remain.
-
-These are not 715 independent attacks. They are a small number of
-lateral-movement campaigns, and evaluating per-event recall would both overstate
-the number of independent successes and understate the operational question,
-which is whether the \emph{intrusion} was caught at all. We therefore group
-events into campaigns by \texttt{user@domain} with a configurable gap threshold
-(\texttt{campaign\_gap\_hours}, default 24 hours).
-
-No canonical grouping exists in the literature. The sensitivity of the resulting
-campaign count to this threshold is therefore a required analysis, not a
-decorative one, and is treated as such by the specification.
+\subsection{Concentration of the red-team activity}
+\label{sec:concentration}
+The campaign is the resampling unit of the bootstrap (\cref{sec:uncertainty}), so the independence of campaigns matters. It is limited. In the test partition, \WideTestTopHostPositives{} of the \WideTestPositives{} red-team events (\WideTestTopHostShare{}) and \WideTestTopHostCampaigns{} of the \WideTestCampaigns{} campaigns originate from the same source computer, \TopHost{}; the shares are \WideValTopHostShare{} in validation and \WideTrainTopHostShare{} in training. This is consistent with the observation of \textcite{larroche2026fair} that the labelled LANL authentications belong to a single simulated intrusion. Our campaigns are therefore better read as the accounts and phases of one operation than as independent attacks, and the confidence intervals of \cref{sec:results} quantify variability over those accounts and phases, not over intrusions.
 
 \section{Protocol}
+\label{sec:protocol}
 
-\subsection{Temporal split, and why it is one day per partition}
+\subsection{Temporal split}
 \label{sec:split}
-
-\begin{table}[t]
-\centering
-\begin{tabular}{lrrrr}
-\toprule
-Partition & Day & Events & Positives & Campaigns \\
-\midrule
-Train      & 5  & 18{,}557{,}382 & 21  & 4  \\
-Validation & 8  & 19{,}374{,}688 & 261 & 45 \\
-Test       & 12 & 19{,}870{,}848 & 207 & 39 \\
-\bottomrule
-\end{tabular}
-\caption{The evaluated split. One day per partition, non-contiguous, over
-converted days 0--13 (239{,}471{,}459 events). Test positive rate:
-$1.04 \times 10^{-5}$.}
-\label{tab:split}
-\end{table}
-
-The split is shown in Table~\ref{tab:split}. It is one day per partition and
-skips the days between. This requires explanation, because it is not the split
-the specification originally proposed.
-
-The natural contiguous split (train days 0--29, validation 30--39, test 40--57)
-\textbf{cannot be run at all}. The red team stops at day 29. That split
-places every red-team event in the training partition and leaves validation and
-test with no positives whatsoever: every ranking metric would be undefined, and
-the rule model's weight calibration would have nothing to maximise. A unit test
-refuses any split that repeats this error.
-
-Three constraints do admit a solution simultaneously: campaigns must be present
-in every partition; temporal order must hold ($5 < 8 < 12$); and no partition may
-exceed roughly 20M events without exhausting the 8\,GB reference machine.
-Days 0, 3, 4, 10 and 11 contain no red-team activity inside the converted window,
-which further constrains the choice.
-
-The gaps between partitions are not leakage (nothing from day 6 or day 9
-reaches any model), and testing on day 12 after training on day 5 is a
-\emph{harder} generalisation test than testing on the following day would be.
-What the choice costs is one day of history per partition, which is the binding
-limitation on every number in this report and is discussed in
-Section~\ref{sec:threats}.
-
-\subsection{Leakage control}
-
-Three mechanisms enforce the temporal protocol rather than documenting it:
-
-\begin{itemize}
-  \item \texttt{verify\_temporal\_order} raises \texttt{LeakageError} unless
-  $\max(\textit{train.time}) < \min(\textit{val.time})$ and
-  $\max(\textit{val.time}) < \min(\textit{test.time})$.
-
-  \item An architecture test forbids any module under \texttt{models/} or
-  \texttt{features/} from importing the test-partition loader.
-
-  \item All windowed features are computed through causal primitives: rolling
-  aggregations use a left-closed window $[t - w, t)$ that excludes the current
-  event's own timestamp, and statistics a running sum cannot express (distinct
-  counts, entropy) use a self-join restricted to strictly prior events of the
-  same entity. A unit test constructs synthetic events whose feature value would
-  differ if the future were visible, and asserts the computed value is the causal
-  one.
-\end{itemize}
-
-\subsection{Fitted quantities}
-
-Two quantities in the feature pipeline are learned rather than computed
-row-locally: the night window, and the frequency encoding of categorical event
-fields. Both are fitted on the training split only and applied unchanged to
-validation and test.
-
-Fitting either per-split is a leak that produces no error and no warning: it
-allows an event's encoding to depend on events that came after it, and assigns
-the same \texttt{auth\_type} different numeric values in train and test. The
-feature function therefore takes the fitted encoding as a \emph{required}
-argument. A protocol that depends on the caller remembering an optional keyword
-is not a protocol.
-
-\section{Model catalogue}
-\label{sec:models}
-
-Seven models were evaluated, from a catalogue of eight:
-
-\begin{itemize}
-  \item \textbf{M0a random} and \textbf{M0b always-fail}: floors, present so
-  that every reported number has a reference point that cannot be beaten by
-  accident.
-  \item \textbf{M1 rules}: seven hand-written detection rules with weights
-  calibrated on the validation split.
-  \item \textbf{M2a pair rarity}: a statistical novelty score over
-  (source, destination) authentication pairs.
-  \item \textbf{M2b PCA reconstruction}: reconstruction error under a
-  principal-component model.
-  \item \textbf{M3a Isolation Forest} and \textbf{M3b HBOS}: standard
-  unsupervised outlier detectors.
-\end{itemize}
-
-The eighth, \textbf{M3b ECOD}, was excluded: its scoring raised
-\texttt{MemoryError} at 3.89\,GiB, because the implementation concatenates the
-fitted sample onto the frame being scored and argsorts all columns of the result.
-This is a property of the model, not of the harness, and it has a second
-consequence worth stating: ECOD is transductive, so an event's score depends on
-which other events are scored alongside it: the same row scores 10.64 alone
-and 10.81 among four hundred others. No label crosses the train/test boundary, so
-this is not leakage in the sense our guards address, and it is how ECOD is used
-in the literature. But a benchmark claiming a strictly temporal protocol owes its
-reader that sentence rather than leaving it in a library's source. This was found
-by a test asserting the opposite property: that scoring a split piecewise
-gives the same answer as scoring it whole.
-
-\paragraph{No deep-learning model is evaluated here.} Feature families for graph
-and sequence structure, and the corresponding deep and graph models, are
-implemented and unit-tested but are not part of the default pipeline and were not
-run on LANL. The question of how much deep learning buys over well-built
-heuristics at a realistic operating point is the question this benchmark is
-built to ask; it is not a result this report claims to answer.
-
-\section{Evaluation: two registers}
-
-Metrics are kept in two registers under separate keys, and the report generator
-cannot mix them.
-
-\paragraph{Operational.} AUC-PR with campaign-stratified confidence intervals is
-the headline ranking metric. Recall at alert budget takes the top-$k$ scored
-events \emph{per day}, never top-$k$ over the whole period, and is reported both
-per event and per campaign. Time-to-detection counts campaigns never detected at
-a given budget in the denominator; they are never dropped and never folded in as
-a delay of zero.
-
-\paragraph{Budget for first detection.} A recall table reading $0\%\ 0\%\ 0\%\
-0\%$ ranks every failed model as equally far from working. A model whose best
-campaign sits at rank 600 and one whose best sits at rank 9{,}000{,}000 print
-identically, and that is precisely the regime this benchmark studies. We
-therefore also report the smallest daily budget at which a model detects any
-campaign, computed exactly as the minimum rank over campaign events within their
-own day. On the synthetic sample it separates four models that the recall row
-called identical (83 / 114 / 284 / 294) and reveals that two of them lose to the
-random floor.
-
-We note the obvious objection: this metric was designed for exactly the regime
-the LANL run occupies, and yet no LANL values are reported for it. The reason is
-provenance, not selection. \textbf{The metric postdates the committed LANL run},
-as do the tie-break fix of Section~\ref{sec:threats} and the score-resolution
-diagnostics; that snapshot is frozen, and re-running it is precisely what the
-history limitation makes expensive. Reporting the metric on the synthetic sample
-only, and saying so, seemed better than either omitting it (it is part of the
-protocol being described) or quietly recomputing it against a run whose
-published tables would then no longer match the code.
-
-\paragraph{Tie-breaking, stated rather than inherited.} ``The top 10 events of
-the day'' is not a question a coarse-scored model answers on its own: the
-always-fail floor puts 2{,}619 equally-scored events in competition for 8 places
-on the demo sample. Equal scores are ordered by $(\textit{time},
-\textit{event\_id})$: arrival order, label-free and total. Before this was made
-explicit, ties fell to the frame's row order, which is alphabetical by user; the
-consequence for our own published floor row is reported in
-Section~\ref{sec:threats}. A zero-width tie bracket now certifies that the
-tie-break decided nothing, which is the case for every model whose score is
-continuous.
-
-\paragraph{Literature-comparable.} ROC-AUC, global precision@$k$ (top-$k$ over
-the whole period, as the literature reports it, which is \emph{not} the per-day
-operating point), and recall at fixed FPR. ROC-AUC always emits an explicit
-warning in the output, because it stays high for operationally useless models at
-this base rate. These numbers exist so results can be placed beside published
-ones. They are never used to rank.
-
-\section{Uncertainty quantification}
-\label{sec:uncertainty}
-
-A single campaign-stratified resampling pass evaluates every model on each
-resample, yielding both per-model confidence intervals and every pairwise
-difference from the same sampling distribution. Each difference is therefore
-paired: campaign-composition noise cancels between two models rather than being
-counted twice.
-
-Three artifacts of this method can manufacture a verdict indistinguishable from a
-real one. All three are handled explicitly, and we report them because each one
-would have flattered our results if left alone:
-
-\begin{itemize}
-  \item \textbf{Degenerate resamples.} A ranking metric over zero positives is
-  undefined, but the underlying library returns $0.0$, so every model ties, and
-  ties count in both tails. With one campaign in a split, roughly 37\% of
-  resamples are degenerate, flooring $p$ near 0.74. Degenerate resamples are
-  discarded and redrawn, and the count is reported.
-
-  \item \textbf{Bootstrap resolution versus Holm.} A percentile bootstrap cannot
-  report $p$ below $2/(R+1)$, while Holm's strictest threshold is
-  $\alpha / n_{\text{pairs}}$. For an eight-model catalogue this requires
-  $R \geq 1119$; the original configuration of 1000 resamples could never have
-  yielded a significant result. The bound is computed rather than assumed, and
-  the configuration now uses $R = 2000$.
-
-  \item \textbf{A single campaign.} The sample size of a campaign-stratified
-  bootstrap is the number of \emph{campaigns}. With one, every resample
-  re-weights the same attack, no pairwise difference changes sign, and every
-  $p$-value lands on $2/(R+1)$, below Holm's threshold, so every comparison
-  reads ``outperforms''. The synthetic sample produced 21 out of 21 verdicts this
-  way. A minimum of two campaigns is now required before any significance verdict
-  is reported; point estimates and intervals are unchanged, only the verdict is
-  withheld.
-\end{itemize}
-
-\section{Results}
-\label{sec:results}
+\Cref{tab:split} gives the evaluated split. Training uses days 0--7, validation days 8--10 and testing days 11--13. Each partition additionally reads the two days that precede it (the \emph{warm-up}), so that history and novelty features of its first events are computed against a real past; warm-up events are featurised but never scored. Training starts at day 0, before which no data exist.
 
 \begin{table}[t]
 \centering
 \small
-\begin{tabular}{lrrrrrr}
+\begin{threeparttable}
+\caption{The evaluated split. Positives are labelled red-team authentication events. The last column gives the positives whose source computer is the most frequent one, \TopHost{} in every partition.}
+\label{tab:split}
+\begin{tabular}{lcrrrrr}
 \toprule
-Model & AUC-PR [95\% CI] & ROC-AUC & @10 & @50 & @100 & @500 \\
+Partition & Days & Events & Positives & Campaigns & Positive rate & From \TopHost{} \\
 \midrule
-M0a random \emph{(floor)}        & 0.00001 [0.00000, 0.00002] & 0.500 & 0\% & 0\% & 0\% & 0\% \\
-M0b always-fail \emph{(floor)}$^\dagger$ & 0.00001 [0.00000, 0.00002] & 0.496 & --- & --- & --- & --- \\
-\textbf{M2a pair rarity}         & \textbf{0.00065} [0.00023, 0.00131] & \textbf{0.942} & 0\% & 0\% & 0\% & 0\% \\
-M2b PCA reconstruction           & 0.00005 [0.00002, 0.00011] & 0.893 & 0\% & 0\% & 0\% & 0\% \\
-M3a Isolation Forest             & 0.00004 [0.00001, 0.00010] & 0.872 & 0\% & 0\% & 0\% & 0\% \\
-M3b HBOS                         & 0.00005 [0.00002, 0.00012] & 0.875 & 0\% & 0\% & 0\% & 0\% \\
-M1 rules                         & 0.00010 [0.00002, 0.00071] & 0.547 & 0\% & 0\% & 0\% & \textbf{5.1\%} \\
+\input{generated/table_split.tex}
 \bottomrule
 \end{tabular}
-\caption{Results on the LANL test day. Campaign recall at daily alert budgets of
-10, 50, 100 and 500. $^\dagger$M0b's budget columns are \emph{undetermined}
-rather than zero; see Section~\ref{sec:threats}.}
-\label{tab:results}
+\end{threeparttable}
 \end{table}
 
-Table~\ref{tab:results} reports the run, and Figure~\ref{fig:recall} plots it.
-Two findings follow.
+Three constraints determine this choice. Every partition must contain campaigns, otherwise ranking metrics are undefined in validation or test; temporal order must hold; and red-team activity stops at day 29. A contiguous split over the full 58 days in the proportions often used for this data (training on days 0--29, validation on 30--39, testing on 40--57) would place every red-team event in training. A unit test rejects any split that leaves a partition without campaigns. Day 11 contains no red-team event, so the test positives fall on days 12 and 13, five and six days after the last training day. The red-team activity of days 14 to 29 is not used in this evaluation.
+
+\subsection{Leakage control}
+Three mechanisms enforce the protocol rather than document it. A guard raises an error unless the last training timestamp precedes the first validation timestamp and the last validation timestamp precedes the first test timestamp. An architecture test fails if any module under \texttt{models/} or \texttt{features/} imports the only function that loads the test partition. Windowed features are computed by causal primitives: rolling aggregates use the left-closed window $[t-w, t)$, which excludes the current event, and statistics that a running sum cannot express use a self-join restricted to strictly earlier events of the same entity; a unit test builds events whose feature values would differ if the future were visible.
+
+\subsection{Fitted quantities}
+Two feature transformations are fitted: the night window, located at the empirical activity trough because timestamps carry no time zone, and the relative frequencies used to encode categorical fields. Both are fitted on the training partition only and applied unchanged to validation and test. Fitting them per partition would let an event's encoding depend on later events and would give one category different values in different partitions, without raising any error.
+
+\subsection{Features}
+\label{sec:features}
+Detectors that consume a feature vector receive 21 columns from four families, listed in \cref{app:features}: event-level indicators and training-fitted category frequencies (F1); per-user event counts and failure ratios over the preceding hour and day (F2); novelty and rarity of the (user, destination computer) pair (F3); and the time of day on the unit circle with the deviation of an event from its user's running circular mean (F4). Novelty is defined relative to the events the partition reads, that is, the partition and its warm-up: a pair is \emph{new} if it has not occurred earlier in that window, not if it has never occurred in the data.
+
+\section{Detectors}
+\label{sec:detectors}
+
+\Cref{tab:detectors} summarises the catalogue. The detectors that estimate a distribution (M2b, M3a and M3b) are fitted on a seeded sample of \num{5000000} of the \WideTrainEvents{} training events; every test event is scored. Hyperparameters are library or specification defaults and were not tuned, with one exception, M1, whose aggregation weights are calibrated on validation labels.
+
+\begin{table}[t]
+\centering
+\small
+\begin{threeparttable}
+\caption{The detector catalogue. A detector is \emph{row-local} if the score of an event does not depend on which other events are scored with it.}
+\label{tab:detectors}
+\begin{tabular}{@{}lp{6.9cm}cc@{}}
+\toprule
+Detector & Definition & Labels & Row-local \\
+\midrule
+M0a random & Uniform random score (floor) & no & yes \\
+M0b always-fail & 1 for a failed authentication, 0 otherwise (floor) & no & yes \\
+M1 rules & Seven rules (\cref{app:rules}), each rank-normalised within the scored partition, combined by a weighted sum; weights chosen among 200 Dirichlet draws to maximise validation AUC-PR & validation & no \\
+M2a pair rarity & $-\log\bigl((n_{p}+1)/(n+1)\bigr)$, with $n_p$ the earlier occurrences of the (user, destination) pair and $n$ all earlier events in the window & no & yes \\
+M2b PCA & Mean squared reconstruction error of standardised features under PCA retaining 95\% of the variance \parencite{shyu2003pca,lakhina2004} & no & yes \\
+M3a Isolation Forest & 200 trees, 256 samples per tree \parencite{liu2008iforest} & no & yes \\
+M3b HBOS & Histogram-based outlier score with default parameters \parencite{goldstein2012hbos} & no & yes \\
+M3b ECOD & Empirical-CDF outlier score \parencite{li2022ecod}; not evaluated & no & no \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}\footnotesize
+\item M3a, M3b HBOS and M3b ECOD use the implementations of PyOD \parencite{zhao2019pyod}.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+\paragraph{Exclusion of ECOD.} ECOD recomputes its empirical distributions from the matrix it scores, so the score of an event depends on the events scored alongside it (on the synthetic sample, the same event scores 10.64 alone and 10.81 among 400 others), and its scoring of the \WideTestEvents{}-event test partition exceeded the memory of the machine used. It was excluded by name before fitting. For this run, the exclusion is documented in the commit that records the run, because the table of skipped detectors then listed only failures during scoring; the pipeline now writes exclusions to that table as well. HBOS represents the histogram family.
+
+\paragraph{Transductive normalisation in M1.} M1 rank-normalises each rule within the partition being scored, so it is also transductive: the score of a test event depends on the distribution of the other test events, although no label is involved. Both properties are reported in \cref{tab:detectors} and discussed in \cref{sec:threats}.
+
+\section{Evaluation}
+\label{sec:evaluation}
+
+\subsection{Operational register}
+Let $D$ be the test days, $E_d$ the events of day $d$, $P \subseteq \bigcup_d E_d$ the red-team events and $\mathcal{C}$ the campaigns, each campaign $c$ being a set $P_c \subseteq P$. A detector assigns a score $s(e)$ to every event. Within each day, events are ordered by decreasing score; tied scores are ordered by arrival, that is, by time and then by event identifier, an order that is total and independent of labels. Let $r(e) \in \{1, \dots, |E_d|\}$ be the resulting rank of $e$ in its day. The alert set at daily budget $k$ is
+\begin{equation}
+A(k) = \{\, e : r(e) \le k \,\},
+\end{equation}
+and event recall and campaign recall at budget $k$ are
+\begin{equation}
+\Rev(k) = \frac{|A(k) \cap P|}{|P|}, \qquad
+\Rcamp(k) = \frac{|\{\, c \in \mathcal{C} : P_c \cap A(k) \neq \emptyset \,\}|}{|\mathcal{C}|}.
+\end{equation}
+We report $k \in \{10, 50, 100, 500\}$.
+
+\paragraph{Detection budget.} Define the detection budget of a campaign as $b(c) = \min_{e \in P_c} r(e)$. A campaign is detected at budget $k$ exactly when $b(c) \le k$, hence
+\begin{equation}
+\Rcamp(k) = \frac{|\{\, c : b(c) \le k \,\}|}{|\mathcal{C}|} \quad \text{for every } k,
+\end{equation}
+so the whole campaign-recall curve is the empirical distribution function of $\{b(c)\}_{c \in \mathcal{C}}$, computable in one pass. We report the \emph{budget of first detection} $b^{*} = \min_{c} b(c)$, the smallest daily budget at which the detector detects anything. Unlike recall at a fixed budget, $b^{*}$ does not saturate at zero, and it is always finite when the partition contains a campaign. As a minimum, it is determined by a single campaign and should be read as an extreme of the curve, not as a summary of it.
+
+\paragraph{Ties.} For a detector with coarse scores, which events enter $A(k)$ can depend on the tie order rather than on the detector. We therefore also report $\Rcamp(k)$ under the least favourable order (benign events first within each tied group), which is a lower bound, and under a favourable order (malicious events first, one per campaign before any second), and the number of tied events competing for the last places of each budget. A bracket of zero width certifies that the tie order decided nothing.
+
+\paragraph{Time to detection.} For each detected campaign and budget, the delay between its first event and its first alert is recorded; campaigns never detected are counted separately and never enter the delays as zero.
+
+\paragraph{Threshold-free metric.} The area under the precision-recall curve (AUC-PR) is estimated by average precision over the whole test partition. It is threshold-free, but, unlike ROC-AUC, it depends on the positive rate \parencite{davis2006,saito2015}. We use it as the threshold-free metric of reference and attach confidence intervals to it.
+
+\subsection{Literature register}
+ROC-AUC, precision at $k$ over the whole partition (not per day) and recall at a fixed false-positive rate of $10^{-4}$ and $10^{-5}$ are reported so that results can be placed next to published ones. They are not used to rank detectors, and the pipeline attaches a warning to every ROC-AUC it emits.
+
+\subsection{Uncertainty}
+\label{sec:uncertainty}
+Events of one campaign are dependent, so resampling events independently would understate the variance. We use a block bootstrap \parencite{efron1993,field2007} whose blocks are the campaigns and the individual benign events: each resample draws, with replacement, as many blocks as there are, and every detector is evaluated on the same resample. Resamples without any positive, on which ranking metrics are undefined, are discarded and redrawn. With $R = 2000$ resamples, the 95\% interval of each detector is the percentile interval of its AUC-PR. Because all detectors share the resamples, the difference $\Delta^{*}$ between two detectors is paired. Its two-sided $p$-value is
+\begin{equation}
+p = \min\!\left(1, \frac{2\,(t+1)}{R+1}\right), \qquad t = \min\bigl(\#\{\Delta^{*} \le 0\}, \#\{\Delta^{*} \ge 0\}\bigr),
+\end{equation}
+and the family of 21 pairwise comparisons is corrected by the procedure of \textcite{holm1979}. When $t = 0$, no resample placed the difference on the other side of zero and $p$ equals its floor $2/(R+1)$; such $p$-values are reported as upper bounds. The number of resamples is chosen so that the floor, multiplied by the number of comparisons, stays below the significance level; with fewer than 1{,}119 resamples, Holm's procedure could not declare any of the 21 differences significant. No significance verdict is issued when fewer than two campaigns are present, because resampling a single campaign cannot vary the campaign composition.
+
+\section{Results}
+\label{sec:results}
+
+\Cref{tab:results} reports the evaluated configuration and \cref{fig:first-detection} relates the budget of first detection to the two threshold-free metrics. ECOD was not evaluated (\cref{sec:detectors}).
+
+\begin{table}[t]
+\centering
+\small
+\begin{threeparttable}
+\caption{Results on the test partition (days 11--13, \WideTestCampaigns{} campaigns). Campaign recall at daily budgets of 10, 50, 100 and 500 alerts, in percent. The last column is the budget of first detection $b^{*}$, in alerts per day.}
+\label{tab:results}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lllrrrrrr@{}}
+\toprule
+Detector & AUC-PR & 95\% interval & ROC-AUC & @10 & @50 & @100 & @500 & $b^{*}$ \\
+\midrule
+\input{generated/table_results_wide.tex}
+\bottomrule
+\end{tabular}
+\begin{tablenotes}\footnotesize
+\item Every tie bracket has zero width at every budget: the zeros do not depend on the tie order. For M0b, \WideFloorTieContenders{} tied events competed for the last places at each budget.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.92\textwidth]{campaign_recall_vs_budget.png}
-\caption{Campaign recall against daily alert budget on the LANL test day,
-reproduced as generated. Every curve lies on zero across the entire budget
-range; the single departure is the rule model reaching 5.1\% at 500 alerts per
-day, in the lower right. The emptiness of the plot is the result, not a
-rendering failure. (The generated legend overlaps that one departure; this is a
-cosmetic defect of the plotting code, left uncorrected here so that the figure
-matches the committed output byte for byte.)}
-\label{fig:recall}
+\includegraphics[width=\textwidth]{generated/figure_first_detection.pdf}
+\caption{Budget of first detection against ROC-AUC (left) and AUC-PR (right) for the five non-trivial detectors on the test partition. The shaded band covers daily budgets of 1 to 500 alerts; the dashed line is the budget of first detection of the random floor (M0a). Lower is better on the vertical axis.}
+\label{fig:first-detection}
 \end{figure}
 
-\subsection{Nothing works at an operational budget}
+\subsection{No detection within the operational range}
+No detector detects any of the \WideTestCampaigns{} campaigns at 10, 50, 100 or 500 alerts per day, and the tie brackets show that no ordering of tied scores would change this. The result holds for both floors, for the rule engine, and for the four statistical and classical detectors.
 
-No model detects a single campaign out of 39 at 10, 50 or 100 alerts per day.
-Six of the seven are measured at exactly zero; the seventh, the always-fail
-floor, is undetermined at every budget for a reason given in
-Section~\ref{sec:threats}; and, being a degenerate floor, any nonzero recall it
-showed would be an artifact of alert ordering rather than detection. One model
-(the rule-based heuristic) catches two campaigns at 500 alerts per day, a
-budget no SOC staffs for a single analyst.
+\subsection{How far each detector is from a detection}
+The budget of first detection separates detectors that the recall columns cannot. The rule engine first detects a campaign at \WideRulesFirstDetection{} alerts per day, PCA at \WidePcaFirstDetection{} and pair rarity at \WidePairRarityFirstDetection{}. HBOS needs \WideHbosFirstDetection{} and Isolation Forest \WideIForestFirstDetection{}, both more than the random floor (\WideRandomFirstDetection{}). These two detectors have a ROC-AUC of \WideHbosRocAuc{} and \WideIForestRocAuc{} respectively, values that would usually be read as good.
 
-\subsection{The registers are anti-correlated, not merely different}
+\subsection{Threshold-free orderings and the operational ordering}
+Over the five non-trivial detectors, we compare the ordering induced by each threshold-free metric with the ordering by budget of first detection. For ROC-AUC, the Spearman coefficient is $\rho = \WideSpearmanRocAuc$ (Kendall $\tau = \WideKendallRocAuc$): the ROC-AUC ordering carries no information about the operational one. The two ends of the ordering are inverted: pair rarity has the highest ROC-AUC (\WidePairRarityRocAuc{}) and the third budget of first detection, whereas the rule engine has the lowest ROC-AUC (\WideRulesRocAuc{}) and the first. For AUC-PR, $\rho = \WideSpearmanAucPr$ ($\tau = \WideKendallAucPr$), in line with the sensitivity of precision to the positive rate. With five detectors, a single transposition changes these coefficients substantially, so we read them as a description of this catalogue, not as an estimate for detectors in general. The finding we retain is the narrower one: a ROC-AUC between 0.87 and 0.94 was compatible here with detectors whose first detection required between \WidePairRarityFirstDetection{} and \WideIForestFirstDetection{} alerts per day.
 
-This is the benchmark's reason to exist, and it appears here on real attacks:
+\subsection{Significance of the AUC-PR differences}
+Of the \WidePairsTotal{} pairwise differences in AUC-PR, \WidePairsSignificant{} are significant after Holm's correction, and all \WidePairsAtFloor{} are at the resolution floor, with an adjusted $p \le \WideHolmFloor$ against a level of 0.05 (\cref{app:pairwise}). The three non-significant differences are random against always-fail, PCA against HBOS, and pair rarity against the rule engine. The statement that pair rarity and the rule engine differ in AUC-PR is therefore not supported, although they differ in ROC-AUC by almost 0.4. These verdicts concern AUC-PR only; no detector detects anything at the operational budgets, so no significance test of operational recall is meaningful on this run.
 
-\begin{itemize}
-  \item \textbf{M2a scores ROC-AUC 0.942 and detects nothing} at any operational
-  budget. A ROC-AUC of 0.94 passes without comment in a paper.
-  \item \textbf{M1 has the lowest ROC-AUC of the five non-trivial models,
-  0.547} (barely above the 0.50 the floors score by construction) and is the
-  only model that catches anything at all.
-\end{itemize}
-
-Ranking the non-trivial models by the literature-comparable metric would place
-the model that detects nothing first, and the only model that detects something
-last. This is not a claim that the weak model is better: it is a claim that the
-ordering induced by the aggregate metric carries no information about the
-ordering that matters operationally, and on this data inverts it.
-
-\subsection{What the significance testing does and does not establish}
-
-Thirteen of the 21 pairwise comparisons are significant after Holm-Bonferroni
-correction. \textbf{Twelve of those thirteen are bounds, not measurements.} No
-resample out of 2000 placed the difference on the other side of zero, so their
-$p$-value is the bootstrap's own resolution floor and they are reported as
-Holm-adjusted $p \leq 0.0210$ against a threshold of 0.05; true, with a factor
-of 2.4 in hand, but not a value the run resolved. The single exception, and the
-only pairwise verdict here whose $p$-value the bootstrap actually measured, is
-M0b always-fail versus M1 rules at Holm-adjusted $p = 0.0450$.
-
-Two non-results are worth as much as the significant ones. \textbf{M2a versus M1
-is not significant} (Holm-adjusted $p = 0.828$; raw $p = 0.138$), and neither is
-M1 versus the random floor (Holm-adjusted $p = 0.176$; raw $p = 0.022$). We are
-therefore \emph{not} claiming that the rule model outperforms the statistical
-one. The claim is about the divergence between registers, which does not require
-either model to beat the other.
+\subsection{Effect of history: the single-day configuration}
+\label{sec:single-day}
+An earlier configuration, constrained by an 8\,GB machine, used one day per partition (training on day 5, validation on day 8, testing on day 12) without warm-up (\cref{app:single-day}). Its test day is the first of the two test days with red-team activity in the evaluated configuration. Two observations follow. ROC-AUC values are stable between the configurations (for example \OnedayPairRarityRocAuc{} and \WidePairRarityRocAuc{} for pair rarity). The only non-zero operational result of the single-day configuration, the rule engine detecting 2 of 39 campaigns at 500 alerts per day (\OnedayRulesRecallAtFiveHundred{}), disappears in the evaluated one, where its first detection requires \WideRulesFirstDetection{} alerts. The test window and the warm-up changed together between the two runs, so this change cannot be attributed to either. A plausible mechanism is that, without warm-up, novelty features flag too many pairs as new (on the synthetic sample, two warm-up days halve the number of pairs flagged as new), and a rule built on novelty then ranks more red-team events highly; testing it requires a run that varies one factor at a time.
 
 \section{A control for circularity}
 \label{sec:circularity}
 
-The same protocol was run on a synthetic sample before the real data, and the
-comparison between the two runs is, in our view, a result in its own right.
-
-On the synthetic sample, M1 reached \textbf{100\% campaign recall at a budget of
-10}. Taken alone, this would support a clean narrative: well-built heuristics beat
-every machine-learning model at every budget.
-
-The narrative does not survive a rule-level decomposition
-(Table~\ref{tab:rules}). The generator emits each campaign as a chain (the
-user authenticates $A \to B$, then $B \to C$), and rule R7 tests for exactly
-that: previous destination equals current source, within 30 minutes. The
-generator and the rule implement \textbf{the same predicate}. R7 separates
-malicious from benign by a factor of $113\times$, and the validation-fitted
-weights place 0.521 on it, more than half the model's score.
+Before the LANL run, the protocol was exercised on a synthetic sample whose generator emits each campaign as a chain: a user authenticates from $A$ to $B$, then from $B$ to $C$. On that sample, the rule engine detects every test campaign at a budget of 10 alerts per day. A decomposition by rule (\cref{tab:rules}) explains why. Rule R7 tests whether the previous destination of a user equals the current source within 30 minutes, which is the generator's own predicate; it separates malicious from benign events by a factor of \DemoRSevenRatio{} and receives a calibrated weight of \DemoRSevenWeight{}. The result is a property of a sample written by the author of the rules, and a campaign-level bootstrap reports it with correct intervals all the same. Against the LANL red team, which did not know the rules, the same engine detects no campaign within the operational range of the evaluated configuration. A synthetic benchmark cannot distinguish a good heuristic from a heuristic informed by the generator; an independent adversary can.
 
 \begin{table}[t]
 \centering
-\begin{tabular}{lrrr}
+\small
+\begin{threeparttable}
+\caption{Rule-level discrimination on the synthetic sample: mean raw rule score on benign and malicious events, their ratio, and the weight calibrated on validation.}
+\label{tab:rules}
+\begin{tabular}{@{}llrrrr@{}}
 \toprule
-Rule & Mean score, benign & Mean score, malicious & Ratio \\
+Rule & ATT\&CK & Benign & Malicious & Ratio & Weight \\
 \midrule
-\textbf{R7 lateral chain} & 0.0056 & 0.6364 & $\mathbf{113\times}$ \\
-R6 new auth type          & 0.1539 & 0.5455 & $3.5\times$ \\
-R1 new pair               & 0.3950 & 1.0000 & $2.5\times$ \\
-R4 off-hours              & 0.7237 & 0.6406 & $0.9\times$ \emph{(none)} \\
-R2 / R3 / R5              & ---    & 0.0000 & never fire \\
+\input{generated/table_rules_demo.tex}
 \bottomrule
 \end{tabular}
-\caption{Rule-level discrimination on the synthetic sample. Generated output,
-regenerated by every run and covered by the reproducibility check, so the caveat
-cannot quietly stop matching the run it describes.}
-\label{tab:rules}
+\begin{tablenotes}\footnotesize
+\item ATT\&CK technique identifiers follow \textcite{strom2018attack}. A ratio of 0.0 means the rule never fired on a malicious event; n/a means its benign mean is zero.
+\end{tablenotes}
+\end{threeparttable}
 \end{table}
-
-This is a property of a synthetic sample written by the same author as the rules,
-not a finding about heuristics, and no amount of statistical care fixes it. A
-campaign-stratified bootstrap will faithfully report a circular result with
-correct confidence intervals.
-
-\textbf{The LANL run is the control, and it confirms the diagnosis.} Against a
-red team that never read R7, the same model falls from 100\% at budget 10 to
-5.1\% at budget 500 and 0\% everywhere else.
-
-We state the general form deliberately, because we think it is the most
-transferable thing in this report: \emph{a synthetic benchmark cannot tell you
-whether your heuristic is good or merely well-informed; only an adversary who did
-not read your rules can.}
 
 \section{Threats to validity}
 \label{sec:threats}
 
-\subsection{One day of history per partition}
+\paragraph{Dependence of the campaigns.} The positives of all three partitions come predominantly from one host (\cref{sec:concentration}), and the labelled LANL activity is a single intrusion \parencite{larroche2026fair}. The bootstrap treats campaigns as independent units; its intervals describe variability across the accounts and phases of one operation, and the effective number of independent intrusions is far smaller than \WideTestCampaigns{}. Generalisation to other intrusions is not established by this run.
 
-Each partition is a single day with no warm-up, so 24-hour window features and
-cumulative pair statistics see at most one day of past inside their own
-partition.
+\paragraph{Unequal access to labels.} M1 calibrates its weights on validation labels; no other detector uses labels or validation data, and their hyperparameters are defaults. This favours M1. Equal tuning budgets for all detectors, selected on validation, are planned.
 
-This makes a campaign recall of 0\% ambiguous between two readings that this run
-cannot separate: either the models genuinely detect nothing at an operational
-budget, or one day is insufficient history to establish what counts as
-\emph{new}, and the novelty features carrying the lateral-movement signal are
-being measured against a past that barely exists.
+\paragraph{Transductive detectors.} M1 normalises rule scores by rank within the scored partition, and ECOD recomputes its distributions from the scored matrix. Neither uses a test label, but both scores depend on the test distribution. Fitting the normalisation on training data would remove this property from M1 and is planned with the next run.
 
-The size of the effect is measured rather than guessed. On the synthetic sample,
-adding two warm-up days halves the count of pairs flagged as never-seen
-($2{,}623 \to 1{,}287$) over an identical set of written events, raises mean pair
-rarity from 7.00 to 7.73, and raises mean per-user daily event count from 7.85 to
-10.33. Without history, half the pairs called ``never seen before'' were only
-unseen because there was no past in which to have seen them.
+\paragraph{Cold start encoded as normal.} For the first event of a user in the window, the deviation from the user's typical hour is set to zero, the most typical value, and the failure ratios are zero. On the synthetic test split, 350 events are first events of their user, and two of the eleven malicious test events are among them. This biases detectors that rely on these features towards ranking first appearances as normal, in the direction of the reported zeros.
 
-The warm-up parameter exists and works; the reference machine cannot afford it.
-One warm-up day makes each split process 38M rows instead of 19M and the run died
-after writing the first split; two makes it 57M and it died before writing
-anything.
+\paragraph{Definition of novelty and rarity.} Pair novelty and pair rarity are computed relative to the window the partition reads, not to the whole history; and because the denominator of the rarity score grows within the window, a pair with a fixed number of earlier occurrences receives a slightly higher rarity later in the window.
 
-\textbf{What this limitation does not reach} is the anti-correlation itself. That
-M2a at 0.942 detects nothing while M1 at 0.547 detects something is a property of
-the operating point and the base rate, and no quantity of history changes it.
+\paragraph{Fitting sample, exclusions and configuration.} Distribution-estimating detectors are fitted on \num{5000000} of the \WideTrainEvents{} training events. ECOD is excluded. The single-day and evaluated configurations differ in two factors at once (\cref{sec:single-day}). Day boundaries are defined on the dataset's arbitrary epoch, not on local time.
 
-\subsection{A robustness check: the wider window, with warm-up}
-\label{sec:wider-window}
+\paragraph{Campaign definition.} Campaign recall depends on the grouping threshold $g$; a sensitivity analysis over several values of $g$ is planned.
 
-The limitation above is no longer entirely hypothetical. A second run, on
-hardware large enough to afford what the reference machine could not, trains
-on days 0--7, validates on 8--10 and tests on 11--13, with two warm-up days
-feeding every split's first events a real past (133{,}093{,}586 /
-51{,}687{,}105 / 54{,}690{,}768 rows; 52 test-split campaigns against the
-single day's 39). Full output: \texttt{reports/lanl/wider\_window\_results/}.
+\paragraph{External validity.} One enterprise network, observed in 2015, before the widespread adoption of multi-factor and token-based authentication. Labels are a partial ground truth: an unlabelled event may be an undetected compromise. The red team did not attempt to evade these detectors, so the results do not describe an adaptive adversary.
 
-The central finding is unchanged, and if anything sharper. Every one of the
-seven scoreable models (M3b ECOD excluded here for the same reason given
-in Section~\ref{sec:models}, at larger scale) reads exactly 0\% campaign
-recall at every budget from 10 through 500 alerts per day, over 52 campaigns
-rather than 39. The anti-correlation holds too: M2a's ROC-AUC is 0.941
-(0.942 on the single day) against zero operational recall, to three figures
-the same finding from a test split more than five times the size.
-
-One number does move, and it is reported here rather than only the numbers
-that confirm the paper's thesis. M1 rules (Table~\ref{tab:results}'s only
-non-zero row, 5.1\% campaign recall at 500 alerts/day) reads 0\% on the
-wider run, at every budget. Two things changed together between the runs,
-not one: three test days instead of one, and warm-up switched on for the
-first time on real data. Section~\ref{sec:threats}'s own measurement above is
-that warm-up roughly halves how often a pair is flagged never-seen-before;
-M1's R1 and R6 rules are built directly on that signal. A plausible reading
-is that warm-up did here what it was already shown to do on the synthetic
-sample: shrink the over-flagging that let M1 catch two campaigns on an
-unwarmed-up test day, rather than three days being harder to detect in
-than one. \textbf{This is not isolated}: separating window width from
-warm-up would need a third run holding one fixed, which is future work, not
-a claim made here.
-
-\subsection{Cold start is encoded as ``normal'', and it biases toward our conclusion}
-
-An event with no prior history for its user does not receive a neutral feature
-value: it receives the most normal one available. The hour-deviation feature is
-filled with $0.0$ for a user's first event in a partition, and $0.0$ is the
-\textbf{minimum} of that column's range; the failure-ratio features are likewise
-0 when there are no prior events to have failed.
-
-Measured on the synthetic test split rather than asserted: 3{,}299 of 8{,}049
-events (41\%) have no prior one-hour history; 350 events are a user's first in
-the split, and all 350 (and no other event) carry the sentinel value,
-against a median deviation of 0.426 elsewhere and a 99th percentile of 3.046. Two
-of eleven malicious test events fall in that set.
-
-The sentinel and the cold-start set coincide exactly, and those events are scored
-as maximally typical on that axis. This is the same history shortage seen from the
-feature side, and the shorter each partition, the larger the affected share.
-\textbf{It biases in the direction that produces the reported zeros, which is the
-direction that flatters our conclusion}, so we state it here rather than leave it
-to be found.
-
-It is not fixed, and the reason is a trade rather than an oversight: changing the
-sentinel changes the design matrix, which moves every vector-space model's scores
-and would desynchronise the published snapshot from the code that claims to
-produce it. The honest options (a cold-start indicator column, or a sentinel
-outside the column's range) are changes to the protocol and belong with a
-re-run.
-
-\subsection{One floor row is undetermined rather than zero}
-
-M0b always-fail scores every event 0 or 1, so on a 19.9M-event test day its alert
-set at any budget is decided entirely by how equally-scored events are ordered.
-The published run used the ordering then in force: the frame's own row order,
-alphabetical by user. \textbf{M0b's zeros are therefore a property of that
-ordering, not of the floor}, and should be read as undetermined. On the synthetic
-sample, the tie-break fix moved M0b from 0\% to 75\% at budget 500.
-
-Every other row is unaffected: their scores are continuous and leave the
-tie-break nothing to decide. Nothing here touches AUC-PR, ROC-AUC, the confidence
-intervals or the pairwise comparisons, none of which depend on alert ordering.
-
-\subsection{Remaining threats}
-
-\begin{itemize}
-  \item \textbf{A single real dataset.} LANL describes one enterprise network, in
-  2015, on Windows/Active Directory. Nothing here establishes transferability to
-  a modern cloud or hybrid environment.
-
-  \item \textbf{Dataset age.} Eleven years old at the time of writing.
-  Authentication patterns have shifted: widespread MFA, token-based
-  authentication. The \emph{protocol} remains valid; absolute performance numbers
-  are not transferable to present-day environments.
-
-  \item \textbf{Incomplete labels.} Red-team events are a partial ground truth.
-  An event not flagged as red-team may still be an undetected real compromise
-  from 2015, so a ``false positive'' here may be an unlabelled true positive.
-  Precision figures should be read with that caveat.
-
-  \item \textbf{No adaptive adversary.} The LANL red team was not attempting to
-  evade these specific models. Reported numbers are an optimistic upper bound
-  against an adversary who knows they are being watched by exactly this stack.
-
-  \item \textbf{Campaign-grouping sensitivity.} Campaign-level recall depends on
-  the grouping gap threshold, for which no canonical value exists.
-\end{itemize}
-
-\section{What this benchmark does not show}
-
-We are explicit about the boundary of the claim, because the result is easy to
-overstate.
-
-It does \textbf{not} show that anomaly detection on authentication logs is
-hopeless. It shows that seven specific models, under one specific protocol, with
-one day of history, on one day of one 2015 network, detect nothing at a budget an
-analyst could staff.
-
-It does \textbf{not} show that deep learning fails at this task: no
-deep-learning model was evaluated here (Section~\ref{sec:models}).
-
-It does \textbf{not} show that heuristics beat learned models: the comparison
-between the rule model and the statistical one is explicitly not significant
-(Section~\ref{sec:results}).
-
-What it does show is narrower and, we argue, more useful: that on this data the
-ordering induced by the standard aggregate metric is not merely uninformative
-about operational value but inverted with respect to it, and that a benchmark
-reporting only the aggregate metric would have ranked the single model that
-detected anything last.
+\section{Scope of the claims}
+\label{sec:scope}
+The results do not show that anomaly detection on authentication logs cannot work. They show that, for the seven detectors and the protocol above, on the test partition of one network, no campaign is detected within 500 alerts per day, and that the ordering of these detectors by ROC-AUC did not reflect their ordering by the budget needed to detect anything. They do not show that deep or graph-based detectors fail under the same protocol, because none has been evaluated, and they do not show that rules outperform learned detectors, because the AUC-PR difference between the rule engine and pair rarity is not significant and the rule engine benefits from labels.
 
 \section{Reproducibility}
+\label{sec:reproducibility}
+The code, configuration and run outputs are public \parencite{authbenchsoftware}; the first version of this report is archived \parencite{authbenchpreprint}. The pipeline is staged (ingest, parse, label, split, features, detectors, evaluation), each stage a function over lazy data frames, under data version control. Continuous integration runs linting, strict type checking and the test suite on every change, with a coverage threshold on the evaluation, feature, ingestion and detector modules, and regenerates the synthetic results, which must match the committed ones byte for byte. Every number, table and figure of this report is generated from the committed run outputs by a script, which continuous integration also re-runs.
 
-The pipeline is staged (\texttt{ingest} $\to$ \texttt{parse/clean} $\to$
-\texttt{label} $\to$ \texttt{split} $\to$ \texttt{features} $\to$
-\texttt{models} $\to$ \texttt{evaluate} $\to$ \texttt{report}), each stage a pure
-function over lazy frames, with data-version control over inputs and outputs and
-experiment tracking over runs. Continuous integration runs linting, strict type
-checking and the test suite on every change, with a coverage gate on the
-evaluation and feature modules.
-
-The protocol is written against the full 1.05-billion-event corpus. Five changes
-brought a full run from roughly 161\,GB of disk and 439\,GB of RAM down to
-roughly 81\,GB and 49\,GB (a day-window conversion, a feature store projected
-to the columns actually read, bounded-sample fitting, day-chunked scoring, and a
-rank-ordered bootstrap), and none of them moves a measured number: the
-synthetic report regenerates byte for byte after all five. A preflight command
-prints the budget for the machine it runs on and exits non-zero when the run does
-not fit, naming the event count that would.
-
-On the reference machine (8\,GB RAM, 6 cores): conversion 2.5 minutes, feature
-build 18 minutes, evaluation 5 hours 20 minutes before the bootstrap was
-parallelised; the bootstrap itself went from 4h49 on one core to roughly 1h15 on
-four, with bit-identical results.
-
-Code, configuration and the committed report outputs are available at
-\url{https://github.com/SaniAdamou14/AuthBench}.
+The evaluated configuration was produced by the code at commit \texttt{17e897c} on a rented machine with about 30\,GB of memory; its outputs were committed in \texttt{c641c4c}. The single-day configuration was produced on a machine with 8\,GB of memory and committed in \texttt{fc7b7de}. The split statistics and source concentrations of \cref{tab:split} were computed from the labelled partitions of that run with the same function the pipeline now calls at every run. Fitting is seeded throughout, and the bootstrap uses a fixed seed.
 
 \section{Conclusion}
+\label{sec:conclusion}
+On the LANL red-team data, under a leak-free protocol with adequate history, none of seven detectors detects a campaign within 500 alerts per day, the daily budget needed for a first detection spans two orders of magnitude, and two detectors with a ROC-AUC near 0.88 need more alerts than a random score. The ordering by ROC-AUC did not reflect the ordering by detection budget, whereas the ordering by AUC-PR was closer to it. Because the red-team activity is concentrated on one host and the catalogue is small, these are measurements on one operation, stated with their limits. The immediate continuations are the evaluation of deep and graph-based detectors, starting with temporal link prediction, under the same protocol; equal tuning budgets and fitted normalisation for all detectors; the use of the red-team activity of days 14 to 29 as a second test period; and a second labelled dataset.
 
-We built a benchmark to ask whether reported anomaly-detection performance
-survives a realistic alert budget, and measured the answer on real red-team
-activity. It does not: none of seven models detects any of 39 campaigns at 10, 50
-or 100 alerts per day. The sharper finding is that the standard aggregate metric
-does not merely fail to predict operational value on this data: it inverts the
-ordering, placing a model that detects nothing above the only model that detects
-anything.
+\section*{Ethics and data statement}
+The LANL data are public and de-identified, and their use requires citation of the provider; the benchmark manipulates no personal data. It is defensive in purpose and contains no offensive technique.
 
-We also showed, by running the same protocol on a synthetic sample, that a
-heuristic can appear to dominate for reasons entirely internal to the data
-generator, and that only an adversary who did not read the rules can distinguish
-a good heuristic from a well-informed one.
+\printbibliography
 
-The most useful next steps are, in our view, a run with adequate history per
-partition (the binding limitation on every number reported here) and the
-evaluation of sequence and graph models under the same budget constraint, so that
-the question the benchmark was built to ask can finally be answered rather than
-posed.
+\appendix
 
-\begin{thebibliography}{9}
+\section{Features}
+\label{app:features}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}llp{9.2cm}@{}}
+\toprule
+Family & Feature & Definition \\
+\midrule
+F1 & \texttt{is\_success} & Outcome of the authentication \\
+F1 & \texttt{auth\_type\_is\_null}, \texttt{logon\_type\_is\_null} & Missingness indicators \\
+F1 & \texttt{src\_user\_is\_machine} & Source user is a machine account \\
+F1 & \texttt{src\_dst\_user\_same}, \texttt{src\_dst\_computer\_same} & Source and destination coincide \\
+F1 & \texttt{domain\_crossing} & Source and destination domains differ \\
+F1 & \texttt{*\_freq} (3) & Training-fitted relative frequency of the authentication type, logon type and orientation \\
+F2 & \texttt{src\_user\_\{1h,1d\}\_n\_events} & Earlier events of the source user in the window $[t-w, t)$ \\
+F2 & \texttt{src\_user\_\{1h,1d\}\_failure\_ratio} & Share of those events that failed \\
+F3 & \texttt{pair\_is\_new} & First occurrence of the (user, destination) pair in the window read \\
+F3 & \texttt{pair\_global\_rarity} & $-\log\bigl((n_p+1)/(n+1)\bigr)$ as defined for M2a \\
+F3 & \texttt{user\_new\_host\_count\_24h} & New pairs of the user over the preceding 24 hours \\
+F3 & \texttt{host\_new\_user\_count\_24h} & New pairs of the destination over the preceding 24 hours \\
+F4 & \texttt{hour\_sin}, \texttt{hour\_cos} & Time of day on the unit circle \\
+F4 & \texttt{hour\_deviation\_from\_profile} & Angular distance to the circular mean of the user's earlier events (0 for a first event) \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\bibitem{axelsson2000}
-S.~Axelsson.
-\newblock The base-rate fallacy and the difficulty of intrusion detection.
-\newblock \emph{ACM Transactions on Information and System Security}, 3(3):186--205, 2000.
+\section{Rules of M1}
+\label{app:rules}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lp{9.5cm}l@{}}
+\toprule
+Rule & Raw signal & ATT\&CK \\
+\midrule
+R1 & The (user, destination) pair is new in the window & T1078 \\
+R2 & Distinct destinations of the user in the past hour above the user's training 99.9th percentile & T1078 \\
+R3 & Failures on the destination in the past hour, counted when the current authentication succeeds & T1110 \\
+R4 & Deviation from the user's typical hour & T1078 \\
+R5 & Pair rarity, counted only for machine accounts & T1550 \\
+R6 & First use of an authentication type by the user within the scored partition & T1550 \\
+R7 & The user's previous destination equals the current source, within 30 minutes & T1021 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\bibitem{sommer2010}
-R.~Sommer and V.~Paxson.
-\newblock Outside the closed world: On using machine learning for network intrusion detection.
-\newblock In \emph{IEEE Symposium on Security and Privacy}, 2010.
+\section{Pairwise comparisons}
+\label{app:pairwise}
+\begin{table}[h]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}llllll@{}}
+\toprule
+Detector A & Detector B & $\Delta$ AUC-PR & 95\% interval & Holm-adjusted $p$ & Significant \\
+\midrule
+\input{generated/table_pairwise_wide.tex}
+\bottomrule
+\end{tabular}
+\end{table}
 
-\bibitem{tesseract}
-F.~Pendlebury, F.~Pierazzi, R.~Jordaney, J.~Kinder, and L.~Cavallaro.
-\newblock TESSERACT: Eliminating experimental bias in malware classification across space and time.
-\newblock In \emph{USENIX Security Symposium}, 2019.
-
-\bibitem{arp2022}
-D.~Arp, E.~Quiring, F.~Pendlebury, A.~Warnecke, F.~Pierazzi, C.~Wressnegger, L.~Cavallaro, and K.~Rieck.
-\newblock Dos and don'ts of machine learning in computer security.
-\newblock In \emph{USENIX Security Symposium}, 2022.
-
-\bibitem{kent2015}
-A.~D. Kent.
-\newblock \emph{Comprehensive, Multi-Source Cyber-Security Events}.
-\newblock Los Alamos National Laboratory, 2015.
-\newblock \url{https://doi.org/10.17021/1179829}
-
-\bibitem{tuor2018}
-A.~Tuor, R.~Baerwolf, N.~Knowles, B.~Hutchinson, N.~Nichols, and R.~Jasper.
-\newblock Recurrent neural network language models for open vocabulary event-level cyber anomaly detection.
-\newblock In \emph{AAAI Workshop on Artificial Intelligence for Cyber Security}, 2018.
-\newblock arXiv:1712.00557.
-
-\bibitem{turcotte2016}
-M.~Turcotte, J.~Moore, N.~Heard, and A.~McPhall.
-\newblock Poisson factorization for peer-based anomaly detection.
-\newblock In \emph{IEEE Conference on Intelligence and Security Informatics}, pages 208--210, 2016.
-
-\end{thebibliography}
+\section{Single-day configuration}
+\label{app:single-day}
+Training on day 5 (\num{18557382} events, 21 positives, 4 campaigns), validation on day 8 (\num{19374688}, 261, 45) and testing on day 12 (\num{19870848}, 207, 39), without warm-up. Its tie order predates the stated order of \cref{sec:evaluation}; this affects only the floor M0b, whose recall columns are therefore undetermined, and none of the other rows. \OnedayPairsSignificant{} of the \OnedayPairsTotal{} AUC-PR differences are significant, \OnedayPairsAtFloor{} of them at the resolution floor.
+\begin{table}[h]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lllrrrrr@{}}
+\toprule
+Detector & AUC-PR & 95\% interval & ROC-AUC & @10 & @50 & @100 & @500 \\
+\midrule
+\input{generated/table_results_oneday.tex}
+\bottomrule
+\end{tabular}
+\end{table}
 
 \end{document}

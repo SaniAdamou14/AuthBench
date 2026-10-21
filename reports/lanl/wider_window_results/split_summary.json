@@ -1,0 +1,78 @@
+{
+  "train": {
+    "events": 133093586,
+    "positives": 50,
+    "campaigns": 11,
+    "first_day": 0,
+    "last_day": 7,
+    "positive_rate": 3.7567550400212376e-07,
+    "n_source_hosts": 3,
+    "top_source_host_share": 0.84,
+    "source_hosts": [
+      {
+        "src_computer": "C17693",
+        "positives": 42,
+        "campaigns": 9
+      },
+      {
+        "src_computer": "C19932",
+        "positives": 5,
+        "campaigns": 2
+      },
+      {
+        "src_computer": "C18025",
+        "positives": 3,
+        "campaigns": 1
+      }
+    ]
+  },
+  "val": {
+    "events": 51687105,
+    "positives": 266,
+    "campaigns": 45,
+    "first_day": 8,
+    "last_day": 10,
+    "positive_rate": 5.14635129980679e-06,
+    "n_source_hosts": 2,
+    "top_source_host_share": 0.981203007518797,
+    "source_hosts": [
+      {
+        "src_computer": "C17693",
+        "positives": 261,
+        "campaigns": 45
+      },
+      {
+        "src_computer": "C22409",
+        "positives": 5,
+        "campaigns": 1
+      }
+    ]
+  },
+  "test": {
+    "events": 54690768,
+    "positives": 282,
+    "campaigns": 52,
+    "first_day": 11,
+    "last_day": 13,
+    "positive_rate": 5.156263302062242e-06,
+    "n_source_hosts": 3,
+    "top_source_host_share": 0.975177304964539,
+    "source_hosts": [
+      {
+        "src_computer": "C17693",
+        "positives": 275,
+        "campaigns": 50
+      },
+      {
+        "src_computer": "C22409",
+        "positives": 5,
+        "campaigns": 2
+      },
+      {
+        "src_computer": "C19932",
+        "positives": 2,
+        "campaigns": 1
+      }
+    ]
+  }
+}
