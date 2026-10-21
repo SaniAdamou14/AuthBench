@@ -39,6 +39,9 @@ def test_evaluation_knobs_match() -> None:
     assert params.eval.bootstrap_resamples == conf.bootstrap.n_resamples  # type: ignore[union-attr]
     assert params.eval.bootstrap_confidence == conf.bootstrap.confidence  # type: ignore[union-attr]
     assert params.eval.pairwise_alpha == conf.pairwise_test.alpha  # type: ignore[union-attr]
+    assert params.eval.ledger_k_max == conf.ledger.k_max  # type: ignore[union-attr]
+    assert params.eval.ledger_resamples == conf.ledger.n_resamples  # type: ignore[union-attr]
+    assert params.eval.ledger_simulations == conf.ledger.n_simulations  # type: ignore[union-attr]
 
 
 def test_feature_knobs_match() -> None:

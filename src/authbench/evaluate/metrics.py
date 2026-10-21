@@ -82,3 +82,14 @@ def degenerate_case_checks() -> dict[str, bool]:
     )
 
     return results
+
+
+def campaign_weighted_auc_pr(
+    y_true: np.ndarray, scores: np.ndarray, campaign_ids: np.ndarray
+) -> float:
+    """Average precision with each positive weighted 1/|its campaign|, so every campaign counts once."""
+    positive = y_true.astype(bool)
+    _, index, counts = np.unique(campaign_ids[positive], return_inverse=True, return_counts=True)
+    weights = np.ones(y_true.size, dtype=np.float64)
+    weights[positive] = 1.0 / counts[index]
+    return float(average_precision_score(y_true, scores, sample_weight=weights))

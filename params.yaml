@@ -48,6 +48,9 @@ eval:
   bootstrap_resamples: 2000
   bootstrap_confidence: 0.95
   pairwise_alpha: 0.05
+  ledger_k_max: 10000
+  ledger_resamples: 10000
+  ledger_simulations: 10000
 
 # conf/config.yaml (runtime)
 runtime:

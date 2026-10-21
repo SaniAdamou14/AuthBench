@@ -26,7 +26,13 @@ import polars as pl
 
 from authbench.evaluate.budget import BudgetCurve, compute_budget_curve
 from authbench.evaluate.campaign import time_to_detection
-from authbench.evaluate.metrics import auc_pr, precision_at_k, recall_at_fixed_fpr, roc_auc
+from authbench.evaluate.metrics import (
+    auc_pr,
+    campaign_weighted_auc_pr,
+    precision_at_k,
+    recall_at_fixed_fpr,
+    roc_auc,
+)
 from authbench.evaluate.stats_tests import (
     BootstrapResult,
     PairedBootstrap,
@@ -135,11 +141,14 @@ class ModelEvaluation:
     precision_at_k_global: dict[int, float] = field(default_factory=dict)
     recall_at_fixed_fpr: dict[float, float] = field(default_factory=dict)
     score_resolution: ScoreResolution | None = None
+    auc_pr_campaign_weighted: float | None = None
 
     def to_dict(self) -> dict[str, object]:
         record: dict[str, object] = {
             "model": self.model_name,
             "auc_pr": self.auc_pr,
+            # Every campaign counts once, as in campaign recall; plain AUC-PR weights them by size.
+            "auc_pr_campaign_weighted": self.auc_pr_campaign_weighted,
             "operational": {
                 "budgets": self.curve.budgets,
                 "event_recall": self.curve.event_recall,
@@ -230,6 +239,11 @@ def evaluate_model(
             else {}
         ),
         score_resolution=ScoreResolution.from_scores(scores),
+        auc_pr_campaign_weighted=(
+            campaign_weighted_auc_pr(y_true, scores, scored["campaign_id"].to_numpy())
+            if both_classes_present
+            else None
+        ),
     )
 
 

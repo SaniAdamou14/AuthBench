@@ -19,6 +19,7 @@ from rich.console import Console
 from rich.table import Table
 
 from authbench.evaluate.budget import DEFAULT_BUDGETS
+from authbench.evaluate.ledger import campaign_users, write_ledger_outputs
 from authbench.evaluate.metrics import ROC_AUC_WARNING, auc_pr
 from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
 from authbench.evaluate.stats_tests import (
@@ -687,6 +688,18 @@ def demo(
     comparisons = bootstrap.comparisons("auc_pr", alpha=0.05)
 
     console.print("[bold]7/7[/] Writing report artifacts...")
+    write_ledger_outputs(
+        scored,
+        model_names,
+        {name: score_column(name) for name in model_names},
+        campaign_users(test_feat),
+        reports_dir / "tables",
+        k_max=500,
+        n_resamples=DEMO_BOOTSTRAP_RESAMPLES,
+        n_simulations=DEMO_BOOTSTRAP_RESAMPLES,
+        confidence=0.95,
+        seed=42,
+    )
     (reports_dir / "tables" / "demo_results.json").write_text(json.dumps(all_rows, indent=2))
     (reports_dir / "tables" / "pairwise_comparisons.json").write_text(
         json.dumps([c.to_dict() for c in comparisons], indent=2)

@@ -2,6 +2,7 @@
   {
     "model": "M0a_random",
     "auc_pr": 0.0015628790649554745,
+    "auc_pr_campaign_weighted": 0.0005834999871404145,
     "operational": {
       "budgets": [
         10,
@@ -130,6 +131,7 @@
   {
     "model": "M0b_always_fail",
     "auc_pr": 0.001366629394955895,
+    "auc_pr_campaign_weighted": 0.0004973887092762995,
     "operational": {
       "budgets": [
         10,
@@ -258,6 +260,7 @@
   {
     "model": "M2a_pair_rarity",
     "auc_pr": 0.002461190394651919,
+    "auc_pr_campaign_weighted": 0.0010933222459247197,
     "operational": {
       "budgets": [
         10,
@@ -386,6 +389,7 @@
   {
     "model": "M2b_pca_reconstruction",
     "auc_pr": 0.004048343861096427,
+    "auc_pr_campaign_weighted": 0.001143401155106201,
     "operational": {
       "budgets": [
         10,
@@ -514,6 +518,7 @@
   {
     "model": "M3a_iforest",
     "auc_pr": 0.00419657627204758,
+    "auc_pr_campaign_weighted": 0.0014215176893498196,
     "operational": {
       "budgets": [
         10,
@@ -642,6 +647,7 @@
   {
     "model": "M3b_ecod",
     "auc_pr": 0.004571259237446222,
+    "auc_pr_campaign_weighted": 0.001748194947100675,
     "operational": {
       "budgets": [
         10,
@@ -770,6 +776,7 @@
   {
     "model": "M1_rules",
     "auc_pr": 0.33053185390117695,
+    "auc_pr_campaign_weighted": 0.15182791711954086,
     "operational": {
       "budgets": [
         10,

@@ -27,6 +27,7 @@ import numpy as np
 import polars as pl
 from omegaconf import DictConfig, OmegaConf
 
+from authbench.evaluate.ledger import campaign_users, write_ledger_outputs
 from authbench.evaluate.metrics import ROC_AUC_WARNING, auc_pr
 from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
 from authbench.evaluate.stats_tests import paired_campaign_bootstrap
@@ -437,6 +438,24 @@ def main(cfg: DictConfig) -> None:
         len(comparisons),
         cfg.eval.pairwise_test.alpha,
         cfg.eval.pairwise_test.correction,
+    )
+
+    ledger_cfg = cfg.eval.ledger
+    write_ledger_outputs(
+        scored,
+        model_names,
+        {name: score_column(name) for name in model_names},
+        campaign_users(
+            test.filter(pl.col("is_malicious"))
+            .select("campaign_id", "src_user", "is_malicious")
+            .collect()
+        ),
+        tables_dir,
+        k_max=int(ledger_cfg.k_max),
+        n_resamples=int(ledger_cfg.n_resamples),
+        n_simulations=int(ledger_cfg.n_simulations),
+        confidence=float(ledger_cfg.confidence),
+        seed=int(ledger_cfg.seed),
     )
 
     n_campaigns = scored.filter(pl.col("campaign_id").is_not_null())["campaign_id"].n_unique()

@@ -44,3 +44,10 @@ roc_auc:
     ROC-AUC is reported for literature comparability only. At a positive rate
     near 1e-7, ROC-AUC stays high even for operationally useless models — see
     docs/limitations.md. Do not use it to rank models.
+# Positives ledger (evaluate/ledger.py): per-campaign detection budgets and their summaries.
+ledger:
+  k_max: 10000           # upper end of the log-budget area
+  n_resamples: 10000     # bootstrap over accounts
+  n_simulations: 10000   # random-ranking null
+  confidence: 0.95
+  seed: 42
