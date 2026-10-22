@@ -1,0 +1,16 @@
+# M5c: Euler (King and Huang, 2022), reimplemented; see models/euler.py for what the paper fixes
+# and what is chosen here. On in train_eval with runtime.euler: true (needs the `deep` extra).
+name: euler
+id: M5c
+family: graph
+requires_labels: false
+snapshot_seconds: 1800
+hidden: 32
+embedding: 16
+dropout: 0.1
+learning_rate: 0.01
+epochs: 100
+patience: 10
+validation_fraction: 0.05
+window: 48
+seed: 42

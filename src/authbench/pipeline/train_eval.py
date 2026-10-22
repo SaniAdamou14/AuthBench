@@ -87,6 +87,8 @@ def build_model_catalog(
     *,
     exclude: set[str] | None = None,
     deep_models: bool = False,
+    euler: bool = False,
+    cache_dir: str | None = None,
 ) -> list[AnomalyScorer]:
     """The catalog, *unfitted*. `main` is the single place that fits — an
     earlier version fitted M1 here and then refit every model in the loop,
@@ -116,6 +118,10 @@ def build_model_catalog(
     ]
     if deep_models:
         catalog.extend(_deep_catalog(fit_sample_size))
+    if euler:
+        from authbench.models.euler import EulerScorer
+
+        catalog.append(EulerScorer(**_model_params("euler"), cache_dir=cache_dir))
     if exclude:
         catalog = [m for m in catalog if m.name not in exclude]
     return catalog
@@ -125,15 +131,19 @@ def _deep_catalog(fit_sample_size: int | None) -> list[AnomalyScorer]:
     """M4a and M4b, configured from `conf/model/ae.yaml` and `conf/model/vae.yaml`."""
     from authbench.models.deep import AutoencoderScorer, VAEScorer
 
-    def params(name: str) -> dict[str, Any]:
-        cfg = OmegaConf.to_container(OmegaConf.load(CONF_DIR / "model" / f"{name}.yaml"))
-        assert isinstance(cfg, dict)
-        return {str(k): v for k, v in cfg.items() if k not in _MODEL_CONFIG_METADATA}
-
     return [
-        AutoencoderScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size, **params("ae")),
-        VAEScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size, **params("vae")),
+        AutoencoderScorer(
+            MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size, **_model_params("ae")
+        ),
+        VAEScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size, **_model_params("vae")),
     ]
+
+
+def _model_params(name: str) -> dict[str, Any]:
+    """Constructor arguments from `conf/model/<name>.yaml`."""
+    cfg = OmegaConf.to_container(OmegaConf.load(CONF_DIR / "model" / f"{name}.yaml"))
+    assert isinstance(cfg, dict)
+    return {str(k): v for k, v in cfg.items() if k not in _MODEL_CONFIG_METADATA}
 
 
 R1 = "r1_unsupervised"
@@ -324,6 +334,8 @@ def main(cfg: DictConfig) -> None:
             val,
             test,
             users,
+            # Temporal models observe every event up to the one they score, whatever they trained on.
+            timeline=[f for f in (train, val, test) if f is not None],
             tables_dir=Path(cfg.paths.tables_dir) / suffix,
             figures_dir=Path(cfg.paths.figures_dir) / suffix,
             metrics_path=Path(cfg.paths.reports_dir) / suffix / "metrics_summary.json",
@@ -356,6 +368,7 @@ def evaluate_regime(
     tracker: Any,
     version: str,
     fit_variance_seeds: list[int] | None = None,
+    timeline: list[pl.LazyFrame] | None = None,
 ) -> None:
     """Fit a fresh catalog on `train`, score `test` by day, and write every table and the figure."""
     tables_dir.mkdir(parents=True, exist_ok=True)
@@ -366,6 +379,8 @@ def evaluate_regime(
         fit_sample_size=int(cfg.runtime.fit_sample_size) or None,
         exclude=exclude_models,
         deep_models=bool(cfg.runtime.get("deep_models", False)),
+        euler=bool(cfg.runtime.get("euler", False)),
+        cache_dir=str(Path(cfg.paths.processed_dir) / "euler" / regime),
     )
     tuning_cfg = cfg.eval.get("tuning", {})
     models, tuning = fit_models(
@@ -376,6 +391,10 @@ def evaluate_regime(
         seed=int(tuning_cfg.get("seed", 42)),
     )
     (tables_dir / "tuning.json").write_text(json.dumps([r.to_dict() for r in tuning], indent=2))
+    for model in models:
+        prepare = getattr(model, "prepare", None)
+        if prepare is not None:
+            prepare(timeline or [train, test])
     thresholds = calibrate_alert_thresholds(models, val if val is not None else train, budgets)
     statistics, skipped = score_split(
         models,

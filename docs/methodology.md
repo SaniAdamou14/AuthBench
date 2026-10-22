@@ -271,6 +271,30 @@ last training day (`normalization_days`, seeded sample of at most 2,000,000 even
 R7 are stored features, so M1 is row-local. The LANL results in `reports/lanl/` predate the
 change; the next run uses the fitted normalisation.
 
+## Euler, reimplemented (S6-09)
+
+`models/euler.py` (M5c, `runtime.euler: true`) reimplements Euler (King and Huang, 2022), the
+most cited deep detector on LANL, because its code carries no licence. Taken from the paper
+(sections IV and VI): a directed, weighted graph from source to destination computers per
+30-minute snapshot, edge weight `sigmoid((C - mu) / sigma)` of the snapshot's standardised
+edge counts, node features a one-hot identifier with a one-hot node type, two 32-unit GCN
+layers, tanh, a 32-unit GRU and a projection to 16, the inner-product decoder, predictor mode
+(snapshot t scored from the embeddings of t - 1), binary cross-entropy against as many random
+non-edges, Adam, early stopping after 10 epochs without improvement on 5% of each snapshot's
+edges. Chosen here because the paper does not say: dropout 0.1 on edges and between GCN
+layers, a single linear projection, learning rate 0.01 (from its grid), at most 100 epochs,
+back-propagation truncated to one day, and one shared node for computers unseen in training.
+
+In AuthBench an event scores the negated log-odds of its edge under the previous snapshot's
+embeddings. The model trains on the regime's training rows but observes the whole timeline,
+since a deployed Euler sees every edge before scoring the next snapshot: `prepare` runs it once
+along train, validation and test and keeps every snapshot's embeddings on disk, so scoring is a
+lookup, causal and row-local (`tests/unit/test_euler.py` checks signal, causality, determinism
+and row-locality). `scripts/euler_fidelity.py` reruns it under the paper's own protocol, every
+authentication event, training before the first red-team event, edges scored per snapshot, and
+writes the edge-level AUC and AP beside the published 0.9906 and 0.0155 (table VI, GCN + GRU,
+link prediction). That check needs the whole dataset and is part of the rented run.
+
 ## Alert units and what a budget costs (S6-29)
 
 **Units.** An analyst does not triage events one by one. Besides events, every run ranks two

@@ -36,6 +36,8 @@ runtime:
   fit_sample_size: 5_000_000
   # M4a/M4b in the train_eval catalog. Needs the `deep` extra; off so the stage runs without PyTorch.
   deep_models: false
+  # M5c Euler in the train_eval catalog. Needs the `deep` extra; on for the LANL run.
+  euler: false
 
 hydra:
   run:
