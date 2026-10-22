@@ -85,6 +85,8 @@ exclude = ["notebooks/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Tests share fixtures as `tests.unit.<module>`; the root must be importable however pytest is launched.
+pythonpath = ["."]
 addopts = "-ra -q --cov=authbench --cov-report=term-missing"
 
 [tool.coverage.run]
