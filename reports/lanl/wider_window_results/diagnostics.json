@@ -1,0 +1,59 @@
+{
+  "window_days": [
+    9,
+    13
+  ],
+  "new_pairs_per_day": [
+    {
+      "day": 9,
+      "new_pairs": 222314
+    },
+    {
+      "day": 10,
+      "new_pairs": 16485
+    },
+    {
+      "day": 11,
+      "new_pairs": 12914
+    },
+    {
+      "day": 12,
+      "new_pairs": 76194
+    },
+    {
+      "day": 13,
+      "new_pairs": 29427
+    }
+  ],
+  "malicious_at_first_second_of_pair_per_day": [
+    {
+      "day": 12,
+      "malicious": 207,
+      "at_first_second": 112
+    },
+    {
+      "day": 13,
+      "malicious": 75,
+      "at_first_second": 21
+    }
+  ],
+  "events": 54690768,
+  "machine_source_events": 33764484,
+  "malicious_from_machine_accounts": 0,
+  "campaigns_truncated_at_partition_end": [
+    {
+      "campaign_id": 68,
+      "user_at_domain": "U3549@DOM1",
+      "start_day": 13,
+      "end_day": 14,
+      "n_events": 13
+    },
+    {
+      "campaign_id": 140,
+      "user_at_domain": "U8170@DOM1",
+      "start_day": 13,
+      "end_day": 14,
+      "n_events": 3
+    }
+  ]
+}

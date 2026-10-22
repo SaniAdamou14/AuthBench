@@ -230,3 +230,34 @@ def test_the_curve_carries_the_bracket_the_exposure_and_the_first_budget() -> No
     assert len(curve.tie_exposure) == 3
     assert curve.budget_for_first_detection == 2
     assert curve.campaign_recall == [0.0, 0.5, 1.0]
+
+
+def test_random_first_detection_survival_matches_exhaustive_enumeration() -> None:
+    from itertools import combinations
+
+    from authbench.evaluate.budget import random_first_detection_survival
+
+    days = [(7, 2), (5, 1)]
+    subsets = [(a, b) for a in combinations(range(1, 8), 2) for b in combinations(range(1, 6), 1)]
+    for budget in range(0, 6):
+        exceeding = sum(min(*a, *b) > budget for a, b in subsets)
+        assert random_first_detection_survival(days, budget) == pytest.approx(
+            exceeding / len(subsets)
+        )
+
+
+def test_random_first_detection_quantile_inverts_the_survival() -> None:
+    from authbench.evaluate.budget import (
+        random_first_detection_quantile,
+        random_first_detection_survival,
+    )
+
+    days = [(19_870_848, 207), (20_807_377, 75)]
+    median = random_first_detection_quantile(days, 0.5)
+    assert 1 - random_first_detection_survival(days, median) >= 0.5
+    assert 1 - random_first_detection_survival(days, median - 1) < 0.5
+    assert (
+        random_first_detection_quantile(days, 0.025)
+        < median
+        < random_first_detection_quantile(days, 0.975)
+    )

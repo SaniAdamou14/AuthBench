@@ -6,6 +6,7 @@ from authbench.label.redteam_join import (
     attach_campaign_id,
     group_into_campaigns,
     label_auth_events,
+    split_label_summary,
 )
 
 AUTH_SCHEMA = {
@@ -169,3 +170,32 @@ def test_attach_campaign_id_leaves_benign_events_null() -> None:
     by_id = dict(zip(result["event_id"].to_list(), result["campaign_id"].to_list(), strict=True))
     assert by_id[0] is not None
     assert by_id[1] is None
+
+
+def test_split_label_summary_counts_and_measures_source_concentration() -> None:
+    labeled = pl.LazyFrame(
+        {
+            "day": [3, 3, 4, 4, 4],
+            "src_computer": ["C1", "C1", "C2", "C1", "C9"],
+            "is_malicious": [True, True, True, True, False],
+            "campaign_id": [1, 1, 2, 3, None],
+        },
+        schema={
+            "day": pl.Int16,
+            "src_computer": pl.Categorical,
+            "is_malicious": pl.Boolean,
+            "campaign_id": pl.Int64,
+        },
+    )
+    summary = split_label_summary(labeled)
+    assert (summary["events"], summary["positives"], summary["campaigns"]) == (5, 4, 3)
+    assert (summary["first_day"], summary["last_day"]) == (3, 4)
+    assert summary["top_source_host_share"] == 0.75
+    assert summary["days"] == [
+        {"day": 3, "events": 2, "positives": 2},
+        {"day": 4, "events": 3, "positives": 2},
+    ]
+    assert summary["source_hosts"] == [
+        {"src_computer": "C1", "positives": 3, "campaigns": 2},
+        {"src_computer": "C2", "positives": 1, "campaigns": 1},
+    ]

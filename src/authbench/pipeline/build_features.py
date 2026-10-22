@@ -33,6 +33,7 @@ from authbench.label.redteam_join import (
     campaign_summary,
     group_into_campaigns,
     label_auth_events,
+    split_label_summary,
 )
 from authbench.parse.clean import clean_redteam
 from authbench.parse.schema import RAW_REDTEAM_COLUMNS
@@ -240,6 +241,7 @@ def main(cfg: DictConfig) -> None:
         json.dumps(OmegaConf.to_container(cfg.features, resolve=True), indent=2)
     )
 
+    split_summaries: dict[str, object] = {}
     for split_name, frame in warm.items():
         out = featurize(
             frame,
@@ -268,11 +270,13 @@ def main(cfg: DictConfig) -> None:
         out_path = version_dir / f"{split_name}.parquet"
         out.sink_parquet(out_path, compression="zstd")
         logger.info("Wrote %s features to %s", split_name, out_path)
+        split_summaries[split_name] = split_label_summary(pl.scan_parquet(out_path))
 
         for stage_suffix in ("", "_f2", "_f3"):
             checkpoint_path = interim_dir / f"_checkpoint_{split_name}{stage_suffix}.parquet"
             checkpoint_path.unlink(missing_ok=True)
 
+    (tables_dir / "split_summary.json").write_text(json.dumps(split_summaries, indent=2))
     logger.info("Feature store version: %s", version)
 
 

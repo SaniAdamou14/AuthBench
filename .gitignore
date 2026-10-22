@@ -62,3 +62,7 @@ mlruns.db
 
 # working-copy summary: the published snapshot lives in reports/lanl/
 reports/metrics_summary.json
+reports/paper/*.bcf
+reports/paper/*.fdb_latexmk
+reports/paper/*.fls
+reports/paper/*.run.xml

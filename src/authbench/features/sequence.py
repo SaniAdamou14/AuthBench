@@ -1,82 +1,76 @@
-"""F6 — sequential encoding of the last N events per user, for sequence models (US-114).
+"""F6: the N most recent strictly-prior events of the same user, as fixed-length token sequences (US-114).
 
-Each event gets its own strictly-causal context: the N most recent *prior*
-events of the same user, encoded as (dst_computer_id, auth_type_id, success,
-discretized delta-t) tuples. Users with fewer than N prior events are
-left-padded with a dedicated sentinel id (-1) — never with a real category
-code, which would silently alias padding to an actual destination/auth type.
+Every sequence is left-padded with `PAD_ID`, and no reserved token shares a
+code with a real outcome: identifiers come from a train-fitted vocabulary
+(`features.vocabulary`), success and failure are 1 and 2, and the first event
+of a user has its own inter-arrival bucket.
 """
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import polars as pl
 
 from authbench.features.causal import sort_for_causal
+from authbench.features.vocabulary import PAD_ID, encode
 
 DEFAULT_CONTEXT_LENGTH = 32
-PAD_ID = -1
 N_DELTA_BUCKETS = 10
+SUCCESS_TOKEN = 1
+FAILURE_TOKEN = 2
+FIRST_EVENT_BUCKET = 1
+
+SEQUENCE_COLUMNS = (
+    "sequence_dst",
+    "sequence_auth_type",
+    "sequence_success",
+    "sequence_delta_bucket",
+)
 
 
-def _discretize_delta_t(delta_seconds_col: pl.Expr) -> pl.Expr:
-    """Log-scale bucketing of inter-event delay, in `N_DELTA_BUCKETS` bins.
-
-    `delta_seconds_col` is null for a user's first-ever event (no prior delta);
-    that case gets its own bucket (0) rather than colliding with a real delay.
-    """
-    log_delta = (delta_seconds_col + 1.0).log()
-    bucket = (log_delta.clip(0, 20) / 20 * (N_DELTA_BUCKETS - 1)).round(0).cast(pl.Int32) + 1
-    return pl.when(delta_seconds_col.is_null()).then(0).otherwise(bucket)
+def _delta_bucket(delta_seconds: pl.Expr) -> pl.Expr:
+    """Log-scale inter-arrival bucket in `[2, N_DELTA_BUCKETS + 1]`, `FIRST_EVENT_BUCKET` when there is no prior event."""
+    scaled = (delta_seconds + 1.0).log().clip(0, 20) / 20 * (N_DELTA_BUCKETS - 1)
+    return (
+        pl.when(delta_seconds.is_null())
+        .then(pl.lit(FIRST_EVENT_BUCKET, dtype=pl.Int32))
+        .otherwise(scaled.round(0).cast(pl.Int32) + FIRST_EVENT_BUCKET + 1)
+    )
 
 
 def compute_f6(
-    events: pl.LazyFrame, *, context_length: int = DEFAULT_CONTEXT_LENGTH
+    events: pl.LazyFrame,
+    *,
+    dst_vocabulary: Sequence[str],
+    auth_type_vocabulary: Sequence[str],
+    context_length: int = DEFAULT_CONTEXT_LENGTH,
 ) -> pl.LazyFrame:
-    """Add `sequence_dst`, `sequence_auth_type`, `sequence_success`,
-    `sequence_delta_bucket` — each a fixed-length (`context_length`) list
-    column of the N most recent strictly-prior events for the same user.
-    """
+    """Add the four `SEQUENCE_COLUMNS` and `dst_code`, the current event's own destination token."""
     by_user = sort_for_causal(events, "src_user", "time")
-
-    with_codes = by_user.with_columns(
-        [
-            pl.col("dst_computer").to_physical().alias("_dst_code"),
-            pl.col("auth_type").to_physical().fill_null(-1).alias("_auth_code"),
-            pl.col("success").cast(pl.Int32).alias("_success_int"),
-            (pl.col("time") - pl.col("time").shift(1).over("src_user")).alias("_delta_t"),
-        ]
-    ).with_columns(_discretize_delta_t(pl.col("_delta_t")).alias("_delta_bucket"))
-
-    # Shift(i) over the user gives the i-th strictly-prior event's value —
-    # never the current row's own value (i starts at 1).
-    dst_lags = [pl.col("_dst_code").shift(i).over("src_user") for i in range(1, context_length + 1)]
-    auth_lags = [
-        pl.col("_auth_code").shift(i).over("src_user") for i in range(1, context_length + 1)
-    ]
-    success_lags = [
-        pl.col("_success_int").shift(i).over("src_user") for i in range(1, context_length + 1)
-    ]
-    delta_lags = [
-        pl.col("_delta_bucket").shift(i).over("src_user") for i in range(1, context_length + 1)
-    ]
-
-    with_sequences = with_codes.with_columns(
-        [
-            pl.concat_list([lag.fill_null(PAD_ID) for lag in reversed(dst_lags)]).alias(
-                "sequence_dst"
-            ),
-            pl.concat_list([lag.fill_null(PAD_ID) for lag in reversed(auth_lags)]).alias(
-                "sequence_auth_type"
-            ),
-            pl.concat_list([lag.fill_null(0) for lag in reversed(success_lags)]).alias(
-                "sequence_success"
-            ),
-            pl.concat_list([lag.fill_null(0) for lag in reversed(delta_lags)]).alias(
-                "sequence_delta_bucket"
-            ),
-        ]
+    tokens = {
+        "sequence_dst": "_dst",
+        "sequence_auth_type": "_auth",
+        "sequence_success": "_success",
+        "sequence_delta_bucket": "_delta",
+    }
+    tokenized = by_user.with_columns(
+        encode("dst_computer", dst_vocabulary).alias("_dst"),
+        encode("auth_type", auth_type_vocabulary).alias("_auth"),
+        pl.when(pl.col("success"))
+        .then(pl.lit(SUCCESS_TOKEN, dtype=pl.Int32))
+        .otherwise(pl.lit(FAILURE_TOKEN, dtype=pl.Int32))
+        .alias("_success"),
+        _delta_bucket(pl.col("time") - pl.col("time").shift(1).over("src_user")).alias("_delta"),
     )
-
-    return with_sequences.drop(
-        ["_dst_code", "_auth_code", "_success_int", "_delta_t", "_delta_bucket"]
+    # Lag i is the i-th strictly-prior event: i starts at 1, so an event never sees itself.
+    sequences = tokenized.with_columns(
+        pl.concat_list(
+            [
+                pl.col(token).shift(lag).over("src_user").fill_null(PAD_ID)
+                for lag in range(context_length, 0, -1)
+            ]
+        ).alias(name)
+        for name, token in tokens.items()
     )
+    return sequences.rename({"_dst": "dst_code"}).drop(["_auth", "_success", "_delta"])

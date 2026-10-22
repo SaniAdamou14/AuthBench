@@ -43,6 +43,16 @@ all = ["authbench[classical,deep,graph,explain,dashboard,tracking,dev]"]
 [project.scripts]
 authbench = "authbench.cli:app"
 
+# CPU wheels everywhere: the deep models are sized to train on a CPU, and the
+# default Linux wheel would pull several GB of CUDA libraries into CI.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

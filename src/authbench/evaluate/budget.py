@@ -28,6 +28,7 @@ Two things follow, and this module implements both:
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -293,3 +294,31 @@ def compute_budget_curve(
         tie_exposure=[tie_exposure(frame, score_col, k) for k in budgets],
         budget_for_first_detection=budget_for_first_detection(frame, score_col),
     )
+
+
+def random_first_detection_survival(days: list[tuple[int, int]], budget: int) -> float:
+    """P(b* > budget) for a uniformly random ranking, given (events, positives) per day.
+
+    Within a day the positives occupy a uniformly random subset of ranks, so the best of them
+    exceeds `budget` with probability C(N - budget, p) / C(N, p); days are independent.
+    """
+    log_survival = 0.0
+    for n_events, n_positives in days:
+        if n_positives == 0:
+            continue
+        if budget > n_events - n_positives:
+            return 0.0
+        log_survival += sum(math.log1p(-budget / (n_events - i)) for i in range(n_positives))
+    return math.exp(log_survival)
+
+
+def random_first_detection_quantile(days: list[tuple[int, int]], q: float) -> int:
+    """Smallest budget b with P(b* <= b) >= q under a uniformly random ranking."""
+    low, high = 0, max(n for n, _ in days)
+    while low < high:
+        mid = (low + high) // 2
+        if 1.0 - random_first_detection_survival(days, mid) >= q:
+            high = mid
+        else:
+            low = mid + 1
+    return low

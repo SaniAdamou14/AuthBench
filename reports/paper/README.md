@@ -1,60 +1,58 @@
 # Technical report
 
-`main.tex` — the AuthBench technical report, written against the committed run in
-[`../lanl/RUN.md`](../lanl/RUN.md).
+`main.tex` is the AuthBench report, version 2: written against the wider-window
+LANL run ([`../lanl/wider_window_results/RUN.md`](../lanl/wider_window_results/RUN.md)),
+with the single-day run of [`../lanl/RUN.md`](../lanl/RUN.md) in an appendix.
+Version 1 (single-day run) is archived on Zenodo,
+[10.5281/zenodo.23159768](https://doi.org/10.5281/zenodo.23159768); its two
+errors are listed in the correction notice at the top of the repository README.
 
-Every figure in it is traceable to committed output or to the docs:
-`../lanl/RUN.md` (split, results table, pairwise comparisons),
-`../../docs/dataset-notes.md` (749 raw rows, 715 after deduplication),
-`../../docs/methodology.md` (protocol, bootstrap floors, transductivity of ECOD),
-`../../docs/limitations.md` (one-day history, cold-start sentinel),
-`../../README.md` (rule discrimination table, scaling figures, timings).
+## Where every number comes from
 
-**Nothing in it exceeds what those files establish.** Where the run is ambiguous
-— M0b's undetermined budget row, the twelve significant comparisons that are
-bounds rather than measurements — the report says so rather than rounding in its
-own favour.
+Nothing in the report is typed by hand. `scripts/paper_assets.py` reads the
+committed run outputs and writes `generated/`:
+
+| File | Content |
+|---|---|
+| `numbers.tex` | every number quoted in the text, as LaTeX macros |
+| `table_*.tex` | the rows of each results table |
+| `figure_first_detection.pdf` | budget for first detection against ROC-AUC and AUC-PR |
+
+CI reruns the script and fails if a generated `.tex` file differs from the
+committed copy, so the text cannot drift from the runs it describes.
+
+```bash
+python scripts/paper_assets.py
+```
 
 ## Building
 
-No TeX distribution is required to read it. To produce a PDF:
+The bibliography uses `biblatex` with the APA 7th edition style
+(`biblatex-apa`) and the `biber` backend. Every entry of `references.bib` was
+checked against a primary record (Crossref, DBLP, arXiv or the publisher).
 
 ```bash
-pdflatex main.tex && pdflatex main.tex   # twice, for cross-references
+cd reports/paper
+latexmk -pdf main.tex      # runs pdflatex and biber as many times as needed
 ```
 
-The document uses only standard packages (`amsmath`, `amssymb`, `booktabs`,
-`graphicx`, `hyperref`, `url`, `geometry`) and a plain `article` class, so it
-compiles on any TeX Live or MiKTeX install, and on Overleaf with no
-configuration.
-
-**One figure is included by relative path** —
-`../lanl/figures/campaign_recall_vs_budget.png` — so that the paper always shows
-the committed output rather than a copy that can drift from it. This works for a
-local build. It does **not** work for an arXiv upload, which must be
-self-contained: copy the PNG next to `main.tex` and change the path to
-`campaign_recall_vs_budget.png` before packaging. Do it at submission time, not
-before, so the working copy keeps pointing at the run.
-
-If no local TeX is installed, Overleaf is the shortest path: create a blank
-project, upload `main.tex`, compile. It also produces the archive arXiv expects.
+Packages beyond a standard TeX Live or MiKTeX install: `biblatex-apa`,
+`siunitx`, `threeparttable`, `cleveref`; MiKTeX installs them on first use.
 
 ## Submitting to arXiv
 
-1. **Endorsement comes first, not last.** Since 21 January 2026, arXiv no longer
-   accepts an institutional email address as sufficient credential for a first
-   submission to a category. A first submission to `cs.CR` therefore requires an
-   endorsement from an established author in that category. This is an
-   administrative dependency with a human in the loop and unknown latency —
-   settle it before the text is final, not after.
-2. Primary category `cs.CR` (Cryptography and Security); cross-list `cs.LG`
-   (Machine Learning) is defensible given the evaluation-methodology content.
-3. Upload the LaTeX source, not a PDF — arXiv prefers source and will compile it.
-4. Choose a license (CC BY 4.0 is consistent with the Apache-2.0 code licence).
-5. The abstract in the submission form must match the one in the document.
+1. **Endorsement first.** Since 21 January 2026, a first submission to `cs.CR`
+   needs a personal endorsement from an established author in that category;
+   an institutional address no longer suffices. Settle it before the text is
+   final.
+2. Primary category `cs.CR`; cross-list `cs.LG`.
+3. Upload the source: `main.tex`, `references.bib`, `generated/`, and the
+   `.bbl` produced by biber (arXiv does not run biber).
+4. CC BY 4.0, consistent with the Apache-2.0 code licence.
+5. The abstract in the form must match the document.
 
 ## Deliberately not wired into DVC
 
-There is no `report` stage in `dvc.yaml`, and adding one that depends on this
-file would make `dvc repro` require a TeX toolchain for everyone who clones the
-repository. The report is a document about the run, not a stage of it.
+There is no `report` stage in `dvc.yaml`: it would make `dvc repro` require a
+TeX toolchain for every clone. The report is a document about the runs, not a
+stage of them.

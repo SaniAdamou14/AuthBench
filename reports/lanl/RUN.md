@@ -1,5 +1,16 @@
 # LANL run — 23 August 2026
 
+> **Superseded as the primary result (21 October 2026).** The wider-window run of
+> 15 September 2026 ([`wider_window_results/RUN.md`](wider_window_results/RUN.md))
+> gives every partition two warm-up days and tests on 52 campaigns; the report
+> (version 2) is built on it. This file is kept unchanged below as the record of
+> the configuration it replaced, with two corrections: the section title
+> "anti-correlated" overstates what two extreme models establish (the wider run
+> measures a Spearman correlation of -0.10 between ROC-AUC and the budget for
+> first detection, i.e. no association, not a negative one); and the 39
+> campaigns are not independent attacks: almost all red-team events come from
+> one source host (see the wider run's `split_summary.json`).
+
 The project's first results on real data. Committed output, like
 [`reports/demo/`](../demo/RUN.md), but this one **is** a finding: the attacks
 were carried out by a red team that had never heard of any model in the

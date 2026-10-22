@@ -1,0 +1,154 @@
+{
+  "train": {
+    "events": 133093586,
+    "positives": 50,
+    "campaigns": 11,
+    "first_day": 0,
+    "last_day": 7,
+    "positive_rate": 3.7567550400212376e-07,
+    "n_source_hosts": 3,
+    "top_source_host_share": 0.84,
+    "source_hosts": [
+      {
+        "src_computer": "C17693",
+        "positives": 42,
+        "campaigns": 9
+      },
+      {
+        "src_computer": "C19932",
+        "positives": 5,
+        "campaigns": 2
+      },
+      {
+        "src_computer": "C18025",
+        "positives": 3,
+        "campaigns": 1
+      }
+    ],
+    "days": [
+      {
+        "day": 0,
+        "events": 15740768,
+        "positives": 0
+      },
+      {
+        "day": 1,
+        "events": 17562411,
+        "positives": 10
+      },
+      {
+        "day": 2,
+        "events": 15585892,
+        "positives": 15
+      },
+      {
+        "day": 3,
+        "events": 13473124,
+        "positives": 0
+      },
+      {
+        "day": 4,
+        "events": 13398148,
+        "positives": 0
+      },
+      {
+        "day": 5,
+        "events": 18557382,
+        "positives": 21
+      },
+      {
+        "day": 6,
+        "events": 19381578,
+        "positives": 3
+      },
+      {
+        "day": 7,
+        "events": 19394283,
+        "positives": 1
+      }
+    ]
+  },
+  "val": {
+    "events": 51687105,
+    "positives": 266,
+    "campaigns": 45,
+    "first_day": 8,
+    "last_day": 10,
+    "positive_rate": 5.14635129980679e-06,
+    "n_source_hosts": 2,
+    "top_source_host_share": 0.981203007518797,
+    "source_hosts": [
+      {
+        "src_computer": "C17693",
+        "positives": 261,
+        "campaigns": 45
+      },
+      {
+        "src_computer": "C22409",
+        "positives": 5,
+        "campaigns": 1
+      }
+    ],
+    "days": [
+      {
+        "day": 8,
+        "events": 19374688,
+        "positives": 261
+      },
+      {
+        "day": 9,
+        "events": 18141723,
+        "positives": 5
+      },
+      {
+        "day": 10,
+        "events": 14170694,
+        "positives": 0
+      }
+    ]
+  },
+  "test": {
+    "events": 54690768,
+    "positives": 282,
+    "campaigns": 52,
+    "first_day": 11,
+    "last_day": 13,
+    "positive_rate": 5.156263302062242e-06,
+    "n_source_hosts": 3,
+    "top_source_host_share": 0.975177304964539,
+    "source_hosts": [
+      {
+        "src_computer": "C17693",
+        "positives": 275,
+        "campaigns": 50
+      },
+      {
+        "src_computer": "C22409",
+        "positives": 5,
+        "campaigns": 2
+      },
+      {
+        "src_computer": "C19932",
+        "positives": 2,
+        "campaigns": 1
+      }
+    ],
+    "days": [
+      {
+        "day": 11,
+        "events": 14012543,
+        "positives": 0
+      },
+      {
+        "day": 12,
+        "events": 19870848,
+        "positives": 207
+      },
+      {
+        "day": 13,
+        "events": 20807377,
+        "positives": 75
+      }
+    ]
+  }
+}

@@ -1,0 +1,547 @@
+% references_verified.bib
+% Built 2026-10-21. biblatex / biber, intended for style=apa (biblatex-apa, APA 7th).
+% Every field below was taken from a machine-readable primary record (Crossref, doi.org
+% content negotiation, DataCite/OSTI, arXiv API, USENIX/JMLR/AAAI/NDSS pages, HAL API,
+% archived JSTOR page, publisher PDF). See references_log.md for the record URL per key.
+% Verification notes per entry (record URLs, discrepancies between sources, fields that
+% could not be confirmed) are in references_log.md; they are not kept here because
+% biblatex-apa prints the annotation field.
+% DBLP could not be queried (dblp.org and its mirrors answer with an anti-bot challenge page).
+
+% ---------------------------------------------------------------- Security / evaluation
+
+@article{axelsson2000,
+  author       = {Axelsson, Stefan},
+  title        = {The base-rate fallacy and the difficulty of intrusion detection},
+  journaltitle = {ACM Transactions on Information and System Security},
+  date         = {2000-08},
+  volume       = {3},
+  number       = {3},
+  pages        = {186--205},
+  publisher    = {Association for Computing Machinery},
+  doi          = {10.1145/357830.357849},
+}
+
+@inproceedings{sommer2010,
+  author    = {Sommer, Robin and Paxson, Vern},
+  title     = {Outside the closed world: On using machine learning for network intrusion detection},
+  booktitle = {2010 {IEEE} Symposium on Security and Privacy},
+  date      = {2010},
+  pages     = {305--316},
+  publisher = {IEEE},
+  doi       = {10.1109/SP.2010.25},
+}
+
+@inproceedings{pendlebury2019,
+  author    = {Pendlebury, Feargus and Pierazzi, Fabio and Jordaney, Roberto and Kinder, Johannes and Cavallaro, Lorenzo},
+  title     = {{TESSERACT}: Eliminating experimental bias in malware classification across space and time},
+  booktitle = {28th {USENIX} Security Symposium ({USENIX} Security 19)},
+  date      = {2019-08},
+  pages     = {729--746},
+  publisher = {USENIX Association},
+  location  = {Santa Clara, CA},
+  isbn      = {978-1-939133-06-9},
+  url       = {https://www.usenix.org/conference/usenixsecurity19/presentation/pendlebury},
+}
+
+@inproceedings{arp2022,
+  author    = {Arp, Daniel and Quiring, Erwin and Pendlebury, Feargus and Warnecke, Alexander and Pierazzi, Fabio and Wressnegger, Christian and Cavallaro, Lorenzo and Rieck, Konrad},
+  title     = {Dos and don'ts of machine learning in computer security},
+  booktitle = {31st {USENIX} Security Symposium ({USENIX} Security 22)},
+  date      = {2022-08},
+  pages     = {3971--3988},
+  publisher = {USENIX Association},
+  location  = {Boston, MA},
+  isbn      = {978-1-939133-31-1},
+  url       = {https://www.usenix.org/conference/usenixsecurity22/presentation/arp},
+}
+
+@inproceedings{alahmadi2022,
+  author    = {Alahmadi, Bushra A. and Axon, Louise and Martinovic, Ivan},
+  title     = {99\% false positives: A qualitative study of {SOC} analysts' perspectives on security alarms},
+  booktitle = {31st {USENIX} Security Symposium ({USENIX} Security 22)},
+  date      = {2022-08},
+  pages     = {2783--2800},
+  publisher = {USENIX Association},
+  location  = {Boston, MA},
+  isbn      = {978-1-939133-31-1},
+  url       = {https://www.usenix.org/conference/usenixsecurity22/presentation/alahmadi},
+}
+
+@inproceedings{apruzzese2023sok,
+  author    = {Apruzzese, Giovanni and Laskov, Pavel and Schneider, Johannes},
+  title     = {{SoK}: Pragmatic assessment of machine learning for network intrusion detection},
+  booktitle = {2023 {IEEE} 8th European Symposium on Security and Privacy ({EuroS\&P})},
+  date      = {2023-07},
+  pages     = {592--614},
+  publisher = {IEEE},
+  doi       = {10.1109/EuroSP57164.2023.00042},
+}
+
+@inproceedings{hassan2019nodoze,
+  author    = {Hassan, Wajih Ul and Guo, Shengjian and Li, Ding and Chen, Zhengzhang and Jee, Kangkook and Li, Zhichun and Bates, Adam},
+  title     = {{NoDoze}: Combatting threat alert fatigue with automated provenance triage},
+  booktitle = {Proceedings 2019 Network and Distributed System Security Symposium},
+  date      = {2019},
+  publisher = {Internet Society},
+  doi       = {10.14722/ndss.2019.23349},
+}
+
+% ---------------------------------------------------------------- LANL data
+
+@dataset{kent2015dataset,
+  author    = {Kent, Alexander D.},
+  title     = {Comprehensive, multi-source cyber-security events data set},
+  date      = {2015-05-21},
+  publisher = {Los Alamos National Lab. ({LANL}), Los Alamos, NM (United States)},
+  number    = {LA-UR-15-23810},
+  doi       = {10.17021/1179829},
+}
+
+@incollection{kent2016chapter,
+  author    = {Kent, Alexander D.},
+  title     = {Cyber security data sources for dynamic network research},
+  booktitle = {Dynamic Networks and Cyber-Security},
+  editor    = {Adams, Niall and Heard, Nick},
+  series    = {Security Science and Technology},
+  date      = {2016},
+  pages     = {37--65},
+  publisher = {World Scientific (Europe)},
+  doi       = {10.1142/9781786340757_0002},
+}
+
+@article{kent2015authgraphs,
+  author       = {Kent, Alexander D. and Liebrock, Lorie M. and Neil, Joshua C.},
+  title        = {Authentication graphs: Analyzing user behavior within an enterprise network},
+  journaltitle = {Computers \& Security},
+  date         = {2015-02},
+  volume       = {48},
+  pages        = {150--166},
+  publisher    = {Elsevier},
+  doi          = {10.1016/j.cose.2014.09.001},
+}
+
+% ---------------------------------------------------------------- LANL-based detectors
+
+@inproceedings{tuor2018,
+  author    = {Tuor, Aaron and Baerwolf, Ryan and Knowles, Nicolas and Hutchinson, Brian and Nichols, Nicole and Jasper, Robert},
+  title     = {Recurrent neural network language models for open vocabulary event-level cyber anomaly detection},
+  booktitle = {The Workshops of the Thirty-Second {AAAI} Conference on Artificial Intelligence},
+  eventtitle = {{AAAI}-18 Workshop on Artificial Intelligence for Cyber Security},
+  date      = {2018},
+  pages     = {285--292},
+  url       = {https://aaai.org/papers/285-ws0489-aaaiw-18-17039/},
+  eprint    = {1712.00557},
+  eprinttype = {arxiv},
+  eprintclass = {cs.NE},
+}
+
+@inproceedings{brown2018,
+  author    = {Brown, Andy and Tuor, Aaron and Hutchinson, Brian and Nichols, Nicole},
+  title     = {Recurrent neural network attention mechanisms for interpretable system log anomaly detection},
+  booktitle = {Proceedings of the First Workshop on Machine Learning for Computing Systems},
+  eventtitle = {{HPDC} '18: The 27th International Symposium on High-Performance Parallel and Distributed Computing},
+  date      = {2018-06-12},
+  pages     = {1--8},
+  publisher = {ACM},
+  doi       = {10.1145/3217871.3217872},
+}
+
+@inproceedings{turcotte2016,
+  author    = {Turcotte, Melissa and Moore, Juston and Heard, Nick and McPhall, Aaron},
+  title     = {Poisson factorization for peer-based anomaly detection},
+  booktitle = {2016 {IEEE} Conference on Intelligence and Security Informatics ({ISI})},
+  date      = {2016-09},
+  pages     = {208--210},
+  publisher = {IEEE},
+  doi       = {10.1109/ISI.2016.7745472},
+}
+
+@inproceedings{siadati2017,
+  author    = {Siadati, Hossein and Memon, Nasir},
+  title     = {Detecting structurally anomalous logins within enterprise networks},
+  booktitle = {Proceedings of the 2017 {ACM} {SIGSAC} Conference on Computer and Communications Security},
+  date      = {2017-10-30},
+  pages     = {1273--1284},
+  publisher = {ACM},
+  doi       = {10.1145/3133956.3134003},
+}
+
+@inproceedings{bowman2020,
+  author    = {Bowman, Benjamin and Laprade, Craig and Ji, Yuede and Huang, H. Howie},
+  title     = {Detecting lateral movement in enterprise computer networks with unsupervised graph {AI}},
+  booktitle = {23rd International Symposium on Research in Attacks, Intrusions and Defenses ({RAID} 2020)},
+  date      = {2020-10},
+  pages     = {257--268},
+  publisher = {USENIX Association},
+  location  = {San Sebastian},
+  isbn      = {978-1-939133-18-2},
+  url       = {https://www.usenix.org/conference/raid2020/presentation/bowman},
+}
+
+@inproceedings{king2022euler,
+  author    = {King, Isaiah J. and Huang, H. Howie},
+  title     = {{Euler}: Detecting network lateral movement via scalable temporal graph link prediction},
+  booktitle = {Proceedings 2022 Network and Distributed System Security Symposium},
+  date      = {2022},
+  publisher = {Internet Society},
+  doi       = {10.14722/ndss.2022.24107},
+}
+
+@article{king2023euler,
+  author       = {King, Isaiah J. and Huang, H. Howie},
+  title        = {{Euler}: Detecting network lateral movement via scalable temporal link prediction},
+  journaltitle = {ACM Transactions on Privacy and Security},
+  date         = {2023},
+  volume       = {26},
+  number       = {3},
+  pages        = {1--36},
+  publisher    = {Association for Computing Machinery},
+  doi          = {10.1145/3588771},
+}
+
+@inproceedings{xu2024argus,
+  author    = {Xu, Jiacen and Shu, Xiaokui and Li, Zhou},
+  title     = {Understanding and bridging the gap between unsupervised network representation learning and security analytics},
+  booktitle = {2024 {IEEE} Symposium on Security and Privacy ({SP})},
+  date      = {2024-05-19},
+  pages     = {3590--3608},
+  publisher = {IEEE},
+  doi       = {10.1109/SP54263.2024.00012},
+}
+
+@inproceedings{paudel2022pikachu,
+  author    = {Paudel, Ramesh and Huang, H. Howie},
+  title     = {Pikachu: Temporal walk based dynamic graph embedding for network anomaly detection},
+  booktitle = {{NOMS} 2022-2022 {IEEE/IFIP} Network Operations and Management Symposium},
+  date      = {2022-04-25},
+  pages     = {1--7},
+  publisher = {IEEE},
+  doi       = {10.1109/NOMS54207.2022.9789921},
+}
+
+@inproceedings{gokstorp2024,
+  author    = {G{\"o}kstorp, Simon and Nyberg, Jakob and Kim, Yeongwoo and Johnson, Pontus and D{\'a}n, Gy{\"o}rgy},
+  title     = {Anomaly detection in security logs using sequence modeling},
+  booktitle = {{NOMS} 2024-2024 {IEEE} Network Operations and Management Symposium},
+  date      = {2024-05-06},
+  pages     = {1--9},
+  publisher = {IEEE},
+  doi       = {10.1109/NOMS59830.2024.10575561},
+}
+
+@online{garchery2020adsage,
+  author      = {Garchery, Mathieu and Granitzer, Michael},
+  title       = {{ADSAGE}: Anomaly detection in sequences of attributed graph edges applied to insider threat detection at fine-grained level},
+  date        = {2020-07-14},
+  eprint      = {2007.06985},
+  eprinttype  = {arxiv},
+  eprintclass = {cs.LG},
+  url         = {https://arxiv.org/abs/2007.06985},
+}
+
+@inproceedings{larroche2021decades,
+  author    = {Larroche, Corentin and Mazel, Johan and Cl{\'e}men{\c{c}}on, St{\'e}phan},
+  title     = {Dynamically modelling heterogeneous higher-order interactions for malicious behavior detection in event logs},
+  booktitle = {{CAID} 2020: Conference on Artificial Intelligence for Defense},
+  date      = {2020-11},
+  location  = {Rennes, France},
+  pages     = {1--11},
+  url       = {https://telecom-paris.hal.science/hal-04590157v1},
+  eprint    = {2103.15708},
+  eprinttype = {arxiv},
+  eprintclass = {cs.CR},
+}
+
+@online{larroche2025ultralmd,
+  author      = {Larroche, Corentin},
+  title       = {Designing a reliable lateral movement detector using a graph foundation model},
+  date        = {2025-04-18},
+  eprint      = {2504.13527},
+  eprinttype  = {arxiv},
+  eprintclass = {cs.CR},
+  url         = {https://arxiv.org/abs/2504.13527},
+}
+
+@online{larroche2026fair,
+  author      = {Larroche, Corentin},
+  title       = {On fair and realistic performance evaluations for graph-based lateral movement detectors},
+  date        = {2026-07-31},
+  eprint      = {2607.29390},
+  eprinttype  = {arxiv},
+  eprintclass = {cs.CR},
+  url         = {https://arxiv.org/abs/2607.29390},
+  addendum    = {Accepted at the 2nd International Workshop on Assessment with New methodologies, Unified Benchmarks, and environments, of Intrusion detection and response Systems (ANUBIS 2026), co-located with the 31st European Symposium on Research in Computer Security (ESORICS 2026), Rome, Italy, 18 September 2026},
+}
+
+@online{zhao2026gids,
+  author      = {Zhao, Rui and Hassan, Wajih Ul},
+  title       = {A first-principles evaluation of graph-based network intrusion detection systems},
+  date        = {2026-09-10},
+  eprint      = {2609.12263},
+  eprinttype  = {arxiv},
+  eprintclass = {cs.CR},
+  url         = {https://arxiv.org/abs/2609.12263},
+  addendum    = {Full version of the paper accepted to the ACM Conference on Computer and Communications Security (CCS) 2026},
+}
+
+% ---------------------------------------------------------------- Detectors and toolkits
+
+@inproceedings{liu2008iforest,
+  author    = {Liu, Fei Tony and Ting, Kai Ming and Zhou, Zhi-Hua},
+  title     = {Isolation forest},
+  booktitle = {2008 Eighth {IEEE} International Conference on Data Mining},
+  date      = {2008-12},
+  pages     = {413--422},
+  publisher = {IEEE},
+  doi       = {10.1109/ICDM.2008.17},
+}
+
+@inproceedings{goldstein2012hbos,
+  author     = {Goldstein, Markus and Dengel, Andreas},
+  title      = {Histogram-based outlier score ({HBOS}): A fast unsupervised anomaly detection algorithm},
+  booktitle  = {{KI}-2012: Poster and Demo Track},
+  editor     = {W{\"o}lfl, Stefan},
+  eventtitle = {35th German Conference on Artificial Intelligence ({KI}-2012)},
+  venue      = {Saarbr{\"u}cken, Germany},
+  date       = {2012-09},
+  pages      = {59--63},
+}
+
+@article{li2022ecod,
+  author       = {Li, Zheng and Zhao, Yue and Hu, Xiyang and Botta, Nicola and Ionescu, Cezar and Chen, George H.},
+  title        = {{ECOD}: Unsupervised outlier detection using empirical cumulative distribution functions},
+  journaltitle = {IEEE Transactions on Knowledge and Data Engineering},
+  date         = {2023-12},
+  volume       = {35},
+  number       = {12},
+  pages        = {12181--12193},
+  publisher    = {IEEE},
+  doi          = {10.1109/TKDE.2022.3159580},
+}
+
+@article{zhao2019pyod,
+  author       = {Zhao, Yue and Nasrullah, Zain and Li, Zheng},
+  title        = {{PyOD}: A {Python} toolbox for scalable outlier detection},
+  journaltitle = {Journal of Machine Learning Research},
+  date         = {2019},
+  volume       = {20},
+  number       = {96},
+  pages        = {1--7},
+  url          = {http://jmlr.org/papers/v20/19-011.html},
+}
+
+@inproceedings{lakhina2004,
+  author    = {Lakhina, Anukool and Crovella, Mark and Diot, Christophe},
+  title     = {Diagnosing network-wide traffic anomalies},
+  booktitle = {Proceedings of the 2004 Conference on Applications, Technologies, Architectures, and Protocols for Computer Communications},
+  eventtitle = {{SIGCOMM04}: {ACM} {SIGCOMM} 2004 Conference},
+  date      = {2004-08-30},
+  pages     = {219--230},
+  publisher = {ACM},
+  doi       = {10.1145/1015467.1015492},
+}
+
+@article{chandola2009,
+  author       = {Chandola, Varun and Banerjee, Arindam and Kumar, Vipin},
+  title        = {Anomaly detection: A survey},
+  journaltitle = {ACM Computing Surveys},
+  date         = {2009-07},
+  volume       = {41},
+  number       = {3},
+  pages        = {1--58},
+  publisher    = {Association for Computing Machinery},
+  doi          = {10.1145/1541880.1541882},
+}
+
+% ---------------------------------------------------------------- Metrics and statistics
+
+@inproceedings{davis2006,
+  author    = {Davis, Jesse and Goadrich, Mark},
+  title     = {The relationship between precision-recall and {ROC} curves},
+  booktitle = {Proceedings of the 23rd International Conference on Machine Learning ({ICML} '06)},
+  date      = {2006},
+  pages     = {233--240},
+  publisher = {ACM Press},
+  doi       = {10.1145/1143844.1143874},
+}
+
+@article{saito2015,
+  author       = {Saito, Takaya and Rehmsmeier, Marc},
+  title        = {The precision-recall plot is more informative than the {ROC} plot when evaluating binary classifiers on imbalanced datasets},
+  journaltitle = {PLOS ONE},
+  date         = {2015-03-04},
+  volume       = {10},
+  number       = {3},
+  pages        = {e0118432},
+  publisher    = {Public Library of Science},
+  doi          = {10.1371/journal.pone.0118432},
+}
+
+@article{holm1979,
+  author       = {Holm, Sture},
+  title        = {A simple sequentially rejective multiple test procedure},
+  journaltitle = {Scandinavian Journal of Statistics},
+  date         = {1979},
+  volume       = {6},
+  number       = {2},
+  pages        = {65--70},
+  url          = {https://www.jstor.org/stable/4615733},
+}
+
+@book{efron1993,
+  author    = {Efron, Bradley and Tibshirani, Robert J.},
+  title     = {An introduction to the bootstrap},
+  date      = {1993},
+  publisher = {Chapman \& Hall},
+  doi       = {10.1007/978-1-4899-4541-9},
+}
+
+@article{field2007,
+  author       = {Field, C. A. and Welsh, A. H.},
+  title        = {Bootstrapping clustered data},
+  journaltitle = {Journal of the Royal Statistical Society Series B: Statistical Methodology},
+  date         = {2007},
+  volume       = {69},
+  number       = {3},
+  pages        = {369--390},
+  publisher    = {Oxford University Press},
+  doi          = {10.1111/j.1467-9868.2007.00593.x},
+}
+
+@article{kaufman2012leakage,
+  author       = {Kaufman, Shachar and Rosset, Saharon and Perlich, Claudia and Stitelman, Ori},
+  title        = {Leakage in data mining: Formulation, detection, and avoidance},
+  journaltitle = {ACM Transactions on Knowledge Discovery from Data},
+  date         = {2012-12},
+  volume       = {6},
+  number       = {4},
+  pages        = {1--21},
+  publisher    = {Association for Computing Machinery},
+  doi          = {10.1145/2382577.2382579},
+}
+
+@report{strom2018attack,
+  author      = {Strom, Blake E. and Applebaum, Andy and Miller, Doug P. and Nickels, Kathryn C. and Pennington, Adam G. and Thomas, Cody B.},
+  title       = {{MITRE} {ATT\&CK}: Design and philosophy},
+  type        = {Technical Report},
+  institution = {The MITRE Corporation},
+  number      = {MP180360R1},
+  date        = {2020-03},
+  origdate    = {2018-07},
+  location    = {McLean, VA},
+  url         = {https://attack.mitre.org/docs/ATTACK_Design_and_Philosophy_March_2020.pdf},
+}
+
+% ---------------------------------------------------------------- Machine learning
+
+@inproceedings{kingma2014vae,
+  author      = {Kingma, Diederik P. and Welling, Max},
+  title       = {Auto-encoding variational {Bayes}},
+  booktitle   = {International Conference on Learning Representations ({ICLR} 2014)},
+  date        = {2014},
+  eprint      = {1312.6114},
+  eprinttype  = {arxiv},
+  eprintclass = {stat.ML},
+  url         = {https://arxiv.org/abs/1312.6114},
+}
+
+@article{hochreiter1997lstm,
+  author       = {Hochreiter, Sepp and Schmidhuber, J{\"u}rgen},
+  title        = {Long short-term memory},
+  journaltitle = {Neural Computation},
+  date         = {1997-11},
+  volume       = {9},
+  number       = {8},
+  pages        = {1735--1780},
+  publisher    = {MIT Press},
+  doi          = {10.1162/neco.1997.9.8.1735},
+}
+
+@inproceedings{kipf2017gcn,
+  author      = {Kipf, Thomas N. and Welling, Max},
+  title       = {Semi-supervised classification with graph convolutional networks},
+  booktitle   = {5th International Conference on Learning Representations ({ICLR} 2017)},
+  date        = {2017},
+  location    = {Toulon, France},
+  url         = {https://openreview.net/forum?id=SJU4ayYgl},
+  eprint      = {1609.02907},
+  eprinttype  = {arxiv},
+  eprintclass = {cs.LG},
+}
+
+@inproceedings{grover2016node2vec,
+  author    = {Grover, Aditya and Leskovec, Jure},
+  title     = {node2vec: Scalable feature learning for networks},
+  booktitle = {Proceedings of the 22nd {ACM} {SIGKDD} International Conference on Knowledge Discovery and Data Mining},
+  date      = {2016-08-13},
+  pages     = {855--864},
+  publisher = {ACM},
+  doi       = {10.1145/2939672.2939754},
+}
+
+% ---------------------------------------------------------------- This work
+
+@software{authbenchsoftware,
+  author    = {{Adamou Mahamane}, Mahamane Sani},
+  title     = {{AuthBench}: Leak-free, alert-budget-constrained benchmark for authentication anomaly detection},
+  version   = {1.0.0},
+  date      = {2026-10-06},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.23183808},
+}
+
+@report{authbenchpreprint,
+  author      = {{Adamou Mahamane}, Mahamane Sani},
+  title       = {Aggregate ranking metrics can invert operational order: An alert-budget-constrained benchmark for authentication anomaly detection},
+  type        = {Preprint},
+  version     = {1},
+  institution = {Zenodo},
+  date        = {2026-10-05},
+  doi         = {10.5281/zenodo.23159768},
+}
+
+% ---------------------------------------------------------------- Added after review round 1
+
+@article{mcclish1989,
+  author       = {McClish, Donna Katzman},
+  title        = {Analyzing a portion of the {ROC} curve},
+  journaltitle = {Medical Decision Making},
+  date         = {1989-08},
+  volume       = {9},
+  number       = {3},
+  pages        = {190--195},
+  doi          = {10.1177/0272989X8900900307},
+}
+
+@inproceedings{ho2021hopper,
+  author    = {Ho, Grant and Dhiman, Mayank and Akhawe, Devdatta and Paxson, Vern and Savage, Stefan and Voelker, Geoffrey M. and Wagner, David},
+  title     = {Hopper: Modeling and detecting lateral movement},
+  booktitle = {30th {USENIX} Security Symposium ({USENIX} Security 21)},
+  date      = {2021-08},
+  pages     = {3093--3110},
+  publisher = {USENIX Association},
+  isbn      = {978-1-939133-24-3},
+  url       = {https://www.usenix.org/conference/usenixsecurity21/presentation/ho},
+}
+
+@online{tuor2017,
+  author      = {Tuor, Aaron and Kaplan, Samuel and Hutchinson, Brian and Nichols, Nicole and Robinson, Sean},
+  title       = {Deep learning for unsupervised insider threat detection in structured cybersecurity data streams},
+  date        = {2017-10-02},
+  eprint      = {1710.00811},
+  eprinttype  = {arxiv},
+  eprintclass = {cs.NE},
+  url         = {https://arxiv.org/abs/1710.00811},
+  addendum    = {Proceedings of the AI for Cyber Security Workshop at AAAI 2017},
+}
+
+@inproceedings{amin2019cadence,
+  author    = {Amin, Mohammad Ruhul and Garg, Pranav and Coskun, Baris},
+  title     = {{CADENCE}: Conditional anomaly detection for events using noise-contrastive estimation},
+  booktitle = {Proceedings of the 12th {ACM} Workshop on Artificial Intelligence and Security},
+  date      = {2019-11-11},
+  pages     = {71--82},
+  publisher = {ACM},
+  doi       = {10.1145/3338501.3357368},
+}

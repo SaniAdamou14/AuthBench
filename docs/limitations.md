@@ -27,6 +27,21 @@ this summarizes.
    Reported numbers are an optimistic upper bound against an adversary who knows they're being
    watched by exactly this detection stack.
 
+9. **One intrusion, not many campaigns.** In the wider-window run, 275 of the 282 test
+   red-team events and 50 of the 52 test campaigns start from one source host, C17693
+   (84.0% of training and 98.1% of validation positives too; `split_summary.json`). The
+   labelled LANL activity is a single simulated intrusion (Larroche, arXiv 2607.29390).
+   Campaigns are the bootstrap's resampling unit, so every interval describes variability
+   across the accounts and phases of one operation, not across intrusions.
+10. **Unequal access to labels.** M1's weights are calibrated on validation labels; no other
+    model reads labels or the validation partition. See `methodology.md`, "Labels".
+11. **Transductive scores.** M1 (rank normalisation within the scored frame) and ECOD
+    (distributions recomputed from the scored matrix) depend on the test distribution.
+12. **Novelty is relative to the window read.** `pair_is_new` and `pair_global_rarity`
+    count earlier events of the partition plus its warm-up, not the whole history; and the
+    rarity denominator grows within the window, so a pair with a fixed count of earlier
+    occurrences scores slightly higher later in the window.
+
 ## Metrics deliberately not used as primary
 
 - **Accuracy** — a model that always predicts "benign" scores ≈99.99993%.
@@ -82,10 +97,12 @@ produce it — and that snapshot cannot be re-run cheaply. The honest options ar
 a cold-start indicator column or a sentinel outside the column's range, both of
 which are changes to the protocol and belong with a re-run, not before one.
 
-What the limitation does **not** reach is the anti-correlation between ROC-AUC
-and campaign recall — M2a at 0.942 detecting nothing, M1 at 0.547 being the only
-model that detects anything. That is a property of the operating point and the
-positive rate, and no amount of history changes it.
+**Update, 21 October 2026.** The wider-window run lifts the one-day limitation:
+two warm-up days and multi-day partitions. Its zeros stand (no campaign within 500
+alerts a day, under any tie order), and ROC-AUC still does not track the operational
+ordering (Spearman -0.10 against the budget for first detection over five models). The
+earlier wording, "anti-correlated", overstated what two extreme models establish; the
+data support "decoupled". The cold-start sentinel above is unchanged in that run.
 
 See [`../reports/lanl/RUN.md`](../reports/lanl/RUN.md) and
 [`scaling.md`](scaling.md).

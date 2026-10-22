@@ -1,16 +1,15 @@
-"""F5 — authentication-graph features (US-113, `authbench[graph]` extra).
+"""F5: authentication-graph features (US-113, `authbench[graph]` extra).
 
-The bipartite user→machine graph is rebuilt **per day**, from a strictly
-trailing `window_days`-day window — never once over the full 58 days. That
-distinction is not cosmetic: an embedding fit on the whole period leaks every
-future edge into every past node's representation, and RQ3 (does the graph
-add signal independent of frequency/novelty?) becomes unanswerable (spec
-section 4.1).
+The bipartite user-machine graph is rebuilt per day from a strictly trailing
+window of `window_days` days, never once over the whole period: an embedding
+fitted on all days leaks every future edge into every past node and makes
+RQ3 unanswerable (spec section 4.1). Day granularity is a cost trade-off;
+no event contributes to its own day's graph.
 
-Day-level granularity (rebuild once per day, applied to every event of that
-day) is a deliberate cost/leakage trade-off: per-event graph reconstruction
-would be exact but is computationally infeasible at LANL scale, and it buys
-nothing extra in causality since no event contributes to its own day's graph.
+Because the graph is bipartite, measures built on triangles or on common
+neighbours are identically zero. Clustering is therefore the bipartite
+coefficient of Latapy, Magnien and Del Vecchio (2008), and no common-neighbour
+link score (Adamic-Adar, Jaccard) is computed between a user and a machine.
 """
 
 from __future__ import annotations
@@ -22,8 +21,10 @@ import polars as pl
 
 try:
     import networkx as nx
+    from networkx.algorithms import bipartite
 except ImportError:  # pragma: no cover - optional `authbench[graph]` dependency
     nx = None
+    bipartite = None
 
 
 @dataclass(frozen=True)
@@ -43,176 +44,126 @@ class DailyGraphFeatures:
     clustering: dict[str, float]
     community: dict[str, int]
     embeddings: dict[str, list[float]]
-    adamic_adar: dict[tuple[str, str], float]
+
+
+GRAPH_FEATURE_COLUMNS = (
+    "graph_user_degree",
+    "graph_host_degree",
+    "graph_user_pagerank",
+    "graph_host_pagerank",
+    "graph_user_clustering",
+    "graph_user_community",
+    "graph_user_embedding",
+)
 
 
 def _require_networkx() -> None:
     if nx is None:
         raise ImportError(
-            "F5 graph features require the optional 'graph' extra: "
-            "install with `uv pip install -e '.[graph]'`."
+            "F5 graph features require the optional 'graph' extra: `uv sync --extra graph`."
         )
 
 
 def build_daily_graph(events: pl.DataFrame) -> nx.Graph:
-    """Bipartite user/machine graph over `events` (already restricted to the
-    trailing window by the caller). User nodes are prefixed `u:`, machine
-    nodes `m:`, so the same identifier string can never collide across sides.
-    """
+    """Bipartite graph over `events`, nodes prefixed `u:` and `m:`, edges weighted by authentication count."""
     _require_networkx()
     graph = nx.Graph()
-    for row in events.select(["src_user", "dst_computer"]).unique().iter_rows(named=True):
-        u = f"u:{row['src_user']}"
-        m = f"m:{row['dst_computer']}"
-        if graph.has_edge(u, m):
-            graph[u][m]["weight"] += 1
-        else:
-            graph.add_edge(u, m, weight=1)
+    pairs = events.group_by(["src_user", "dst_computer"]).agg(pl.len().alias("weight"))
+    for user, machine, weight in pairs.iter_rows():
+        graph.add_edge(f"u:{user}", f"m:{machine}", weight=int(weight))
     return graph
 
 
 def compute_daily_graph_features(
     graph: nx.Graph, day: int, config: GraphFeatureConfig
 ) -> DailyGraphFeatures:
-    """Degree, PageRank, local clustering, Louvain community, and node2vec
-    embeddings for every node in `graph`.
-    """
+    """Degree, weighted PageRank, bipartite clustering, Louvain community and node2vec embedding per node."""
     _require_networkx()
+    # An empty trailing window (the first day of a split) has nothing to embed; node2vec would raise.
+    if not graph.number_of_edges():
+        return DailyGraphFeatures(day, {}, {}, {}, {}, {})
 
-    degree = dict(graph.degree())
-    pagerank = nx.pagerank(graph, weight="weight") if graph.number_of_edges() else {}
-    clustering = nx.clustering(graph, weight="weight") if graph.number_of_edges() else {}
+    from networkx.algorithms.community import louvain_communities
+    from node2vec import Node2Vec
 
-    try:
-        from networkx.algorithms.community import louvain_communities
-
-        communities = louvain_communities(graph, seed=config.seed)
-        community = {node: idx for idx, comm in enumerate(communities) for node in comm}
-    except ImportError:  # pragma: no cover - networkx<3.0 fallback
-        community = {}
-
-    embeddings: dict[str, list[float]] = {}
-    try:
-        from node2vec import Node2Vec
-
-        n2v = Node2Vec(
-            graph,
-            dimensions=config.node2vec_dim,
-            walk_length=config.node2vec_walk_length,
-            num_walks=config.node2vec_num_walks,
-            seed=config.seed,
-            quiet=True,
-        )
-        model = n2v.fit(seed=config.seed)
-        embeddings = {node: model.wv[node].tolist() for node in graph.nodes()}
-    except ImportError:  # pragma: no cover - optional dependency
-        embeddings = {}
-
-    adamic_adar = {
-        (u, v): score
-        for u, v, score in nx.adamic_adar_index(graph, [(u, v) for u, v in graph.edges()])
-    }
-
+    communities = louvain_communities(graph, weight="weight", seed=config.seed)
+    n2v = Node2Vec(
+        graph,
+        dimensions=config.node2vec_dim,
+        walk_length=config.node2vec_walk_length,
+        num_walks=config.node2vec_num_walks,
+        seed=config.seed,
+        workers=1,
+        quiet=True,
+    )
+    model = n2v.fit(seed=config.seed, workers=1, min_count=1)
     return DailyGraphFeatures(
         day=day,
-        degree=degree,
-        pagerank=pagerank,
-        clustering=clustering,
-        community=community,
-        embeddings=embeddings,
-        adamic_adar=adamic_adar,
+        degree=dict(graph.degree()),
+        pagerank=nx.pagerank(graph, weight="weight"),
+        clustering={node: float(c) for node, c in bipartite.clustering(graph).items()},
+        community={node: index for index, members in enumerate(communities) for node in members},
+        embeddings={node: model.wv[node].tolist() for node in graph.nodes()},
     )
 
 
-def _lookup_int_factory(table: dict[str, int], prefix: str) -> Callable[[str], int]:
-    return lambda key: table.get(f"{prefix}{key}", 0)
+def _lookup(
+    table: dict[str, float] | dict[str, int], prefix: str, default: float
+) -> Callable[[str], float]:
+    return lambda key: float(table.get(f"{prefix}{key}", default))
 
 
-def _lookup_float_factory(table: dict[str, float], prefix: str) -> Callable[[str], float]:
-    return lambda key: table.get(f"{prefix}{key}", 0.0)
-
-
-def _adamic_adar_factory(
-    table: dict[tuple[str, str], float],
-) -> Callable[[dict[str, str]], float]:
-    def lookup(row: dict[str, str]) -> float:
-        forward = (f"u:{row['src_user']}", f"m:{row['dst_computer']}")
-        backward = (f"m:{row['dst_computer']}", f"u:{row['src_user']}")
-        return table.get(forward, table.get(backward, 0.0))
-
-    return lookup
-
-
-def _embedding_factory(table: dict[str, list[float]], dim: int) -> Callable[[str], list[float]]:
-    default = [0.0] * dim
-    return lambda user: table.get(f"u:{user}", default)
+def _embedding(table: dict[str, list[float]], default: list[float]) -> Callable[[str], list[float]]:
+    return lambda key: table.get(f"u:{key}", default)
 
 
 def attach_graph_features(
     events: pl.LazyFrame, all_events: pl.LazyFrame, config: GraphFeatureConfig
 ) -> pl.LazyFrame:
-    """For every day D present in `events`, build the trailing-window graph
-    from `all_events` restricted to `[D - window_days, D - 1]`, and join the
-    resulting node-level features onto `src_user` and `dst_computer`.
+    """Join, for each day D of `events`, the features of the graph built from `all_events` on days [D - window_days, D - 1].
 
-    `all_events` must be a superset that includes at least the
-    `window_days` days preceding the earliest day in `events` — the caller
-    is responsible for not pointing this at data beyond the current split's
-    time horizon (US-107's leakage guard applies here as much as anywhere).
+    The caller must not point `all_events` beyond the current split's horizon (US-107).
+    Unseen nodes take the values of an isolated node: degree, PageRank, clustering 0, community -1, zero embedding.
     """
     _require_networkx()
-
     days = sorted(events.select("day").unique().collect()["day"].to_list())
-    per_day_frames: list[pl.DataFrame] = []
-
+    zero_embedding = [0.0] * config.node2vec_dim
+    per_day: list[pl.DataFrame] = []
     for day in days:
-        window_lo, window_hi = day - config.window_days, day - 1
-        window_events = (
-            all_events.filter(pl.col("day").is_between(window_lo, window_hi))
+        window = (
+            all_events.filter(pl.col("day").is_between(day - config.window_days, day - 1))
             .select(["src_user", "dst_computer"])
             .collect()
         )
-
-        graph = build_daily_graph(window_events)
-        feats = compute_daily_graph_features(graph, day, config)
-
-        day_events = events.filter(pl.col("day") == day).collect()
-        enriched = day_events.with_columns(
-            [
-                pl.col("src_user")
-                .cast(pl.Utf8)
-                .map_elements(_lookup_int_factory(feats.degree, "u:"), return_dtype=pl.Int64)
+        feats = compute_daily_graph_features(build_daily_graph(window), day, config)
+        user = pl.col("src_user").cast(pl.String)
+        host = pl.col("dst_computer").cast(pl.String)
+        per_day.append(
+            events.filter(pl.col("day") == day)
+            .collect()
+            .with_columns(
+                user.map_elements(_lookup(feats.degree, "u:", 0), return_dtype=pl.Float64)
+                .cast(pl.Int64)
                 .alias("graph_user_degree"),
-                pl.col("dst_computer")
-                .cast(pl.Utf8)
-                .map_elements(_lookup_int_factory(feats.degree, "m:"), return_dtype=pl.Int64)
+                host.map_elements(_lookup(feats.degree, "m:", 0), return_dtype=pl.Float64)
+                .cast(pl.Int64)
                 .alias("graph_host_degree"),
-                pl.col("src_user")
-                .cast(pl.Utf8)
-                .map_elements(_lookup_float_factory(feats.pagerank, "u:"), return_dtype=pl.Float64)
-                .alias("graph_user_pagerank"),
-                pl.col("dst_computer")
-                .cast(pl.Utf8)
-                .map_elements(_lookup_float_factory(feats.pagerank, "m:"), return_dtype=pl.Float64)
-                .alias("graph_host_pagerank"),
-                pl.col("src_user")
-                .cast(pl.Utf8)
-                .map_elements(
-                    _lookup_float_factory(feats.clustering, "u:"), return_dtype=pl.Float64
-                )
-                .alias("graph_user_clustering"),
-                pl.struct(["src_user", "dst_computer"])
-                .map_elements(_adamic_adar_factory(feats.adamic_adar), return_dtype=pl.Float64)
-                .alias("graph_pair_adamic_adar"),
-                pl.col("src_user")
-                .cast(pl.Utf8)
-                .map_elements(
-                    _embedding_factory(feats.embeddings, config.node2vec_dim),
+                user.map_elements(
+                    _lookup(feats.pagerank, "u:", 0.0), return_dtype=pl.Float64
+                ).alias("graph_user_pagerank"),
+                host.map_elements(
+                    _lookup(feats.pagerank, "m:", 0.0), return_dtype=pl.Float64
+                ).alias("graph_host_pagerank"),
+                user.map_elements(
+                    _lookup(feats.clustering, "u:", 0.0), return_dtype=pl.Float64
+                ).alias("graph_user_clustering"),
+                user.map_elements(_lookup(feats.community, "u:", -1), return_dtype=pl.Float64)
+                .cast(pl.Int64)
+                .alias("graph_user_community"),
+                user.map_elements(
+                    _embedding(feats.embeddings, zero_embedding),
                     return_dtype=pl.List(pl.Float64),
-                )
-                .alias("graph_user_embedding"),
-            ]
+                ).alias("graph_user_embedding"),
+            )
         )
-        per_day_frames.append(enriched)
-
-    return pl.concat(per_day_frames).lazy() if per_day_frames else events
+    return pl.concat(per_day).lazy() if per_day else events

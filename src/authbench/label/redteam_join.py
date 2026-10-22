@@ -153,3 +153,42 @@ def campaign_summary(campaigns: pl.LazyFrame) -> pl.DataFrame:
         .sort("campaign_id")
         .collect()
     )
+
+
+def split_label_summary(labeled: pl.LazyFrame) -> dict[str, object]:
+    """Events, positives, campaigns and source-host concentration of the positives in one labeled split.
+
+    The concentration is published because campaigns are the bootstrap's resampling unit: campaigns
+    launched from one host are not independent intrusions, whatever their count.
+    """
+    totals = labeled.select(
+        pl.len().alias("events"),
+        pl.col("is_malicious").sum().alias("positives"),
+        pl.col("campaign_id").drop_nulls().n_unique().alias("campaigns"),
+        pl.col("day").min().alias("first_day"),
+        pl.col("day").max().alias("last_day"),
+    ).collect()
+    by_source = (
+        labeled.filter(pl.col("is_malicious"))
+        .group_by(pl.col("src_computer").cast(pl.String))
+        .agg(pl.len().alias("positives"), pl.col("campaign_id").n_unique().alias("campaigns"))
+        .sort(["positives", "src_computer"], descending=[True, False])
+        .collect()
+    )
+    # Per-day sizes are what an alert budget is applied to, and what a random-ranking null needs.
+    by_day = (
+        labeled.group_by("day")
+        .agg(pl.len().alias("events"), pl.col("is_malicious").sum().alias("positives"))
+        .sort("day")
+        .collect()
+    )
+    counts = {name: int(value) for name, value in totals.row(0, named=True).items()}
+    positives, events = counts["positives"], counts["events"]
+    return {
+        **counts,
+        "positive_rate": positives / events if events else 0.0,
+        "n_source_hosts": by_source.height,
+        "top_source_host_share": int(by_source["positives"][0]) / positives if positives else None,
+        "source_hosts": by_source.to_dicts(),
+        "days": [{k: int(v) for k, v in row.items()} for row in by_day.iter_rows(named=True)],
+    }
