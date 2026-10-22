@@ -422,6 +422,8 @@ def evaluate_regime(
         n_simulations=int(ledger_cfg.n_simulations),
         confidence=float(ledger_cfg.confidence),
         seed=int(ledger_cfg.seed),
+        gaps_hours=[float(g) for g in ledger_cfg.get("campaign_gap_hours", [])],
+        budgets=budgets,
     )
 
     reference = statistics[model_names[0]]

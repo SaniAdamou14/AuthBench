@@ -43,6 +43,7 @@ def test_evaluation_knobs_match() -> None:
     assert params.eval.ledger_k_max == conf.ledger.k_max  # type: ignore[union-attr]
     assert params.eval.ledger_resamples == conf.ledger.n_resamples  # type: ignore[union-attr]
     assert params.eval.ledger_simulations == conf.ledger.n_simulations  # type: ignore[union-attr]
+    assert list(params.eval.ledger_campaign_gap_hours) == list(conf.ledger.campaign_gap_hours)  # type: ignore[union-attr]
 
 
 def test_feature_knobs_match() -> None:

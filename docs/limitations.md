@@ -20,7 +20,12 @@ this summarizes.
    support any claim about real insider behavior.
 6. **Campaign-grouping sensitivity.** Campaign-level recall depends on the grouping gap
    threshold (`campaign_gap_hours`). The sensitivity of campaign count to this threshold is a
-   required, non-decorative analysis (US-106).
+   required, non-decorative analysis (US-106). Since 22 October 2026 every run writes
+   `campaign_gap_sensitivity.json`: campaigns regrouped per account at 1, 6, 24 and 72 hours
+   from the positives ledger, with the campaign count and each model's recall at every budget,
+   first detection, median budget and log-area. Regrouping sees only the split's positives, so a
+   campaign that continues outside the split can divide differently than over the whole
+   red-team file. On the demo the four test campaigns are the same at every gap.
 7. **Negative subsampling**, if used under hardware constraints, must be described precisely and
    its effect on metric variance measured, not assumed negligible.
 8. **No adaptive adversary.** LANL's red team was not attempting to evade these specific models.

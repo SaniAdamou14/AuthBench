@@ -697,6 +697,8 @@ def demo(
         n_simulations=DEMO_BOOTSTRAP_RESAMPLES,
         confidence=0.95,
         seed=42,
+        gaps_hours=[1.0, 6.0, 24.0, 72.0],
+        budgets=DEFAULT_BUDGETS,
     )
     (reports_dir / "tables" / "demo_results.json").write_text(json.dumps(all_rows, indent=2))
     (reports_dir / "tables" / "pairwise_comparisons.json").write_text(

@@ -126,3 +126,35 @@ def test_summary_record_reports_intervals_and_null_shares() -> None:
     assert 0.0 <= first["random_ranking_at_least_as_good"] <= 1.0
     best, worst = record["tie_range_first_detection"]  # type: ignore[misc]
     assert best <= first["value"] <= worst
+
+
+def test_regrouping_at_the_labelling_gap_recovers_the_campaigns_and_finer_gaps_split_them() -> None:
+    from authbench.evaluate.ledger import gap_sensitivity, regroup_campaigns
+
+    hour = 3600
+    ledger = pl.DataFrame(
+        {
+            "model": ["m"] * 6,
+            "event_id": [1, 2, 3, 4, 5, 6],
+            # Account A: events 0 h, 3 h, then 40 h later; account B: one campaign at 2 h spacing.
+            "campaign_id": [1, 1, 2, 3, 3, 3],
+            "time": [0, 3 * hour, 43 * hour, 10 * hour, 12 * hour, 14 * hour],
+            "rank": [50, 7, 900, 3, 400, 80],
+        }
+    )
+    users = pl.DataFrame({"campaign_id": [1, 2, 3], "user": ["A", "A", "B"]})
+
+    def partition(gap: float) -> set[frozenset[int]]:
+        mapping = regroup_campaigns(ledger, users, gap)
+        groups = mapping.group_by("campaign_id").agg(pl.col("event_id"))
+        return {frozenset(g) for g in groups["event_id"].to_list()}
+
+    assert partition(24) == {frozenset({1, 2}), frozenset({3}), frozenset({4, 5, 6})}
+    assert partition(1) == {frozenset({i}) for i in range(1, 7)}
+    assert partition(72) == {frozenset({1, 2, 3}), frozenset({4, 5, 6})}
+
+    rows = gap_sensitivity(ledger, users, [1, 24, 72], [10, 100], k_max=1000)
+    assert [r["n_campaigns"] for r in rows] == [6, 3, 2]
+    at_24 = rows[1]["models"]["m"]
+    assert at_24["campaign_recall"] == {"10": 2 / 3, "100": 2 / 3}
+    assert at_24["first_detection"] == 3

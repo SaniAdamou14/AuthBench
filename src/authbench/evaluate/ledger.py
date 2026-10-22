@@ -213,6 +213,57 @@ def summary_record(
     }
 
 
+def regroup_campaigns(ledger: pl.DataFrame, users: pl.DataFrame, gap_hours: float) -> pl.DataFrame:
+    """`event_id` and its campaign rebuilt per account at another gap, from one model's ledger.
+
+    As in `label.redteam_join.group_into_campaigns`, a campaign starts when the account's
+    previous positive is more than `gap_hours` earlier. Only the positives of this split
+    are seen, so a campaign that continues outside the split can divide differently than
+    over the whole red-team file.
+    """
+    ordered = (
+        ledger.select("event_id", "campaign_id", "time")
+        .join(users, on="campaign_id", how="left")
+        .sort("user", "time", "event_id")
+    )
+    starts = (pl.col("time").diff().over("user") > gap_hours * 3600).fill_null(True)
+    return ordered.select("event_id", starts.cast(pl.Int64).cum_sum().alias("campaign_id"))
+
+
+def gap_sensitivity(
+    ledger: pl.DataFrame,
+    users: pl.DataFrame,
+    gaps_hours: list[float],
+    budgets: list[int],
+    k_max: int,
+) -> list[dict[str, object]]:
+    """Campaign count and each model's budget summary when campaigns are regrouped at each gap (S6-07)."""
+    models = ledger["model"].unique(maintain_order=True).to_list()
+    reference = ledger.filter(pl.col("model") == models[0])
+    result = []
+    for gap in gaps_hours:
+        mapping = regroup_campaigns(reference, users, gap)
+        regrouped = ledger.drop("campaign_id").join(mapping, on="event_id", how="left")
+        per_model = {}
+        for name in models:
+            b = detection_budgets(regrouped.filter(pl.col("model") == name))
+            summary = BudgetSummary.from_budgets(b, k_max)
+            per_model[name] = {
+                "campaign_recall": {str(k): recall_at(b, k) for k in budgets},
+                "first_detection": summary.first_detection,
+                "median_budget": summary.quantiles[0.5],
+                "log_area": summary.log_area,
+            }
+        result.append(
+            {
+                "gap_hours": gap,
+                "n_campaigns": int(mapping["campaign_id"].n_unique()),
+                "models": per_model,
+            }
+        )
+    return result
+
+
 def write_ledger_outputs(
     statistics: dict[str, ModelStatistics],
     users: pl.DataFrame,
@@ -223,8 +274,11 @@ def write_ledger_outputs(
     n_simulations: int,
     confidence: float,
     seed: int,
+    gaps_hours: list[float] | None = None,
+    budgets: list[int] | None = None,
 ) -> dict[str, dict[str, object]]:
-    """Write positives_ledger.csv, day_sizes.csv and budget_summary.json; return the summaries."""
+    """Write positives_ledger.csv, day_sizes.csv, budget_summary.json and, with `gaps_hours`,
+    campaign_gap_sensitivity.json; return the summaries."""
     ledger = pl.concat(
         [
             stats.positives.select(pl.lit(name).alias("model"), *LEDGER_COLUMNS[1:])
@@ -248,6 +302,11 @@ def write_ledger_outputs(
         for name in statistics
     }
     (tables_dir / "budget_summary.json").write_text(json.dumps(summaries, indent=2) + "\n")
+    if gaps_hours:
+        sensitivity = gap_sensitivity(ledger, users, gaps_hours, budgets or [k_max], k_max)
+        (tables_dir / "campaign_gap_sensitivity.json").write_text(
+            json.dumps(sensitivity, indent=2) + "\n"
+        )
     return summaries
 
 

@@ -43,5 +43,7 @@ ledger:
   k_max: 10000           # upper end of the log-budget area
   n_resamples: 10000     # bootstrap over accounts
   n_simulations: 10000   # random-ranking null
+  # Campaigns regrouped at each gap from the ledger (S6-07); 24 is the dataset's own.
+  campaign_gap_hours: [1, 6, 24, 72]
   confidence: 0.95
   seed: 42
