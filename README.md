@@ -281,6 +281,15 @@ authbench data to-parquet data/raw/auth.txt.gz --out-dir data/interim/auth
 dvc repro
 ```
 
+On a rented machine, `scripts/run_lanl.sh` does all of it in one command: locked install,
+preflight, download, conversion of the 58 days, both protocols (`temporal` and `harmonised`)
+with the autoencoders and Euler, and Euler's fidelity check, logging the machine, commit,
+durations and cost under `reports/runs/<run id>/`:
+
+```bash
+AUTHBENCH_LANL_EMAIL=you@example.org HOURLY_EUR=0.4431 bash scripts/run_lanl.sh
+```
+
 **Activate the environment first.** `dvc repro` runs each stage's command in a
 subshell with the ambient `PATH`, so calling `.venv/bin/dvc` directly is not
 enough: the stage then fails with `'authbench' is not recognized`. Activating
