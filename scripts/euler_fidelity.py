@@ -8,7 +8,8 @@ every authentication event of the converted days (no AuthBench universe, split o
 store) and writes the edge-level AUC and AP beside the published ones. It needs the whole
 dataset and redteam.txt.gz: it is run on the rented machine, not in CI.
 
-Two variants of the events, each written to `euler_fidelity_<variant>.json`:
+Configurations, each written to `euler_fidelity_<config>.json` with one result per seed and
+their mean and standard deviation (the paper averages 5 independent runs):
 
 - `ntlm`, the authors' loader: their code (lanl_experiments/loaders/split.py) keeps only the
   lines of auth.txt that contain "NTLM" ("Some filtering for better FPR/less Kerb noise") and
@@ -16,18 +17,29 @@ Two variants of the events, each written to `euler_fidelity_<variant>.json`:
   authentications"), but its table V counts 45,871,390 events and 518 anomalous edges, far
   from the 1.05 billion events of auth.txt. Measured on LANL: every red-team edge is NTLM, and
   the filter leaves 14.4 million of the 99.4 million test edges.
+- `ntlm_vocabulary`, and every node of the timeline its own identifier, as their code does
+  (load_lanl.py: one-hot features over the whole node map), negatives sampled among them all.
+- `ntlm_code`, and their code's defaults for the learning rate and the patience (run.py:
+  0.005 and 5; the paper's text says ten epochs of patience).
 - `all`, every authentication event, self-loops included: the graph AuthBench's M5c sees.
 
-    python scripts/euler_fidelity.py data/interim/auth data/raw/redteam.txt.gz reports/lanl [ntlm] [all]
+Not reproduced: their test snapshots start at the first red-team event (t=150885) rather than
+on multiples of 30 minutes.
+
+    python scripts/euler_fidelity.py data/interim/auth data/raw/redteam.txt.gz reports/lanl \
+        [ntlm ntlm_vocabulary ntlm_code all] [--seeds 42,43,44,45,46]
 """
 
 from __future__ import annotations
 
+import argparse
 import json
+import shutil
 import sys
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import polars as pl
@@ -52,9 +64,19 @@ RAW_FIELDS = [
     "auth_orientation",
     "success",
 ]
-VARIANTS = {
+EVENTS = {
     "ntlm": "NTLM authentications only, self-loops dropped (the authors' loader)",
     "all": "every authentication event, self-loops included (AuthBench's graph)",
+}
+CONFIGS: dict[str, dict[str, Any]] = {
+    "ntlm": {"events": "ntlm", "vocabulary": False, "params": {}},
+    "ntlm_vocabulary": {"events": "ntlm", "vocabulary": True, "params": {}},
+    "ntlm_code": {
+        "events": "ntlm",
+        "vocabulary": True,
+        "params": {"learning_rate": 0.005, "patience": 5},
+    },
+    "all": {"events": "all", "vocabulary": False, "params": {}},
 }
 
 
@@ -84,7 +106,7 @@ def select_events(auth: pl.LazyFrame, variant: str) -> pl.LazyFrame:
             & (pl.col("src_computer").cast(pl.Utf8) != pl.col("dst_computer").cast(pl.Utf8))
         )
     elif variant != "all":
-        raise ValueError(f"Unknown variant {variant!r}; expected one of {sorted(VARIANTS)}.")
+        raise ValueError(f"Unknown variant {variant!r}; expected one of {sorted(EVENTS)}.")
     return auth.select("time", "src_computer", "dst_computer")
 
 
@@ -149,56 +171,110 @@ def score_edges(model: EulerScorer, edges: pl.DataFrame) -> tuple[np.ndarray, np
     return np.concatenate(scores), np.concatenate(labels)
 
 
+def _mean_std(values: list[float | None]) -> tuple[float | None, float | None]:
+    kept = [v for v in values if v is not None]
+    if not kept:
+        return None, None
+    return float(np.mean(kept)), float(np.std(kept, ddof=1)) if len(kept) > 1 else None
+
+
 def run(
-    auth_dir: Path, redteam_path: Path, out_dir: Path, model: EulerScorer, variant: str = "all"
+    auth_dir: Path,
+    redteam_path: Path,
+    out_dir: Path,
+    config: str = "all",
+    seeds: tuple[int, ...] = (42,),
+    **overrides: Any,
 ) -> dict[str, object]:
+    """One configuration, fitted and scored once per seed; `overrides` replace model settings."""
+    spec = CONFIGS[config]
+    params = {**spec["params"], **overrides}
+    snapshot = EulerScorer(**params).snapshot_seconds
     redteam, _ = clean_redteam(
         pl.scan_csv(redteam_path, has_header=False, new_columns=RAW_REDTEAM_COLUMNS)
     )
     first_attack = int(redteam.select(pl.col("time").min()).collect().item())
+    runs = []
     with tempfile.TemporaryDirectory(prefix="euler_fidelity_") as scratch:
-        auth = events(auth_dir, variant, Path(scratch))
+        auth = events(auth_dir, spec["events"], Path(scratch))
         n_events = int(auth.select(pl.len()).collect().item())
-        log(f"variant {variant}: {n_events} events; first red-team event at t={first_attack}")
-        model.fit(auth.filter(pl.col("time") < first_attack))
-        log(f"fitted in {len(model.history)} epochs; preparing the timeline")
-        model.prepare([auth])
-        log("prepared; building the test edges")
+        vocabulary = None
+        if spec["vocabulary"]:
+            nodes: set[str] = set()
+            for column in ("src_computer", "dst_computer"):
+                nodes |= set(auth.select(pl.col(column).cast(pl.Utf8).unique()).collect()[column])
+            vocabulary = sorted(nodes)
+        log(
+            f"config {config}: {n_events} events, vocabulary "
+            f"{len(vocabulary) if vocabulary else 'from training'}; first red-team event at "
+            f"t={first_attack}"
+        )
         # Every event from the first red-team one on, as the authors' loader reads the test
         # range: the snapshot holding it is kept, without its earlier events.
-        edges = edge_level(
-            auth.filter(pl.col("time") >= first_attack), redteam, model.snapshot_seconds
-        )
-    log(f"{edges.height} test edges, {int(edges['is_malicious'].sum())} anomalous; scoring")
-    scores, labels = score_edges(model, edges)
-    n_edges = edges.height
-    del edges
-    log("scored; computing AUC and AP")
-    result = {
+        edges = edge_level(auth.filter(pl.col("time") >= first_attack), redteam, snapshot)
+        n_anomalous = int(edges["is_malicious"].sum())
+        log(f"{edges.height} test edges, {n_anomalous} anomalous")
+        for seed in seeds:
+            cache = Path(scratch) / f"embeddings_{seed}"
+            model = EulerScorer(**params, seed=seed, vocabulary=vocabulary, cache_dir=str(cache))
+            model.fit(auth.filter(pl.col("time") < first_attack))
+            model.prepare([auth])
+            scores, labels = score_edges(model, edges)
+            single = 0 < labels.sum() < labels.size
+            runs.append(
+                {
+                    "seed": seed,
+                    "auc": float(roc_auc_score(labels, scores)) if single else None,
+                    "ap": float(average_precision_score(labels, scores)) if labels.any() else None,
+                    "training_epochs": len(model.history),
+                }
+            )
+            del model, scores
+            shutil.rmtree(cache)
+            log(f"seed {seed}: {runs[-1]}")
+    auc_mean, auc_std = _mean_std([r["auc"] for r in runs])
+    ap_mean, ap_std = _mean_std([r["ap"] for r in runs])
+    result: dict[str, object] = {
         "protocol": "King and Huang (2022): link prediction, edges per 30-minute snapshot, "
         "training before the first red-team event",
-        "variant": variant,
-        "events": VARIANTS[variant],
+        "config": config,
+        "events": EVENTS[spec["events"]],
+        "vocabulary": "every node of the timeline"
+        if spec["vocabulary"]
+        else "training nodes, then one shared unseen node",
+        "params": params,
         "events_kept": n_events,
         "first_red_team_event": first_attack,
-        "test_edges": n_edges,
-        "anomalous_edges": int(labels.sum()),
-        "auc": float(roc_auc_score(labels, scores)) if 0 < labels.sum() < labels.size else None,
-        "ap": float(average_precision_score(labels, scores)) if labels.any() else None,
+        "test_edges": edges.height,
+        "anomalous_edges": n_anomalous,
+        "auc_mean": auc_mean,
+        "auc_std": auc_std,
+        "ap_mean": ap_mean,
+        "ap_std": ap_std,
+        "runs": runs,
         "published": PUBLISHED,
-        "training_epochs": len(model.history),
     }
     out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / f"euler_fidelity_{variant}.json"
+    path = out_dir / f"euler_fidelity_{config}.json"
     path.write_text(json.dumps(result, indent=2) + "\n")
     log(f"wrote {path}")
     return result
 
 
 def main() -> None:
-    auth_dir, redteam_path, out_dir = (Path(a) for a in sys.argv[1:4])
-    for variant in sys.argv[4:] or list(VARIANTS):
-        result = run(auth_dir, redteam_path, out_dir, EulerScorer(), variant)
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("auth_dir", type=Path)
+    parser.add_argument("redteam", type=Path)
+    parser.add_argument("out_dir", type=Path)
+    parser.add_argument("configs", nargs="*", help=f"any of {list(CONFIGS)} (default: all)")
+    parser.add_argument("--seeds", default="42", help="comma-separated, e.g. 42,43,44,45,46")
+    args = parser.parse_args()
+    unknown = sorted(set(args.configs) - set(CONFIGS))
+    if unknown:
+        parser.error(f"unknown configurations {unknown}; expected some of {list(CONFIGS)}")
+    seeds = tuple(int(s) for s in args.seeds.split(","))
+    for config in args.configs or list(CONFIGS):
+        result = run(args.auth_dir, args.redteam, args.out_dir, config, seeds)
         print(json.dumps(result, indent=2), flush=True)
 
 

@@ -63,23 +63,29 @@ def _network(tmp_path: Path) -> tuple[Path, Path, pl.DataFrame]:
     return tmp_path / "auth", redteam, auth
 
 
-@pytest.mark.parametrize("variant", ["all", "ntlm"])
+QUICK = {"epochs": 3, "patience": 2, "window": 10}
+
+
+@pytest.mark.parametrize("config", ["all", "ntlm", "ntlm_vocabulary"])
 def test_the_day_by_day_check_equals_one_computation_over_every_edge(
-    tmp_path: Path, variant: str
+    tmp_path: Path, config: str
 ) -> None:
     script = _script()
     auth_dir, redteam, auth = _network(tmp_path)
-    model = EulerScorer(epochs=3, patience=2, window=10, seed=1)
-    result = script.run(auth_dir, redteam, tmp_path / "out", model, variant)
-    written = tmp_path / "out" / f"euler_fidelity_{variant}.json"
+    result = script.run(auth_dir, redteam, tmp_path / "out", config, (1, 2), **QUICK)
+    written = tmp_path / "out" / f"euler_fidelity_{config}.json"
     assert json.loads(written.read_text()) == result
 
-    if variant == "ntlm":
+    if config != "all":
         auth = auth.filter(
             (pl.col("auth_type") == "NTLM") & (pl.col("src_computer") != pl.col("dst_computer"))
         )
+    events = auth.select("time", "src_computer", "dst_computer")
+    vocabulary = None
+    if config == "ntlm_vocabulary":
+        vocabulary = sorted(set(events["src_computer"]) | set(events["dst_computer"]))
     edges = (
-        auth.filter(pl.col("time") >= FIRST_ATTACK)
+        events.filter(pl.col("time") >= FIRST_ATTACK)
         .select((pl.col("time") // SNAPSHOT).alias("snapshot"), "src_computer", "dst_computer")
         .unique()
     )
@@ -89,17 +95,35 @@ def test_the_day_by_day_check_equals_one_computation_over_every_edge(
         (200_000 // SNAPSHOT, "C5", "C7"),
     }
     labels = np.array([tuple(row) in attacked for row in edges.iter_rows()])
-    scores = model.score(
-        edges.select(
-            (pl.col("snapshot") * SNAPSHOT).alias("time"), "src_computer", "dst_computer"
-        ).lazy()
-    ).to_numpy()
-    assert result["variant"] == variant
+    assert result["config"] == config
     assert result["first_red_team_event"] == FIRST_ATTACK
     assert result["test_edges"] == edges.height
     assert result["anomalous_edges"] == 3
-    assert result["auc"] == pytest.approx(roc_auc_score(labels, scores), rel=1e-12)
-    assert result["ap"] == pytest.approx(average_precision_score(labels, scores), rel=1e-12)
+    assert result["events_kept"] == events.height
+    for seed, run in zip((1, 2), result["runs"], strict=True):
+        model = EulerScorer(**QUICK, seed=seed, vocabulary=vocabulary)
+        model.fit(events.filter(pl.col("time") < FIRST_ATTACK).lazy())
+        model.prepare([events.lazy()])
+        scores = model.score(
+            edges.select(
+                (pl.col("snapshot") * SNAPSHOT).alias("time"), "src_computer", "dst_computer"
+            ).lazy()
+        ).to_numpy()
+        assert run["seed"] == seed
+        assert run["auc"] == pytest.approx(roc_auc_score(labels, scores), rel=1e-12)
+        assert run["ap"] == pytest.approx(average_precision_score(labels, scores), rel=1e-12)
+    assert result["auc_mean"] == pytest.approx(np.mean([r["auc"] for r in result["runs"]]))
+    assert result["ap_std"] == pytest.approx(np.std([r["ap"] for r in result["runs"]], ddof=1))
+
+
+def test_the_code_configuration_takes_the_authors_defaults_under_any_override(
+    tmp_path: Path,
+) -> None:
+    script = _script()
+    auth_dir, redteam, _ = _network(tmp_path)
+    result = script.run(auth_dir, redteam, tmp_path / "out", "ntlm_code", (1,), epochs=2)
+    assert result["params"] == {"learning_rate": 0.005, "patience": 5, "epochs": 2}
+    assert result["vocabulary"] == "every node of the timeline"
 
 
 def test_the_ntlm_variant_keeps_ntlm_events_between_two_computers() -> None:

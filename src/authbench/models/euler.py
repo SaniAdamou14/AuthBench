@@ -146,6 +146,7 @@ class EulerScorer(BaseAnomalyScorer):
         window: int = 48,
         seed: int = 42,
         cache_dir: str | None = None,
+        vocabulary: list[str] | None = None,
     ) -> None:
         self.snapshot_seconds = snapshot_seconds
         self.hidden = hidden
@@ -158,6 +159,11 @@ class EulerScorer(BaseAnomalyScorer):
         self.window = window
         self.seed = seed
         self.cache_dir = cache_dir
+        # The authors' code gives every node of the whole dataset its own identifier, those first
+        # seen after training included, and samples negatives among them all. That needs the
+        # future node set, so only scripts/euler_fidelity.py sets it; AuthBench's M5c maps a
+        # node unseen in training to the shared unseen node.
+        self.vocabulary = vocabulary
         self.history: list[tuple[int, float, float]] = []
         self._nodes: dict[str, int] = {}
         self._module: _Euler | None = None
@@ -204,7 +210,9 @@ class EulerScorer(BaseAnomalyScorer):
         torch.manual_seed(self.seed)
         generator = torch.Generator().manual_seed(self.seed)
         edges = snapshot_edges(train, self.snapshot_seconds)
-        names = sorted(set(edges["src"].to_list()) | set(edges["dst"].to_list()))
+        names = sorted(
+            set(edges["src"].to_list()) | set(edges["dst"].to_list()) | set(self.vocabulary or ())
+        )
         self._nodes = {n: i for i, n in enumerate(names)}
         n_nodes = len(names)
         first, last = int(edges["snapshot"].min()), int(edges["snapshot"].max())  # type: ignore[arg-type]
