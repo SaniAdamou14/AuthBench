@@ -3,7 +3,8 @@
 Fitting is bounded, seeded and label-free: a seeded sample of the training
 partition is split into a fitting set and a holdout, and training stops when
 the holdout loss has not improved for `patience` epochs, keeping the best
-weights. Scoring is row-local and batched, so `train_eval` can chunk it.
+weights. Batched torch scoring is not bit-identical across batch sizes, so a
+subclass is row-local only if it scores in `models.rowwise` arithmetic (M4a, M4b).
 """
 
 from __future__ import annotations
@@ -39,7 +40,7 @@ class EpochRecord:
 class TorchScorer(BaseAnomalyScorer):
     """Template: subclasses define `_inputs`, `_build`, `_loss` (per sample) and `_score` (per sample)."""
 
-    scores_row_locally = True
+    scores_row_locally = False
 
     def __init__(
         self,

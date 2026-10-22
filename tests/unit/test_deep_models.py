@@ -6,7 +6,7 @@ import numpy as np
 import polars as pl
 import pytest
 
-pytest.importorskip("torch")
+torch = pytest.importorskip("torch")
 
 from authbench.features.sequence import compute_f6  # noqa: E402
 from authbench.features.vocabulary import FIRST_TOKEN_ID, OOV_ID, n_tokens  # noqa: E402
@@ -48,8 +48,30 @@ def test_scoring_in_pieces_equals_scoring_whole(model_class: type) -> None:
     test = _gaussian(100, seed=2).collect()
     whole = model.score(test.lazy()).to_numpy()
     pieces = np.concatenate([model.score(test.slice(i, 34).lazy()).to_numpy() for i in (0, 34, 68)])
+    alone = np.array(
+        [model.score(test.slice(i, 1).lazy()).to_numpy()[0] for i in range(0, 100, 11)]
+    )
     assert model.scores_row_locally
-    np.testing.assert_allclose(whole, pieces, rtol=0, atol=1e-6)
+    np.testing.assert_array_equal(whole, pieces)
+    np.testing.assert_array_equal(whole[::11], alone)
+
+
+@pytest.mark.parametrize("model_class", [AutoencoderScorer, VAEScorer])
+def test_row_wise_scoring_evaluates_the_trained_network(model_class: type) -> None:
+    """The float64 row-wise forward pass is the torch one, up to torch's float32 rounding."""
+    model = model_class(COLUMNS, **FAST)
+    model.fit(_gaussian(600))
+    test = _gaussian(100, seed=4)
+    (inputs,) = model._inputs(test, fitting=False)
+    model._module.eval()
+    with torch.no_grad():
+        expected = model._score(model._module, (inputs,)).to(torch.float64).numpy()
+    np.testing.assert_allclose(model.score(test).to_numpy(), expected, rtol=1e-4, atol=1e-5)
+
+
+def test_the_sequence_model_does_not_claim_row_locality() -> None:
+    """M4c still scores in batched float32 torch, whose results move with the batch."""
+    assert NextEventLSTMScorer.scores_row_locally is False
 
 
 def test_fit_is_bounded_by_fit_sample_size() -> None:

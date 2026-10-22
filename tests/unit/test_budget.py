@@ -18,8 +18,9 @@ from authbench.ingest.budget import (
     available_disk_bytes,
     available_memory_bytes,
     lanl_budget,
+    largest_day_events,
+    max_day_events_for_memory,
     max_events_for_disk,
-    max_events_for_memory,
     peak_rss_bytes,
     total_disk_bytes,
 )
@@ -99,16 +100,25 @@ def test_max_events_for_disk_never_goes_negative() -> None:
     assert max_events_for_disk(1024) == 0
 
 
-def test_disk_is_now_the_binding_constraint_on_a_laptop() -> None:
-    """It used to be memory, by a factor of three: `train_eval` loaded whole
-    splits and the estimators copied the design matrix. Fitting on a bounded
-    sample and scoring by day moved the ceiling far enough that free disk is
-    what limits the run again — which is the constraint you can fix by
-    plugging in a drive."""
-    by_disk = max_events_for_disk(30 * 1024**3)
-    by_memory = max_events_for_memory(16 * 1024**3)
+def test_memory_follows_the_largest_day_not_the_run() -> None:
+    """Features and evaluation both run one day at a time, so doubling the days of a
+    run at the same daily volume costs disk, not memory."""
+    two_weeks = lanl_budget(239_000_000, n_days=14)
+    four_weeks = lanl_budget(478_000_000, n_days=28)
+    assert peak_rss_bytes(two_weeks) == peak_rss_bytes(four_weeks)
+    assert total_disk_bytes(four_weeks) > total_disk_bytes(two_weeks)
 
-    assert by_disk < by_memory
+
+def test_a_day_that_fits_is_one_the_budget_accepts() -> None:
+    available = 16 * 1024**3
+    day = max_day_events_for_memory(available)
+    assert peak_rss_bytes(lanl_budget(day * 58, n_days=58)) <= available * 1.25
+    assert largest_day_events(1_051_430_459) > 20_000_000
+
+
+def test_all_of_lanl_by_day_needs_more_than_the_reference_laptop() -> None:
+    """Measured: every event of a LANL day exhausted 8 GB; remote LogOn alone fit."""
+    assert peak_rss_bytes(lanl_budget()) > 8 * 1024**3
 
 
 def test_available_disk_and_memory_are_readable_here(

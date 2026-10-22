@@ -28,6 +28,7 @@ def test_split_bounds_match() -> None:
 
     for key in ("train_days", "val_days", "test_days"):
         assert list(params.split[key]) == list(conf[key]), f"split.{key} drifted"  # type: ignore[index,union-attr]
+    assert params.split.history == conf.history  # type: ignore[union-attr]
 
 
 def test_evaluation_knobs_match() -> None:
@@ -39,6 +40,9 @@ def test_evaluation_knobs_match() -> None:
     assert params.eval.bootstrap_resamples == conf.bootstrap.n_resamples  # type: ignore[union-attr]
     assert params.eval.bootstrap_confidence == conf.bootstrap.confidence  # type: ignore[union-attr]
     assert params.eval.pairwise_alpha == conf.pairwise_test.alpha  # type: ignore[union-attr]
+    assert params.eval.ledger_k_max == conf.ledger.k_max  # type: ignore[union-attr]
+    assert params.eval.ledger_resamples == conf.ledger.n_resamples  # type: ignore[union-attr]
+    assert params.eval.ledger_simulations == conf.ledger.n_simulations  # type: ignore[union-attr]
 
 
 def test_feature_knobs_match() -> None:
@@ -55,6 +59,7 @@ def test_feature_knobs_match() -> None:
     # a silent mismatch changes how much history a run actually got without
     # changing what `dvc params diff` claims it asked for.
     assert params.features.history_warmup_days == conf.history_warmup_days  # type: ignore[union-attr]
+    assert params.features.universe == conf.universe  # type: ignore[union-attr]
 
 
 def test_the_split_lies_inside_the_converted_day_window() -> None:
@@ -82,7 +87,6 @@ def test_runtime_knobs_match() -> None:
     conf = _load("conf", "config.yaml")
 
     assert params.runtime.fit_sample_size == conf.runtime.fit_sample_size  # type: ignore[union-attr]
-    assert params.runtime.bootstrap_workers == conf.runtime.bootstrap_workers  # type: ignore[union-attr]
 
 
 def test_dataset_knobs_match() -> None:

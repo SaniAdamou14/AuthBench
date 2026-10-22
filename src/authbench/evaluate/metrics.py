@@ -43,7 +43,8 @@ def precision_at_k(y_true: np.ndarray, scores: np.ndarray, k: int) -> float:
     """Fraction of true positives among the k highest-scored events."""
     if k <= 0:
         return 0.0
-    top_k_idx = np.argsort(-scores)[:k]
+    # Stable, so ties keep event order: numpy's default sort orders ties differently on different CPUs.
+    top_k_idx = np.argsort(-scores, kind="stable")[:k]
     return float(np.mean(y_true[top_k_idx])) if len(top_k_idx) else 0.0
 
 
@@ -53,7 +54,8 @@ def recall_at_fixed_fpr(y_true: np.ndarray, scores: np.ndarray, target_fpr: floa
     """
     from sklearn.metrics import roc_curve
 
-    fpr, tpr, _ = roc_curve(y_true, scores)
+    # Every threshold: the default drops collinear ROC points, and one of them can be the answer.
+    fpr, tpr, _ = roc_curve(y_true, scores, drop_intermediate=False)
     valid = fpr <= target_fpr
     if not np.any(valid):
         return 0.0
@@ -82,3 +84,14 @@ def degenerate_case_checks() -> dict[str, bool]:
     )
 
     return results
+
+
+def campaign_weighted_auc_pr(
+    y_true: np.ndarray, scores: np.ndarray, campaign_ids: np.ndarray
+) -> float:
+    """Average precision with each positive weighted 1/|its campaign|, so every campaign counts once."""
+    positive = y_true.astype(bool)
+    _, index, counts = np.unique(campaign_ids[positive], return_inverse=True, return_counts=True)
+    weights = np.ones(y_true.size, dtype=np.float64)
+    weights[positive] = 1.0 / counts[index]
+    return float(average_precision_score(y_true, scores, sample_weight=weights))

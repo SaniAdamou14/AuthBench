@@ -48,16 +48,24 @@ FEATURE_STORE_BYTES_PER_EVENT = 25.4
 #: Columns in `features.MODEL_FEATURE_COLUMNS`, as float64, in RAM.
 MODEL_MATRIX_BYTES_PER_EVENT = 21 * 8
 
-#: The evaluation frame the bootstrap runs on, per event: `EVAL_COLUMNS`
-#: (~23 bytes), one float64 score per model in the catalog (8 x 8), the single
-#: pre-sorted rank order held at a time (int32 permutation + uint8 label mask +
-#: int32 group boundaries, ~9), and the int32 resample count vector (4).
+#: Peak RSS of day-by-day featurisation per event of the largest day, carried state included.
 #:
-#: The rank orders used to be held for all eight models at once, as int64 and
-#: float64 — 128 bytes per event instead of 9. Building them one at a time,
-#: each replaying the same seeded draw sequence, keeps the resamples paired and
-#: drops this line by more than half.
-SCORED_FRAME_BYTES_PER_EVENT = 23 + 8 * 8 + 9 + 4
+#: 713, **measured on LANL**: remote LogOn days 0-2 (5.8M to 6.6M events a day) peaked
+#: at 4.70 GB on the 8 GB reference machine (`docs/scaling.md`). The carried state
+#: grows with the distinct pairs seen, so a long run sits somewhat above this.
+FEATURIZE_BYTES_PER_DAY_EVENT = 713
+
+#: Peak RSS of scoring one day and folding it into the statistics, per event of the day.
+#:
+#: 872, **measured on LANL**: day 12, remote LogOn to user accounts (2.6M events),
+#: nine models, 2M-row scoring chunks, 3.65 GB peak over a 1.54 GB baseline. The
+#: scoring chunk is a fixed cost counted here per event, so larger days cost less
+#: per event than this; the estimate errs high.
+EVALUATION_BYTES_PER_DAY_EVENT = 872
+
+#: Largest day over the mean day: 1.216, measured over LANL days 0-13 (20.8M against
+#: 17.1M events); 1.228 for remote LogOn alone.
+LANL_DAY_PEAK_FACTOR = 1.216
 
 # --- Assumptions, stated rather than hidden ---------------------------------
 
@@ -81,8 +89,7 @@ CARDINALITY_PENALTY = 1.4
 ESTIMATOR_COPY_FACTOR = 3.0
 
 LANL_TOTAL_EVENTS = 1_051_430_459
-LANL_TRAIN_FRACTION = 30 / 58
-LANL_TEST_FRACTION = 18 / 58
+LANL_DAYS = 58
 
 
 @dataclass(frozen=True)
@@ -95,21 +102,27 @@ class StageBudget:
     note: str
 
 
+def largest_day_events(n_events: int, n_days: int = LANL_DAYS) -> int:
+    """Events in the largest day of a run of `n_events` over `n_days`."""
+    return int(n_events / max(1, n_days) * LANL_DAY_PEAK_FACTOR)
+
+
 def lanl_budget(
     n_events: int = LANL_TOTAL_EVENTS,
     *,
-    test_fraction: float = LANL_TEST_FRACTION,
+    n_days: int = LANL_DAYS,
     fit_sample_size: int = 5_000_000,
     scoring_chunk_rows: int = 2_000_000,
 ) -> list[StageBudget]:
-    """Per-stage disk and memory budget for a run over `n_events` auth events.
+    """Per-stage disk and memory budget for a run over `n_events` auth events in `n_days` days.
 
     `n_events` is a parameter rather than a constant so the same table answers
     "what would a 10-day slice cost?" — which is the question that matters
-    once the full figure turns out not to fit.
+    once the full figure turns out not to fit. Memory follows the largest day,
+    not the run: features and evaluation both proceed one day at a time.
     """
     penalty = CARDINALITY_PENALTY
-    n_test = int(n_events * test_fraction)
+    largest_day = largest_day_events(n_events, n_days)
 
     return [
         StageBudget(
@@ -133,15 +146,13 @@ def lanl_budget(
         StageBudget(
             stage="label_split_features (data/processed/features)",
             disk_bytes=int(n_events * FEATURE_STORE_BYTES_PER_EVENT * penalty),
-            peak_rss_bytes=6 * 1024**3,
-            note="only the consumed diversity columns are computed",
+            peak_rss_bytes=int(largest_day * FEATURIZE_BYTES_PER_DAY_EVENT),
+            note=f"one day at a time; largest day about {largest_day / 1e6:.1f}M events",
         ),
         StageBudget(
             stage="train_eval (design matrix in RAM)",
             disk_bytes=64 * 1024**2,
-            # Bounded by the larger of the fitting sample and one day of
-            # scoring, not by the split. See `models.base.sample_for_fit` and
-            # `train_eval.fit_and_score_all`.
+            # Bounded by the fitting sample and the scoring chunk, not by the split.
             peak_rss_bytes=int(
                 max(fit_sample_size, scoring_chunk_rows)
                 * MODEL_MATRIX_BYTES_PER_EVENT
@@ -150,13 +161,10 @@ def lanl_budget(
             note="fit on a bounded sample, score in fixed-size chunks",
         ),
         StageBudget(
-            stage="train_eval (bootstrap over the scored split)",
+            stage="train_eval (score and evaluate by day)",
             disk_bytes=0,
-            # The slim evaluation frame: identity columns plus one float64
-            # score per model, plus the pre-sorted rank order the fast AUC-PR
-            # path keeps for each of them.
-            peak_rss_bytes=int(n_test * SCORED_FRAME_BYTES_PER_EVENT),
-            note="slim score frame + one pre-sorted rank order per model",
+            peak_rss_bytes=int(largest_day * EVALUATION_BYTES_PER_DAY_EVENT),
+            note="sufficient statistics per day; the bootstrap is small",
         ),
     ]
 
@@ -191,15 +199,9 @@ def max_events_for_disk(available_bytes: int, *, margin_bytes: int = 5 * 1024**3
     return int(usable / per_event)
 
 
-def max_events_for_memory(
-    available_bytes: int,
-    *,
-    test_fraction: float = LANL_TEST_FRACTION,
-) -> int:
-    """Largest `n_events` the evaluation stage fits in `available_bytes`."""
-    # The design matrix is bounded now, so what scales with the run is the
-    # scored frame the bootstrap holds: the whole test split, slim.
-    per_event = test_fraction * SCORED_FRAME_BYTES_PER_EVENT
+def max_day_events_for_memory(available_bytes: int) -> int:
+    """Largest day, in events, that featurisation and evaluation fit in `available_bytes`."""
+    per_event = max(FEATURIZE_BYTES_PER_DAY_EVENT, EVALUATION_BYTES_PER_DAY_EVENT)
     return int(available_bytes / per_event)
 
 

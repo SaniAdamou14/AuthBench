@@ -105,6 +105,7 @@ def test_calibrate_weights_rejects_a_validation_set_with_no_positives() -> None:
         {
             "event_id": np.arange(n),
             "time": np.arange(n) * 60,
+            "day": np.zeros(n, dtype=np.int64),
             "src_user": ["U1"] * n,
             "auth_type": ["Kerberos"] * n,
             "src_computer": ["C1"] * n,
@@ -116,6 +117,10 @@ def test_calibrate_weights_rejects_a_validation_set_with_no_positives() -> None:
             "hour_deviation_from_profile": rng.random(n),
             "src_user_is_machine": np.zeros(n, dtype=bool),
             "pair_global_rarity": rng.random(n),
+            "user_src_is_new": np.zeros(n, dtype=bool),
+            "user_auth_is_new": rng.integers(0, 2, n).astype(bool),
+            "prev_dst_is_src": rng.integers(0, 2, n).astype(bool),
+            "hours_since_prev_event_same_user": rng.random(n),
         }
     )
     all_negative = pl.Series("is_malicious", np.zeros(n, dtype=bool))

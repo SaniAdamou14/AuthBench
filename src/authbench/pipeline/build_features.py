@@ -1,9 +1,16 @@
-"""DVC `label_split_features` stage: raw Parquet -> labeled, split, feature-store Parquet.
+"""DVC `label_split_features` stage: day-partitioned Parquet -> labelled, split, feature-store Parquet.
 
-This is the full-dataset counterpart of what `authbench.cli.demo` does inline
-for the small demo sample — same library calls, driven by Hydra config
-instead of hard-coded demo paths, and persisting a feature-store version
-hash (US-115) so every model consumes exactly the same features.
+Days are read, labelled and featurised one at a time (`features.incremental`),
+so memory is bounded by a day and its predecessor whatever the length of the
+run. Each partition is written as one Parquet file per day under
+`<feature store>/<split>/`, and the store's version is a hash of the feature
+configuration (US-115).
+
+Partitions are half-open time ranges, given in days or in hours. History is
+either `window` (each partition is featurised from its own first day minus
+`history_warmup_days`, the published configuration) or `cumulative` (one pass
+from day 0, so every partition reads all earlier events, the protocol of
+Larroche (2026) and of reviewer 3).
 """
 
 from __future__ import annotations
@@ -11,7 +18,9 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import shutil
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 import hydra
@@ -26,6 +35,7 @@ from authbench.features.history import (
     DEFAULT_F2_WINDOWS_HOURS,
     compute_f2,
 )
+from authbench.features.incremental import FeatureState, featurize_day
 from authbench.features.novelty import compute_f3
 from authbench.features.temporal import NightWindow, calibrate_night_window, compute_f4
 from authbench.label.redteam_join import (
@@ -36,15 +46,13 @@ from authbench.label.redteam_join import (
     split_label_summary,
 )
 from authbench.parse.clean import clean_redteam
-from authbench.parse.schema import RAW_REDTEAM_COLUMNS
-from authbench.split.temporal import (
-    TemporalSplitConfig,
-    verify_temporal_order,
-)
+from authbench.parse.schema import RAW_REDTEAM_COLUMNS, SECONDS_PER_DAY
 
 logger = logging.getLogger(__name__)
 
 CONF_DIR = Path(__file__).resolve().parents[3] / "conf"
+UNIVERSES = ("all", "remote_logon", "remote_logon_user")
+SPLITS = ("train", "val", "test")
 
 
 def feature_store_version(features_cfg: DictConfig) -> str:
@@ -60,223 +68,193 @@ def featurize(
     features_cfg: DictConfig,
     night_window: NightWindow,
     frequency_encoding: FrequencyEncoding,
-    *,
-    checkpoint_fn: Callable[[pl.LazyFrame, str], pl.LazyFrame] | None = None,
-    split_name: str = "",
 ) -> pl.LazyFrame:
-    """`checkpoint_fn`, when given, is called between feature families (a
-    materialize-and-rescan, same contract as `checkpoint()` in `main()` below)
-    to bound peak memory on wide-window splits.
-
-    F2 and F3 each join several independently-derived branches back onto their
-    input by `event_id` — one per (entity, window) pair in F2, three in F3 —
-    exactly the sibling-join shape `checkpoint()` already fixes once between
-    splits (see its docstring). Left unchecked *within* a family too, Polars
-    keeps every branch's own full sort alive until all of that family's joins
-    resolve, so the family boundary is where the graph forks worst and where
-    a checkpoint pays for itself: measured on the VPS, every thread count
-    tried (0, 2, 4, 8, 14) on 4-14 day splits OOM-killed at the same ~30 GB
-    ceiling — the volume of simultaneously-live sorted copies, not
-    parallelism, was the constraint. Splitting the graph after F2 and after
-    F3 forces each family's joins to flush to Parquet before the next
-    family's branches are even planned, so at most one family's fanout is
-    resident at a time instead of all three. This changes nothing about
-    computed values (same join, same filter, just performed once) — safe now
-    that every sort in causal.py/novelty.py has a total order (commit
-    3654c22), so an extra materialization point can no longer change which
-    row wins a tie.
-    """
+    """F1-F4 over a whole window at once: the reference `featurize_day` is tested against."""
     if features_cfg.f1_event.enabled:
         frame = compute_f1(frame, frequency_encoding)
     if features_cfg.f2_history.enabled:
         frame = compute_f2(
             frame,
-            # Only the entities, windows and diversity pairs anything reads —
-            # four columns out of the fifty-four the full grid would produce.
             entities=DEFAULT_F2_ENTITIES,
             windows_hours=DEFAULT_F2_WINDOWS_HOURS,
             diversity_for=DEFAULT_DIVERSITY_PAIRS,
         )
-        if checkpoint_fn is not None:
-            frame = checkpoint_fn(frame, f"{split_name}_f2")
     if features_cfg.f3_novelty.enabled:
         frame = compute_f3(frame)
-        if checkpoint_fn is not None:
-            frame = checkpoint_fn(frame, f"{split_name}_f3")
     if features_cfg.f4_temporal.enabled:
         frame = compute_f4(frame, night_window)
-    # F5/F6 require the optional graph/deep extras and the full trailing-window
-    # dataset; wired in `authbench.features.graph`/`sequence` directly by
-    # callers that opt in (spec: Should-priority, not on the critical path).
     return frame
+
+
+def universe_filter(universe: str) -> pl.Expr:
+    """Events kept: all, remote LogOn (Larroche, 2026), or remote LogOn to a user account."""
+    if universe not in UNIVERSES:
+        raise ValueError(f"Unknown universe {universe!r}; expected one of {UNIVERSES}.")
+    if universe == "all":
+        return pl.lit(True)
+    remote_logon = (pl.col("auth_orientation").cast(pl.Utf8) == "LogOn") & (
+        pl.col("src_computer").cast(pl.Utf8) != pl.col("dst_computer").cast(pl.Utf8)
+    )
+    if universe == "remote_logon":
+        return remote_logon
+    return remote_logon & ~pl.col("dst_user_is_machine")
+
+
+def split_ranges(split_cfg: DictConfig) -> dict[str, tuple[int, int]]:
+    """Half-open [start, end) seconds per partition, from `<name>_hours` or inclusive `<name>_days`."""
+    ranges = {}
+    for name in SPLITS:
+        if f"{name}_hours" in split_cfg:
+            low, high = (int(h) for h in split_cfg[f"{name}_hours"])
+            ranges[name] = (low * 3600, high * 3600)
+        elif f"{name}_days" in split_cfg:
+            low, high = (int(d) for d in split_cfg[f"{name}_days"])
+            ranges[name] = (low * SECONDS_PER_DAY, (high + 1) * SECONDS_PER_DAY)
+    if "train" not in ranges or "test" not in ranges:
+        raise ValueError(f"A split needs train and test ranges, got {sorted(ranges)}.")
+    ordered = list(ranges.values())
+    if any(low >= high for low, high in ordered) or any(
+        a[1] > b[0] for a, b in zip(ordered, ordered[1:], strict=False)
+    ):
+        raise ValueError(f"Partitions are empty, overlap or are out of temporal order: {ranges}.")
+    return ranges
+
+
+def days_of(start: int, end: int) -> range:
+    """Days touched by the half-open range [start, end) in seconds."""
+    return range(start // SECONDS_PER_DAY, (end - 1) // SECONDS_PER_DAY + 1)
+
+
+@dataclass(frozen=True)
+class StoreInputs:
+    """Everything `build_store` reads: unlabelled days by number, labels, and the training fits."""
+
+    read_day: Callable[[int], pl.DataFrame | None]
+    redteam: pl.LazyFrame
+    campaigns: pl.LazyFrame
+    night_window: NightWindow
+    frequency_encoding: FrequencyEncoding
+
+
+def build_store(
+    inputs: StoreInputs,
+    ranges: dict[str, tuple[int, int]],
+    out_dir: Path,
+    *,
+    history: str = "window",
+    warmup_days: int = 0,
+) -> dict[str, object]:
+    """Featurise each partition day by day into `<out_dir>/<split>/day=NNN.parquet`; return split summaries."""
+    if history not in ("window", "cumulative"):
+        raise ValueError(f"history must be 'window' or 'cumulative', not {history!r}.")
+    for name in SPLITS:
+        # Day files left by an earlier split configuration would otherwise be scanned with the new ones.
+        shutil.rmtree(out_dir / name, ignore_errors=True)
+
+    def write(features: pl.DataFrame, day: int) -> None:
+        for name, (start, end) in ranges.items():
+            rows = features.filter(pl.col("time").is_between(start, end, closed="left"))
+            if rows.height:
+                (out_dir / name).mkdir(parents=True, exist_ok=True)
+                rows.select(FEATURE_STORE_COLUMNS).write_parquet(
+                    out_dir / name / f"day={day:03d}.parquet", compression="zstd"
+                )
+
+    def run(days: range, first_written: int) -> None:
+        state = FeatureState()
+        for day in days:
+            frame = inputs.read_day(day)
+            if frame is None:
+                raise FileNotFoundError(
+                    f"Day {day} is not converted; check params.yaml:to_parquet_days against conf/split/."
+                )
+            if not frame.height:
+                continue
+            frame = attach_campaign_id(
+                label_auth_events(frame.lazy(), inputs.redteam), inputs.campaigns
+            ).collect()
+            features, state = featurize_day(
+                frame, state, inputs.night_window, inputs.frequency_encoding
+            )
+            if day >= first_written:
+                write(features, day)
+            logger.info("Featurised day %d: %d events.", day, frame.height)
+
+    if history == "cumulative":
+        first = min(start for start, _ in ranges.values()) // SECONDS_PER_DAY
+        last = days_of(*max(ranges.values())).stop
+        run(range(0, last), first)
+    else:
+        for start, end in ranges.values():
+            days = days_of(start, end)
+            run(range(max(0, days.start - warmup_days), days.stop), days.start)
+
+    return {
+        name: split_label_summary(pl.scan_parquet(out_dir / name / "*.parquet"))
+        for name in ranges
+        if (out_dir / name).exists()
+    }
 
 
 @hydra.main(version_base=None, config_path=str(CONF_DIR), config_name="config")
 def main(cfg: DictConfig) -> None:
-    interim_dir = Path(cfg.paths.interim_dir)
-    raw_dir = Path(cfg.paths.raw_dir)
-    processed_dir = Path(cfg.paths.processed_dir) / "features"
-    processed_dir.mkdir(parents=True, exist_ok=True)
-
-    redteam_gz = raw_dir / "redteam.txt.gz"
-    raw_redteam = pl.scan_csv(redteam_gz, has_header=False, new_columns=RAW_REDTEAM_COLUMNS)
-    typed_redteam, n_dupes = clean_redteam(raw_redteam)
-    logger.info("Redteam: %d exact duplicates removed", n_dupes)
-
-    campaigns = group_into_campaigns(typed_redteam, gap_hours=float(cfg.dataset.campaign_gap_hours))
-
+    auth_dir = Path(cfg.paths.interim_dir) / "auth"
     tables_dir = Path(cfg.paths.tables_dir)
     tables_dir.mkdir(parents=True, exist_ok=True)
+
+    raw_redteam = pl.scan_csv(
+        Path(cfg.paths.raw_dir) / "redteam.txt.gz",
+        has_header=False,
+        new_columns=RAW_REDTEAM_COLUMNS,
+    )
+    typed_redteam, n_dupes = clean_redteam(raw_redteam)
+    logger.info("Redteam: %d exact duplicates removed", n_dupes)
+    campaigns = group_into_campaigns(typed_redteam, gap_hours=float(cfg.dataset.campaign_gap_hours))
     campaign_summary(campaigns).write_csv(tables_dir / "campaign_summary.csv")
 
-    split_config = TemporalSplitConfig.from_hydra(cfg.split)
+    keep = universe_filter(str(cfg.features.get("universe", "all")))
+    ranges = split_ranges(cfg.split)
 
-    # One lazy frame per split, reading only that split's day partitions.
-    #
-    # The previous shape built a single graph — scan every day, join the labels,
-    # attach campaigns, then filter three ways — and Polars re-executed the
-    # whole thing for each terminal operation. `verify_temporal_order` alone
-    # asks for four (train max, val min, val max, test min), so labeling 239
-    # million rows happened four times before a single feature was computed,
-    # and the stage died on a 532 MB allocation seconds after starting.
-    #
-    # Scanning by day partition instead pushes the filter down to the file
-    # level: each split touches only its own files, and the join runs once per
-    # split over that split's rows rather than repeatedly over all of them.
-    warmup_days = int(cfg.features.get("history_warmup_days", 0))
+    def scan_day(day: int) -> pl.LazyFrame | None:
+        path = auth_dir / f"day={day}"
+        return pl.scan_parquet(path / "*.parquet").filter(keep) if path.exists() else None
 
-    def raw_split(bounds: tuple[int, int], *, warmup: int = 0) -> pl.LazyFrame:
-        """The split's auth events, *unlabeled*, plus `warmup` days before it.
+    def read_day(day: int) -> pl.DataFrame | None:
+        frame = scan_day(day)
+        return None if frame is None else frame.collect()
 
-        The warm-up days are read and featurised but never written: they exist
-        so a split's first events have a past. Reaching backwards is always
-        sound — those events precede the split and precede every later split —
-        and reaching forwards is what the leakage guard forbids, which is why
-        this only ever extends the *lower* bound.
-        """
-        low, high = bounds
-        scan_low = max(0, low - warmup)
-        paths = [interim_dir / "auth" / f"day={day}" for day in range(scan_low, high + 1)]
-        present = [str(p / "*.parquet") for p in paths if p.exists()]
-        if not present:
-            raise FileNotFoundError(
-                f"No converted day partitions for days {low}-{high} under {interim_dir / 'auth'}. "
-                "A split that reaches outside the converted window has missing partitions, not "
-                "empty ones — check params.yaml:to_parquet_days against conf/split/temporal.yaml."
-            )
-        return pl.scan_parquet(present)
-
-    logger.info("Loading auth Parquet dataset from %s", interim_dir / "auth")
-    # The splits proper, for verification and for the fitted quantities.
-    train_raw = raw_split(split_config.train_days)
-    val_raw = raw_split(split_config.val_days)
-    test_raw = raw_split(split_config.test_days)
-    if warmup_days:
-        logger.info("Each split reads %d warm-up day(s) of history it will not write.", warmup_days)
-
-    # Verified and fitted on the *unlabeled* frames, and that is the whole
-    # point rather than an accident of ordering.
-    #
-    # None of these three reads a label: the leakage guard compares timestamps,
-    # the night window buckets timestamps, and the frequency encoding counts
-    # `auth_type` / `logon_type` / `auth_orientation`. Running them on the
-    # labeled frames meant every one of their aggregations re-executed the
-    # red-team join underneath — `verify_temporal_order` alone asks for four
-    # (train max, val min, val max, test min) — so joining 137 million training
-    # rows happened four times before a single feature existed, and the stage
-    # died on a 44 MB allocation. On the raw frames Polars pushes the
-    # projection down to a single column and answers from Parquet statistics.
-    verify_temporal_order(train_raw, val_raw, test_raw)
-    logger.info("Temporal split verified: no leakage between train/val/test.")
-
-    # Both fitted quantities, and both fitted on the training split alone — a
-    # night window or a category frequency taken from the full period is a leak
-    # that no downstream check would catch.
-    night_window = calibrate_night_window(train_raw)
-    frequency_encoding = fit_frequency_encoding(train_raw)
-
-    def labeled(frame: pl.LazyFrame) -> pl.LazyFrame:
-        return attach_campaign_id(label_auth_events(frame, typed_redteam), campaigns)
-
-    def checkpoint(frame: pl.LazyFrame, name: str) -> pl.LazyFrame:
-        """Materialize a lazy frame to Parquet and rescan it.
-
-        `featurize()` below joins many independently-computed feature branches
-        back onto the same starting frame (one per F2 entity/window pair, plus
-        F3's several sorts and F4's cumulative circular mean) — one `.join(...,
-        on="event_id")` per branch. Polars' planner does not share the upstream
-        work across sibling branches of a join graph: each branch re-derives
-        the redteam label join and campaign-id assignment from the raw Parquet
-        scan independently. Confirmed with `.explain()` on an 8-day train
-        window: 32 independent full scans of the same ~134M-row base, each
-        redoing the campaign-id sort/rank chain, before a single feature column
-        existed — the same failure mode the module docstring above already
-        diagnoses for `verify_temporal_order`, one level deeper.
-
-        Checkpointing here breaks the graph exactly where it forked: every
-        downstream branch now scans this small, already-labeled file instead
-        of re-deriving it, at the cost of one extra Parquet round-trip per
-        split. It changes nothing about the computed values — same join, same
-        filter, just performed once.
-        """
-        tmp_path = interim_dir / f"_checkpoint_{name}.parquet"
-        frame.sink_parquet(tmp_path, compression="zstd")
-        return pl.scan_parquet(tmp_path)
-
-    # Featurised over the warm-up window; written for the split's own days only.
-    bounds = {
-        "train": split_config.train_days,
-        "val": split_config.val_days,
-        "test": split_config.test_days,
-    }
-    warm = {
-        name: checkpoint(labeled(raw_split(days, warmup=warmup_days)), name)
-        for name, days in bounds.items()
-    }
+    train_start, train_end = ranges["train"]
+    train_days = [scan_day(d) for d in days_of(train_start, train_end)]
+    if any(frame is None for frame in train_days):
+        raise FileNotFoundError(
+            f"Training days {list(days_of(train_start, train_end))} are not all converted."
+        )
+    train_raw = pl.concat([f for f in train_days if f is not None]).filter(
+        pl.col("time").is_between(train_start, train_end, closed="left")
+    )
+    # Fitted on the training range alone: a night window or a category frequency from later days is a leak.
+    inputs = StoreInputs(
+        read_day=read_day,
+        redteam=typed_redteam,
+        campaigns=campaigns,
+        night_window=calibrate_night_window(train_raw),
+        frequency_encoding=fit_frequency_encoding(train_raw),
+    )
 
     version = feature_store_version(cfg.features)
-    version_dir = processed_dir / version
+    version_dir = Path(cfg.paths.processed_dir) / "features" / version
     version_dir.mkdir(parents=True, exist_ok=True)
     (version_dir / "feature_config.json").write_text(
         json.dumps(OmegaConf.to_container(cfg.features, resolve=True), indent=2)
     )
-
-    split_summaries: dict[str, object] = {}
-    for split_name, frame in warm.items():
-        out = featurize(
-            frame,
-            cfg.features,
-            night_window,
-            frequency_encoding,
-            checkpoint_fn=checkpoint,
-            split_name=split_name,
-        )
-        # Warm-up rows are dropped *after* featurisation: they were read so the
-        # split's own first events would have a past, not to be evaluated on.
-        out = out.filter(pl.col("day") >= bounds[split_name][0])
-        # Projected down to what downstream stages read. Also the point at
-        # which a missing column becomes an error here, at the boundary, rather
-        # than a `ColumnNotFoundError` from inside a model's `fit`.
-        available = set(out.collect_schema().names())
-        missing = [c for c in FEATURE_STORE_COLUMNS if c not in available]
-        if missing:
-            raise KeyError(
-                f"Feature pipeline did not produce {missing} for the {split_name} split. "
-                "Either a feature family is disabled in conf/features/ while something "
-                "downstream still needs its output, or FEATURE_STORE_COLUMNS is stale."
-            )
-        out = out.select(FEATURE_STORE_COLUMNS)
-
-        out_path = version_dir / f"{split_name}.parquet"
-        out.sink_parquet(out_path, compression="zstd")
-        logger.info("Wrote %s features to %s", split_name, out_path)
-        split_summaries[split_name] = split_label_summary(pl.scan_parquet(out_path))
-
-        for stage_suffix in ("", "_f2", "_f3"):
-            checkpoint_path = interim_dir / f"_checkpoint_{split_name}{stage_suffix}.parquet"
-            checkpoint_path.unlink(missing_ok=True)
-
-    (tables_dir / "split_summary.json").write_text(json.dumps(split_summaries, indent=2))
+    summaries = build_store(
+        inputs,
+        ranges,
+        version_dir,
+        history=str(cfg.split.get("history", "window")),
+        warmup_days=int(cfg.features.get("history_warmup_days", 0)),
+    )
+    (tables_dir / "split_summary.json").write_text(json.dumps(summaries, indent=2))
     logger.info("Feature store version: %s", version)
 
 

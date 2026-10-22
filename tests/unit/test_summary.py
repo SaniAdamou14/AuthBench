@@ -11,6 +11,7 @@ from __future__ import annotations
 import numpy as np
 import polars as pl
 
+from authbench.evaluate.statistics import statistics_from_frame
 from authbench.evaluate.summary import ModelEvaluation, evaluate_model
 
 BUDGETS = [1, 2]
@@ -29,14 +30,13 @@ def _scored(scores: list[float]) -> pl.DataFrame:
     )
 
 
+def _evaluate_frame(frame: pl.DataFrame, **kwargs: object) -> ModelEvaluation:
+    stats = statistics_from_frame(frame, {"m": "_score__m"}, budgets=BUDGETS, top_k=max(BUDGETS))
+    return evaluate_model(stats["m"], budgets=BUDGETS, warn_roc_auc=False, **kwargs)  # type: ignore[arg-type]
+
+
 def _evaluate(scores: list[float], **kwargs: object) -> ModelEvaluation:
-    return evaluate_model(
-        _scored(scores),
-        "_score__m",
-        "m",
-        budgets=BUDGETS,
-        **kwargs,  # type: ignore[arg-type]
-    )
+    return _evaluate_frame(_scored(scores), **kwargs)
 
 
 def test_a_perfect_ranking_detects_every_campaign_at_budget_one() -> None:
@@ -95,7 +95,7 @@ def test_roc_auc_is_omitted_rather_than_crashing_when_a_class_is_absent() -> Non
     frame = _scored([0.9, 0.1, 0.2, 0.9, 0.1, 0.2]).with_columns(
         pl.lit(False).alias("is_malicious"), pl.lit(None, dtype=pl.Int64).alias("campaign_id")
     )
-    evaluation = evaluate_model(frame, "_score__m", "m", budgets=BUDGETS, fpr_targets=[0.5])
+    evaluation = _evaluate_frame(frame, fpr_targets=[0.5])
 
     assert evaluation.roc_auc is None
     assert evaluation.recall_at_fixed_fpr == {}
@@ -108,36 +108,36 @@ def test_roc_auc_can_be_switched_off_entirely() -> None:
 
 
 def test_score_resolution_separates_a_fine_score_from_a_degenerate_one() -> None:
-    """The number that answers the tie-artifact objection to the ROC-AUC claim.
+    """The numbers that answer the tie-artifact objection to the ROC-AUC claim.
 
-    A reviewer can reply that ROC-AUC credits a tied pair 0.5, so a coarse
-    score is pulled toward 0.5 by arithmetic rather than by anything about the
-    operating point. These two fields make that checkable per model instead of
-    arguable.
+    ROC-AUC credits a tied (positive, benign) pair one half, so a coarse score is
+    pulled toward 0.5 by arithmetic; `tied_pair_fraction` is the share of pairs that
+    credit applies to. The per-day fields say how much of a day's queue one value holds.
     """
     fine = _evaluate([0.9, 0.1, 0.2, 0.8, 0.3, 0.4]).score_resolution
     assert fine is not None
     assert fine.n_events == 6
-    assert fine.n_distinct_scores == 6
-    assert fine.largest_tie_fraction == 1 / 6
+    assert fine.tied_pair_fraction == 0.0
+    assert fine.min_distinct_scores_in_a_day == 3
+    assert fine.largest_tie_fraction_in_a_day == 1 / 3
 
-    # A binary score, the shape M0b always-fail has: two verdicts for the whole
-    # split, and every rank metric over it is mostly reporting tie conventions.
-    binary = _evaluate([1.0, 0.0, 0.0, 1.0, 0.0, 0.0]).score_resolution
+    # A binary score, the shape M0b always-fail has: each positive ties one benign
+    # event of the four, and each day holds two events on one value.
+    binary = _evaluate([1.0, 0.0, 1.0, 1.0, 0.0, 0.0]).score_resolution
     assert binary is not None
-    assert binary.n_distinct_scores == 2
-    assert binary.largest_tie_fraction == 4 / 6
+    assert binary.tied_pair_fraction == 2 / 8
+    assert binary.min_distinct_scores_in_a_day == 2
+    assert binary.largest_tie_fraction_in_a_day == 2 / 3
 
 
 def test_score_resolution_of_a_constant_score_is_maximally_degenerate() -> None:
-    """One value for every event: the model has a single verdict, and
-    `largest_tie_fraction` must say 1.0 rather than quietly look ordinary.
-    """
+    """One value for every event: every pair is tied and every day is one tie."""
     resolution = _evaluate([0.5] * 6).score_resolution
 
     assert resolution is not None
-    assert resolution.n_distinct_scores == 1
-    assert resolution.largest_tie_fraction == 1.0
+    assert resolution.tied_pair_fraction == 1.0
+    assert resolution.min_distinct_scores_in_a_day == 1
+    assert resolution.largest_tie_fraction_in_a_day == 1.0
 
 
 def test_score_resolution_is_emitted_outside_both_registers() -> None:
@@ -146,8 +146,9 @@ def test_score_resolution_is_emitted_outside_both_registers() -> None:
 
     assert set(record["score_resolution"]) == {  # type: ignore[arg-type]
         "n_events",
-        "n_distinct_scores",
-        "largest_tie_fraction",
+        "tied_pair_fraction",
+        "min_distinct_scores_in_a_day",
+        "largest_tie_fraction_in_a_day",
     }
     assert "score_resolution" not in record["operational"]  # type: ignore[operator]
     assert "score_resolution" not in record["literature_comparable"]  # type: ignore[operator]

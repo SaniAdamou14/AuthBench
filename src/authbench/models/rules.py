@@ -2,10 +2,11 @@
 
 This is deliberately not a strawman: it is the real competitor to the deep
 models, and the project loses its point if M1 is under-optimized. Each rule
-produces a raw signal, is rank-normalized independently (so no rule dominates
-merely because of its numeric scale), and the seven rank-normalized scores
-are combined by a weighted sum whose weights are calibrated by random search
-on the validation period only.
+produces a raw signal, is mapped to [0, 1] by its empirical CDF fitted on the
+last training day (so no rule dominates by its numeric scale and no score
+depends on another scored event), and the eight scores are combined by a
+weighted sum whose weights are calibrated by random search on the validation
+period only.
 
 Every rule carries a MITRE ATT&CK mapping as metadata — the bridge between
 the ML and security framings of the project (spec section 5.1).
@@ -18,7 +19,6 @@ from dataclasses import dataclass
 import numpy as np
 import polars as pl
 
-from authbench.features.causal import causal_first_occurrence, sort_for_causal
 from authbench.models.base import BaseAnomalyScorer
 
 
@@ -44,12 +44,15 @@ RULES: list[RuleSpec] = [
     RuleSpec("R5_machine_account_anomaly", "T1550", "Machine account behaving atypically"),
     RuleSpec("R6_new_auth_type", "T1550", "Auth type never used before by this user"),
     RuleSpec("R7_lateral_chain", "T1021", "A→B then B→C chain, same user, short window"),
+    RuleSpec("R8_new_source", "T1021", "First use of a source computer by this user"),
 ]
 
 
-def _rank_normalize(expr: pl.Expr) -> pl.Expr:
-    """Percentile rank in [0, 1] within the scored frame, so M1 is transductive (docs/methodology.md)."""
-    return expr.rank(method="average") / pl.len()
+def _ecdf(values: np.ndarray, reference: np.ndarray) -> np.ndarray:
+    """Mid-rank empirical CDF of `values` against a sorted training reference, in [0, 1]."""
+    below = np.searchsorted(reference, values, side="left")
+    at_or_below = np.searchsorted(reference, values, side="right")
+    return (below + at_or_below) / (2.0 * reference.size)
 
 
 def _rule_r1(features: pl.LazyFrame) -> pl.Expr:
@@ -80,32 +83,6 @@ def _rule_r5(features: pl.LazyFrame) -> pl.Expr:
     return pl.col("src_user_is_machine").cast(pl.Float64) * pl.col("pair_global_rarity")
 
 
-def _rule_r6(new_auth_type: pl.LazyFrame) -> pl.LazyFrame:
-    return new_auth_type
-
-
-def _rule_r7(events: pl.LazyFrame, chain_window_seconds: int) -> pl.LazyFrame:
-    by_user = sort_for_causal(events, "src_user", "time")
-    with_prev = by_user.with_columns(
-        [
-            pl.col("dst_computer").shift(1).over("src_user").alias("_prev_dst"),
-            pl.col("time").shift(1).over("src_user").alias("_prev_time"),
-        ]
-    )
-    return with_prev.select(
-        [
-            "event_id",
-            (
-                (pl.col("_prev_dst") == pl.col("src_computer"))
-                & ((pl.col("time") - pl.col("_prev_time")) <= chain_window_seconds)
-            )
-            .fill_null(False)
-            .cast(pl.Float64)
-            .alias("R7_lateral_chain"),
-        ]
-    )
-
-
 class RulesScorer(BaseAnomalyScorer):
     """M1. Requires the F1-F4 feature columns to already be present on the
     frames passed to `fit`/`calibrate_weights`/`score`.
@@ -114,23 +91,25 @@ class RulesScorer(BaseAnomalyScorer):
     name = "M1_rules"
     # Unsupervised fit, but the weights are calibrated on validation labels (`calibrate_weights`).
     requires_labels = True
-    # Stated here, not inherited. `BaseAnomalyScorer` defaults this to False,
-    # which happens to be right for M1 — but a safe default and a decision read
-    # identically, and this one is load-bearing: R6 asks whether this user has
-    # ever used this auth type *before*, and R7 whether their previous event
-    # ended where this one starts. Scored in day chunks, R6 would call an auth
-    # type new once a day and R7 would lose every chain crossing midnight, and
-    # the scores would still look entirely plausible. If a future edit ever
-    # makes this True, it has to be a sentence someone wrote, not a line
-    # nobody noticed was missing.
-    scores_row_locally = False
+    # R6 and R7 come precomputed from F3/F4 and the rule scale is fitted on training data,
+    # so an event's score depends on that event's row alone.
+    scores_row_locally = True
 
     def __init__(
-        self, chain_window_seconds: int = 1800, percentile_threshold: float = 99.9
+        self,
+        chain_window_seconds: int = 1800,
+        percentile_threshold: float = 99.9,
+        normalization_days: int = 1,
+        normalization_sample_size: int = 2_000_000,
+        seed: int = 42,
     ) -> None:
         self.chain_window_seconds = chain_window_seconds
         self.percentile_threshold = percentile_threshold
+        self.normalization_days = normalization_days
+        self.normalization_sample_size = normalization_sample_size
+        self.seed = seed
         self._user_host_thresholds: dict[str, float] = {}
+        self._reference: dict[str, np.ndarray] = {}
         self.weights: dict[str, float] = {r.id: 1.0 / len(RULES) for r in RULES}
 
     def fit(self, train: pl.LazyFrame) -> None:
@@ -149,47 +128,38 @@ class RulesScorer(BaseAnomalyScorer):
                 strict=True,
             )
         )
+        # Rule scales come from the last training days, so no scored event depends on another.
+        last_day = train.select(pl.col("day").max()).collect().item()
+        window = train.filter(pl.col("day") > last_day - self.normalization_days)
+        raw = self._raw_rule_scores(window).collect()
+        if raw.height > self.normalization_sample_size:
+            raw = raw.sample(n=self.normalization_sample_size, seed=self.seed)
+        self._reference = {r.id: np.sort(raw[r.id].to_numpy()) for r in RULES}
 
     def _raw_rule_scores(self, features: pl.LazyFrame) -> pl.LazyFrame:
-        new_auth_type = causal_first_occurrence(
-            features, group_cols=["src_user", "auth_type"], time_col="time", id_col="event_id"
-        ).select(["event_id", pl.col("is_new").cast(pl.Float64).alias("R6_new_auth_type")])
-
-        chain = _rule_r7(features, self.chain_window_seconds)
-
-        base = features.select(
-            [
-                "event_id",
-                _rule_r1(features).alias("R1_new_pair"),
-                _rule_r2(features, self._user_host_thresholds).alias("R2_host_burst"),
-                _rule_r3(features).alias("R3_fail_then_success"),
-                _rule_r4(features).alias("R4_offhours"),
-                _rule_r5(features).alias("R5_machine_account_anomaly"),
-            ]
+        chain = pl.col("prev_dst_is_src") & (
+            pl.col("hours_since_prev_event_same_user") * 3600 <= self.chain_window_seconds
         )
-
-        # `maintain_order="left"` is load-bearing, not cosmetic. R6 and R7 are
-        # computed on frames re-sorted by (group key, time), and every caller
-        # attaches `score()`'s output back onto its input frame *by position*
-        # (`frame.with_columns(pl.Series("_score", scores))`). A join that
-        # reordered rows would silently attribute each event's score to a
-        # different event — the results table would still look entirely
-        # plausible. Polars does not guarantee row order on a join unless it
-        # is asked to, so it is asked to.
-        return base.join(new_auth_type, on="event_id", how="left", maintain_order="left").join(
-            chain, on="event_id", how="left", maintain_order="left"
+        return features.select(
+            "event_id",
+            _rule_r1(features).alias("R1_new_pair"),
+            _rule_r2(features, self._user_host_thresholds).alias("R2_host_burst"),
+            _rule_r3(features).alias("R3_fail_then_success"),
+            _rule_r4(features).alias("R4_offhours"),
+            _rule_r5(features).alias("R5_machine_account_anomaly"),
+            pl.col("user_auth_is_new").cast(pl.Float64).alias("R6_new_auth_type"),
+            chain.cast(pl.Float64).alias("R7_lateral_chain"),
+            pl.col("user_src_is_new").cast(pl.Float64).alias("R8_new_source"),
         )
 
     def rule_scores(self, features: pl.LazyFrame) -> pl.DataFrame:
-        """Rank-normalized per-rule scores — published as its own table
-        (US-118: "avant agrégation") because individual rule performance is
-        what a security jury actually cares about.
-        """
-        raw = self._raw_rule_scores(features)
-        rule_ids = [r.id for r in RULES]
-        return raw.select(
-            ["event_id", *[_rank_normalize(pl.col(rid)).alias(rid) for rid in rule_ids]]
-        ).collect()
+        """Per-rule scores on the training-fitted empirical CDF of each rule (US-118)."""
+        if not self._reference:
+            raise RuntimeError("RulesScorer.fit() must run before rule_scores().")
+        raw = self._raw_rule_scores(features).collect()
+        return raw.select("event_id").with_columns(
+            pl.Series(r.id, _ecdf(raw[r.id].to_numpy(), self._reference[r.id])) for r in RULES
+        )
 
     def calibrate_weights(
         self,
@@ -296,4 +266,9 @@ def rule_discrimination(model: RulesScorer, features: pl.DataFrame) -> pl.DataFr
         }
         for rule in RULES
     ]
-    return pl.DataFrame(rows).sort("calibrated_weight", descending=True)
+    # Rounded so the committed table does not depend on the platform's last floating-point digit.
+    return (
+        pl.DataFrame(rows)
+        .with_columns(pl.col(pl.Float64).round(12))
+        .sort("calibrated_weight", descending=True)
+    )

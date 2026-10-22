@@ -3,6 +3,7 @@
 # val, ~31% test.
 name: demo_temporal
 mode: temporal
+history: window
 
 train_days: [0, 7]
 val_days: [8, 10]

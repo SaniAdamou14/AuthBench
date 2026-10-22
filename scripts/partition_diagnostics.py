@@ -4,7 +4,9 @@ Reads the labelled checkpoints `build_features` writes under `data/interim/` and
 writes `diagnostics.json` next to the run's outputs: new (user, destination)
 pairs per day within the window read, red-team events at the first second of
 their pair, machine-account share, and campaigns truncated at the partition
-boundary. Needs the checkpoints of the run being described.
+boundary. Needs the checkpoints of the run being described: the whole-window
+`build_features` that produced the wider-window run wrote them; the day-by-day one
+(22 October 2026) writes only partition days and no longer does.
 """
 
 from __future__ import annotations

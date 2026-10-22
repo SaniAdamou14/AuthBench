@@ -92,7 +92,8 @@ significance across intrusions. M3b ECOD was excluded before fitting (memory).
 > 3. **Two transductive models.** M1 rank-normalises its rules within the
 >    scored partition and ECOD recomputes its distributions from the scored
 >    matrix: no label crosses the boundary, but scores depend on the test
->    distribution.
+>    distribution. Both are fitted on training data since 22 October 2026,
+>    for the next run.
 >
 > Full list: [`docs/limitations.md`](docs/limitations.md).
 
@@ -118,41 +119,44 @@ it is a finding.
 
 | Model | AUC-PR [95% CI] | ROC-AUC | Camp. @10 | @50 | @100 | @500 | Budget→1st |
 |---|---|---:|---:|---:|---:|---:|---:|
-| M0a random *(floor)* | 0.0016 [0.0005, 0.0039] | 0.497 | 0% | 0% | 0% | 50% | 162 |
+| M0a random *(floor)* | 0.0018 [0.0005, 0.0053] | 0.543 | 0% | 0% | 25% | 25% | 79 |
 | M0b always-fail *(floor)* | 0.0014 [0.0002, 0.0030] | 0.491 | 0% | 0% *[0–50]* | 0% *[0–100]* | 75% *[0–100]* | 165 |
-| M2a pair rarity | 0.0025 [0.0003, 0.0107] | 0.477 | 0% | 0% | 0% | 25% | 294 |
-| M2b PCA reconstruction | 0.0040 [0.0007, 0.0135] | 0.783 | 0% | 0% | 0% | 75% | 114 |
-| M3a Isolation Forest | 0.0042 [0.0007, 0.0105] | 0.798 | 0% | 0% | 0% | 75% | 282 |
-| M3b ECOD | 0.0046 [0.0005, 0.0187] | 0.690 | 0% | 0% | 25% | 50% | 83 |
-| **M1 rules** | **0.3305 [0.0840, 0.6423]** | 0.911 | **100%** | **100%** | **100%** | **100%** | **1** |
+| M2a pair rarity | 0.0024 [0.0004, 0.0086] | 0.577 | 0% *[0–100]* | 0% *[0–100]* | 0% *[0–100]* | 100% *[0–100]* | 121 |
+| M2c source rarity | 0.0031 [0.0009, 0.0086] | 0.751 | 0% *[0–50]* | 0% *[0–50]* | 0% *[0–50]* | 50% *[0–50]* | 121 |
+| M2b PCA reconstruction | 0.0294 [0.0010, 0.1548] | 0.889 | 25% | 25% | 50% | 100% | 4 |
+| M3a Isolation Forest | 0.0060 [0.0016, 0.0149] | 0.876 | 0% | 0% | 25% | 75% | 95 |
+| M3b ECOD | 0.0026 [0.0005, 0.0085] | 0.662 | 0% | 0% | 0% | 50% | 232 |
+| **M1 rules** | **0.3987 [0.0850, 0.6415]** | 0.956 | **100%** | **100%** | **100%** | **100%** | **1** |
 
-*Italic brackets are the tie-break range: M0b scores every event 0 or 1, so at
-budget 500 some 7,899 equally-scored events compete for 1,350 places and the
-recall printed is whichever of them the ordering happened to reach. Every other
-model's score is continuous enough that the bracket collapses onto the point
-estimate, which is why only one row carries one.*
+*Italic brackets are the tie-break range: the recall under the least and the
+most favourable ordering of equally scored events. M0b scores every event 0 or 1,
+so at budget 500 some 7,899 equally scored events compete for 1,350 places.
+M2a and M2c are wide too, by design since 22 October 2026: their rarity is
+anchored to the start of the day, so two events that are equally new on the same
+day tie, and the bracket shows how much the tie order decides. Before, the time
+of day broke those ties inside the score, invisibly.*
 
-**Read the Isolation Forest row twice.** ROC-AUC 0.798, a number that would
-pass without comment in a paper, and it catches **nothing** at 10, 50 or 100
-alerts a day. The two registers do not merely differ in scale; they rank
-differently and they disagree about whether the model works at all. That gap is
-what the benchmark exists to measure, and it does not depend on the sample being
-realistic: it is a property of the operating point.
+**Read the Isolation Forest row twice.** ROC-AUC 0.876, a number that would
+pass without comment in a paper, and it catches nothing at 10 or 50 alerts a
+day. The two registers do not merely differ in scale; they rank differently.
 
-**Then read the last column, which is the one that does not saturate.** Four
-models print `0% 0% 0%` and the recall row ranks them as equally far from
-working. They are not: M3b ECOD needs a budget of 83 to catch its first
-campaign, M2b PCA 114; M3a Isolation Forest needs **282**, M2a pair rarity
-**294**, both above the random floor's single draw of 162 (one realisation
-of a random ranking, not a threshold). A column of zeros hid a
-factor of three between models it presented as identical, and hid two ML models
-losing to a random scorer.
+**Then read the last column, which is the one that does not saturate**, and
+read it against chance: `budget_summary.json` places every budget against random
+rankings of the same campaigns, with intervals from a bootstrap over accounts.
+M0a's 79 is one draw of that distribution, not a threshold.
 
-8 of the 21 pairwise comparisons are significant after Holm-Bonferroni; the
-other 13 are not, and are reported as not. All eight sit on the resolution
-floor and print as `Holm-adjusted p ≤ 0.0420` against a threshold of 0.05;
-see [below](#the-significant-results-are-bounds-not-measurements). Four
-campaigns in a test split is a small sample and the intervals say so.
+**The source side matters even here.** Adding the user-source and
+source-destination relations to the design matrix (F3, 22 October 2026) moved
+PCA's first detection from 114 alerts a day to 4. This is a synthetic sample;
+the LANL runs predate the change.
+
+14 of the 28 pairwise comparisons are significant after Holm-Bonferroni, all 14
+on the resolution floor (`Holm-adjusted p ≤ 0.0280` against 0.05); see
+[below](#the-significant-results-are-bounds-not-measurements). Four campaigns in
+a test split is a small sample and the intervals say so. Since 22 October 2026
+M0a hashes `event_id` and ECOD is fitted on training data (their rows changed),
+and the bootstrap draws from sufficient statistics (`docs/methodology.md`); on the
+same scores both bootstrap schemes give the same verdict on 28 of 28 pairs.
 
 ### M1's 100% is partly circular, and here is the measurement
 
@@ -164,17 +168,18 @@ so R7 was handed the answer:
 
 | Rule | mean score, benign | mean score, malicious | ratio |
 |---|---:|---:|---:|
-| **R7 lateral chain** | 0.0056 | 0.6364 | **113×** |
-| R6 new auth type | 0.1539 | 0.5455 | 3.5× |
+| **R7 lateral chain** | 0.0056 | 0.6364 | **114×** |
+| R6 new auth type | 0.1973 | 0.5455 | 2.8× |
+| R8 new source | 0.2972 | 1.0000 | 3.4× |
 | R1 new pair | 0.3950 | 1.0000 | 2.5× |
 | R4 off-hours | 0.7237 | 0.6406 | 0.9× *(no discrimination)* |
-| R2 / R3 / R5 | 0.0127 / 0.0326 / 2.5547 | 0.0000 | never fire on a malicious event |
+| R2 / R3 / R5 | 0.0127 / 0.0326 / 1.7579 | 0.0000 | never fire on a malicious event |
 
 That table is generated output, not prose: `reports/demo/tables/rule_discrimination.csv`,
 rewritten by every `make demo` and covered by the reproducibility check, so
 the caveat cannot quietly stop matching the run it describes.
 
-M1's validation-fitted weights then put **0.521 on R7**: more than half its
+M1's validation-fitted weights then put **0.579 on R7**: more than half its
 score. So "well-built heuristics beat every ML model at every budget" is, on
 this sample, largely one tautological rule doing the work. R1 contributes
 genuinely (real lateral movement does create new user→host pairs); R4 turns out
@@ -270,17 +275,38 @@ enough: the stage then fails with `'authbench' is not recognized`. Activating
 puts `authbench` and `python` where every stage can find them.
 
 **Run `authbench preflight` first, and read what it says.** The download is
-about 6 GB; converting all 58 days and building features is about **81 GB of
-disk and 49 GB of RAM**, down from 161 GB and 439 GB, see
+about 8 GB; converting all 58 days and building features is about **55 GB of
+disk and 19 GB of RAM** (22 October 2026: features and evaluation now run one day
+at a time, so memory follows the largest day), down from 161 GB and 439 GB, see
 [`docs/scaling.md`](docs/scaling.md) for what changed and what it cost (nothing:
 `reports/demo/` regenerates byte for byte after every one of those changes).
 
-On a laptop, run a **day window** instead. Days 0–13 is about 254 million real
-LANL events in 24 GB of disk and 12 GB of RAM:
+On a laptop, a **day window** bounds disk (days 0-13: about 254 million real LANL
+events, 19 GB) and the **remote LogOn universe** bounds memory (`features.universe`,
+largest day about 8 million events, about 7 GB):
 
 ```bash
-authbench preflight --events 253800000
+authbench preflight --events 253800000 --days 14
 authbench data to-parquet data/raw/auth.txt.gz --out-dir data/interim/auth --days 0:13
+```
+
+Features are computed one day at a time, with novelty counts and per-user
+profiles carried from day to day (`features/incremental.py`), and written as one
+Parquet file per day under `data/processed/features/<version>/<split>/`. Peak
+memory is set by a day and its predecessor, not by the length of the run.
+Measured on days 0-2 of the real data on the 8 GB reference machine: the remote
+LogOn universe (about 6 million events a day) peaks at 4.7 GB and 50 s per day;
+all events (about 18 million a day) still exhaust 8 GB on the first day.
+
+Two protocols are configured. `split=temporal` is the published one (train 0-7,
+validation 8-10, test 11-13, two warm-up days per partition, all events).
+`split=harmonised` follows Larroche (2026): train on the first 41 hours, test on
+the rest, remote LogOn events only, every event featurised against all earlier
+ones, and no labels used anywhere:
+
+```bash
+python -m authbench.pipeline.build_features split=harmonised
+python -m authbench.pipeline.train_eval split=harmonised
 ```
 
 `preflight` exits non-zero when a run does not fit, and names the event count
@@ -378,7 +404,7 @@ published**, so it is stated here rather than left for a reader to derive:
 
 | run | significant | of those, on the resolution floor |
 |---|---:|---:|
-| demo (R = 1000, 21 pairs) | 8 | **8** |
+| demo (R = 2000, 28 pairs) | 16 | **16** |
 | LANL single day (R = 2000, 21 pairs) | 13 | **12** |
 | LANL wider window (R = 2000, 21 pairs) | 18 | **18** |
 
@@ -386,8 +412,8 @@ A pair lands on the floor when not one resample out of R put the difference on
 the other side of zero. The two-sided p-value is then `2/(R+1)` because that is
 the smallest number the bootstrap can express, not because anything was
 measured there. Reported honestly, those comparisons say `Holm-adjusted
-p ≤ 0.0420` (demo) and `≤ 0.0210` (LANL) against a threshold of 0.05: true, and
-a factor of 1.2 and 2.4 of margin respectively. That is a real result and a thin
+p ≤ 0.0280` (demo) and `≤ 0.0210` (LANL) against a threshold of 0.05: true, and
+a factor of 1.8 and 2.4 of margin respectively. That is a real result and a thin
 one, and the two facts belong in the same sentence.
 
 Three things follow, all of them now mechanical rather than editorial:
@@ -448,8 +474,7 @@ table stops discriminating.
 A campaign is detected at budget `k` precisely when one of its events reaches
 rank `k` or better in its own day, so the smallest budget that detects anything
 is the minimum rank over all campaign events: one pass, exact, no sweep. On the
-demo sample it separates four models the recall row called identical (83 / 114 /
-282 / 294). On the LANL wider window it spans 999 to 141,522 alerts a day,
+demo sample it spans 1 to 252 alerts a day. On the LANL wider window it spans 999 to 141,522 alerts a day,
 and `random_first_detection_survival` places each value against its exact
 distribution under a random ranking. `authbench demo`
 prints it as `Budget→1st`; `metrics_summary.json` carries it under

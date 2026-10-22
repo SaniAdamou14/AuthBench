@@ -4,6 +4,10 @@ Both are fitted on standardized `MODEL_FEATURE_COLUMNS` and scored by the
 quantity they were trained to minimise, evaluated deterministically: the
 squared reconstruction error for M4a, the negative ELBO at the posterior mean
 for M4b. Only the rank of a score is ever used (spec section 3.5).
+
+Scoring runs the trained network in float64 `models.rowwise` arithmetic rather
+than in batched float32 torch, whose results moved by up to 1e-6 with the batch
+an event was scored in.
 """
 
 from __future__ import annotations
@@ -14,6 +18,7 @@ import numpy as np
 import polars as pl
 from sklearn.preprocessing import StandardScaler
 
+from authbench.models.rowwise import affine, row_sum
 from authbench.models.torch_base import Batch, TorchScorer, nn, torch
 
 
@@ -24,6 +29,22 @@ def _mlp(dims: list[int], *, activate_last: bool) -> nn.Sequential:
         if activate_last or index < len(dims) - 2:
             layers.append(nn.ReLU())
     return nn.Sequential(*layers)
+
+
+def _numpy(parameter: torch.Tensor) -> np.ndarray:
+    return parameter.detach().to(torch.float64).numpy()
+
+
+def _forward(sequential: nn.Sequential, x: np.ndarray) -> np.ndarray:
+    """A Linear/ReLU stack evaluated in float64 row-wise arithmetic."""
+    for layer in sequential:
+        if isinstance(layer, nn.Linear):
+            x = affine(x, _numpy(layer.weight), _numpy(layer.bias))
+        elif isinstance(layer, nn.ReLU):
+            x = np.maximum(x, 0.0)
+        else:
+            raise TypeError(f"No row-wise evaluation for {type(layer).__name__}.")
+    return x
 
 
 class _Autoencoder(nn.Module):
@@ -56,10 +77,28 @@ class _TabularScorer(TorchScorer):
         self.feature_cols = feature_cols
         self.scaler = StandardScaler()
 
-    def _inputs(self, data: pl.LazyFrame, *, fitting: bool) -> Batch:
+    scores_row_locally = True
+
+    def _scaled(self, data: pl.LazyFrame, *, fitting: bool) -> np.ndarray:
         matrix = data.select(self.feature_cols).collect().to_numpy().astype(np.float64)
-        scaled = self.scaler.fit_transform(matrix) if fitting else self.scaler.transform(matrix)
+        scaled: np.ndarray = (
+            self.scaler.fit_transform(matrix) if fitting else self.scaler.transform(matrix)
+        )
+        return scaled
+
+    def _inputs(self, data: pl.LazyFrame, *, fitting: bool) -> Batch:
+        scaled = self._scaled(data, fitting=fitting)
         return (torch.from_numpy(np.ascontiguousarray(scaled, dtype=np.float32)),)
+
+    def _row_scores(self, module: nn.Module, x: np.ndarray) -> np.ndarray:
+        raise NotImplementedError
+
+    def score(self, data: pl.LazyFrame) -> pl.Series:
+        if self._module is None:
+            raise RuntimeError(f"{self.name} must be fitted before scoring.")
+        return pl.Series(
+            self.name, self._row_scores(self._module, self._scaled(data, fitting=False))
+        )
 
 
 class AutoencoderScorer(_TabularScorer):
@@ -96,6 +135,10 @@ class AutoencoderScorer(_TabularScorer):
 
     def _score(self, module: nn.Module, batch: Batch) -> torch.Tensor:
         return self._loss(module, batch)
+
+    def _row_scores(self, module: nn.Module, x: np.ndarray) -> np.ndarray:
+        assert isinstance(module, _Autoencoder)
+        return row_sum((_forward(module.net, x) - x) ** 2) / x.shape[1]
 
 
 class VAEScorer(_TabularScorer):
@@ -144,3 +187,12 @@ class VAEScorer(_TabularScorer):
 
     def _score(self, module: nn.Module, batch: Batch) -> torch.Tensor:
         return self._negative_elbo(module, batch[0], sample=False)
+
+    def _row_scores(self, module: nn.Module, x: np.ndarray) -> np.ndarray:
+        assert isinstance(module, _VariationalAutoencoder)
+        hidden = _forward(module.encoder, x)
+        mu = affine(hidden, _numpy(module.mu.weight), _numpy(module.mu.bias))
+        logvar = affine(hidden, _numpy(module.logvar.weight), _numpy(module.logvar.bias))
+        reconstruction = 0.5 * row_sum((_forward(module.decoder, mu) - x) ** 2)
+        kl = -0.5 * row_sum(1 + logvar - mu**2 - np.exp(logvar))
+        return reconstruction + self.kl_weight * kl

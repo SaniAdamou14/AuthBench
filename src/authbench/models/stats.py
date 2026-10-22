@@ -8,6 +8,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 from authbench.models.base import BaseAnomalyScorer, sample_for_fit
+from authbench.models.rowwise import affine, row_sum
 
 
 class PairRarityScorer(BaseAnomalyScorer):
@@ -26,6 +27,24 @@ class PairRarityScorer(BaseAnomalyScorer):
 
     def score(self, data: pl.LazyFrame) -> pl.Series:
         return data.select(pl.col("pair_global_rarity").alias(self.name)).collect().to_series()
+
+
+class SourceRarityScorer(BaseAnomalyScorer):
+    """M2c: rarity of the source computer for the user, `user_src_rarity` from F3.
+
+    A continuous form of the "known source pc" rule that performed on par with a
+    graph detector on LANL (Garchery and Granitzer, 2020).
+    """
+
+    name = "M2c_source_rarity"
+    requires_labels = False
+    scores_row_locally = True
+
+    def fit(self, train: pl.LazyFrame) -> None:
+        return None
+
+    def score(self, data: pl.LazyFrame) -> pl.Series:
+        return data.select(pl.col("user_src_rarity").alias(self.name)).collect().to_series()
 
 
 class PCAReconstructionScorer(BaseAnomalyScorer):
@@ -64,8 +83,10 @@ class PCAReconstructionScorer(BaseAnomalyScorer):
         self.pca.fit(x_scaled)
 
     def score(self, data: pl.LazyFrame) -> pl.Series:
-        x = self._matrix(data)
-        x_scaled = self.scaler.transform(x)
-        x_reconstructed = self.pca.inverse_transform(self.pca.transform(x_scaled))
-        error = np.mean((x_scaled - x_reconstructed) ** 2, axis=1)
+        x_scaled = self.scaler.transform(self._matrix(data))
+        # transform then inverse_transform, in `rowwise` arithmetic so a row scores the same in any batch.
+        components = self.pca.components_
+        projected = affine(x_scaled - self.pca.mean_, components)
+        reconstructed = affine(projected, components.T, self.pca.mean_)
+        error = row_sum((x_scaled - reconstructed) ** 2) / x_scaled.shape[1]
         return pl.Series(self.name, error)

@@ -39,8 +39,9 @@ The generator emits campaigns as chains (user authenticates A→B, then B→C) a
 M1's rule R7 tests for "previous destination equals current source within 30
 minutes" — the same predicate. Measured on the test split, R7 scores 113× higher
 on malicious events than benign ones, and M1's validation-fitted weights put
-0.521 of their mass on it. R1 (new user→host pair) contributes genuinely at 2.5×;
-R4 (off-hours) does not discriminate at all; R2, R3 and R5 never fire.
+0.579 of their mass on it. R8 (new source computer for the user) contributes at
+3.4× and R1 (new user→host pair) at 2.5×; R4 (off-hours) does not discriminate at
+all; R2, R3 and R5 never fire on a malicious event.
 
 So "M1 catches every campaign at 10 alerts/day" is, here, mostly one rule that
 was handed the generator's own definition of an attack. The
@@ -54,9 +55,10 @@ M0b always-fail scores every event 0 or 1, so at budget 500 some 7,899
 equally-scored events compete for 1,350 places and *something* has to order
 them. `tables/demo_results.json` reports that directly: the
 `campaign_recall_tie_bracket` on M0b's row spans `[0, 1]` at budgets 100 and
-500, and `tie_exposure` gives the slots and the contenders behind it. Every
-other model's bracket has zero width — their scores leave the ordering nothing
-to decide — which is why the headline figure shades one band and not seven.
+500, and `tie_exposure` gives the slots and the contenders behind it. M2a and
+M2c carry wide brackets too, by design: their rarity is anchored to the start of
+the day, so events equally new on the same day tie. Every other model's bracket
+has zero width: their scores leave the ordering nothing to decide.
 
 This changed a published number. Before the ordering was made explicit, ties
 broke on the frame's row order, which after `features.temporal.compute_f4` is
@@ -71,7 +73,10 @@ narrow it.
 | File | What it holds |
 |---|---|
 | `tables/demo_results.json` | every metric, per model, operational and literature-comparable kept separate — the operational block also carries `campaign_recall_tie_bracket`, `tie_exposure` and `budget_for_first_detection`, and each row a `score_resolution` (distinct values, largest tie share) that says how much of any rank metric is tie convention |
-| `tables/pairwise_comparisons.json` | all 21 pairwise AUC-PR tests: `p_value_raw`, `p_value_holm_adjusted`, and `at_resolution_floor` — set on all 8 significant pairs here, meaning their p-value is the bound `2/(R+1)` rather than a value the bootstrap resolved |
+| `tables/pairwise_comparisons.json` | all 28 pairwise AUC-PR tests: `p_value_raw`, `p_value_holm_adjusted`, and `at_resolution_floor`, set on all 16 significant pairs here, meaning their p-value is the floor `2/(R+1)` rather than a value the bootstrap resolved |
+| `tables/positives_ledger.csv` | day rank of every red-team event under every model, with its tie bounds: every budget metric follows from it |
+| `tables/day_sizes.csv` | events and positives per test day |
+| `tables/budget_summary.json` | per model: first-detection budget, budgets reaching 10/25/50% of campaigns, log-budget area, account-bootstrap intervals, share of random rankings doing as well |
 | `tables/campaign_summary.csv` | one row per red-team campaign: user, event count, duration |
 | `figures/campaign_recall_vs_budget.png` | the headline figure |
 | `data_quality.json` | null rates, cardinalities, counted drops |

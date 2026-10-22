@@ -19,26 +19,19 @@ Metrics come in two registers and the distinction is deliberate:
 from __future__ import annotations
 
 import logging
+import warnings
 from dataclasses import dataclass, field
 
 import numpy as np
-import polars as pl
 
-from authbench.evaluate.budget import BudgetCurve, compute_budget_curve
-from authbench.evaluate.campaign import time_to_detection
-from authbench.evaluate.metrics import auc_pr, precision_at_k, recall_at_fixed_fpr, roc_auc
-from authbench.evaluate.stats_tests import (
-    BootstrapResult,
-    PairedBootstrap,
-    PairwiseComparison,
-    compare_models,
-)
+from authbench.evaluate import statistics
+from authbench.evaluate.budget import BudgetCurve
+from authbench.evaluate.metrics import ROC_AUC_WARNING
+from authbench.evaluate.stats_tests import BootstrapResult, PairedBootstrap, PairwiseComparison
 
 logger = logging.getLogger(__name__)
 
-# The only columns evaluation needs. The bootstrap materializes a full-size
-# copy of the frame on every resample, so carrying the ~40 feature columns
-# through it would multiply peak memory for nothing (NFR-01).
+# The only columns evaluation reads from a scored day (NFR-01).
 EVAL_COLUMNS = ["event_id", "time", "day", "is_malicious", "campaign_id"]
 
 
@@ -70,10 +63,8 @@ class TimeToDetectionSummary:
     max_delay_seconds: float | None
 
     @classmethod
-    def from_frame(
-        cls, frame: pl.DataFrame, score_col: str, k: int, model_name: str
-    ) -> TimeToDetectionSummary:
-        result = time_to_detection(frame, score_col, k, model_name)
+    def from_statistics(cls, stats: statistics.ModelStatistics, k: int) -> TimeToDetectionSummary:
+        result = statistics.time_to_detection(stats, k)
         delays = np.asarray(result.detected_delay_seconds, dtype=np.float64)
         has_any = delays.size > 0
         return cls(
@@ -89,38 +80,27 @@ class TimeToDetectionSummary:
 
 @dataclass(frozen=True)
 class ScoreResolution:
-    """How finely a model's score actually separates events.
+    """How finely a model's score separates events, on the two sides where ties matter.
 
-    Published because the project's headline claim invites an objection it
-    should answer in advance. The claim is that the two registers are
-    *anti-correlated* — M2a at ROC-AUC 0.942 detecting nothing, M1 lowest at
-    0.547 and the only model detecting anything. A reviewer is entitled to
-    reply that ROC-AUC credits a tied pair 0.5, so a coarse score is dragged
-    toward 0.5 by arithmetic rather than by any property of the operating
-    point, and M1's 0.547 might be that and nothing more.
-
-    These two numbers settle it either way instead of leaving it to be argued.
-    On the demo sample M1 takes 7,750 distinct values over 8,049 events, so its
-    ROC-AUC there is not a granularity artifact; M0b takes 2, so its is.
+    ROC-AUC credits a (positive, benign) pair on the same score one half, so a coarse
+    score is pulled toward 0.5 by arithmetic rather than by its operating point;
+    `tied_pair_fraction` is the share of pairs that credit applies to. The alert queue
+    breaks ties within a day; the two per-day fields say how much of a day one score
+    value can hold. All three are exact and computed one day at a time.
     """
 
     n_events: int
-    n_distinct_scores: int
-    #: Share of the split sitting on the single most crowded score. At 1/n the
-    #: score is fully discriminating; near 1.0 the model has essentially one
-    #: verdict and every rank metric over it is reporting tie conventions.
-    largest_tie_fraction: float
+    tied_pair_fraction: float | None
+    min_distinct_scores_in_a_day: int
+    largest_tie_fraction_in_a_day: float
 
     @classmethod
-    def from_scores(cls, scores: np.ndarray) -> ScoreResolution:
-        n = int(scores.size)
-        if n == 0:
-            return cls(n_events=0, n_distinct_scores=0, largest_tie_fraction=0.0)
-        counts = np.unique(scores, return_counts=True)[1]
+    def from_statistics(cls, stats: statistics.ModelStatistics) -> ScoreResolution:
         return cls(
-            n_events=n,
-            n_distinct_scores=int(counts.size),
-            largest_tie_fraction=float(counts.max() / n),
+            n_events=stats.n_events,
+            tied_pair_fraction=statistics.tied_pair_fraction(stats),
+            min_distinct_scores_in_a_day=stats.min_distinct_scores_in_a_day,
+            largest_tie_fraction_in_a_day=stats.largest_tie_fraction_in_a_day,
         )
 
 
@@ -135,11 +115,14 @@ class ModelEvaluation:
     precision_at_k_global: dict[int, float] = field(default_factory=dict)
     recall_at_fixed_fpr: dict[float, float] = field(default_factory=dict)
     score_resolution: ScoreResolution | None = None
+    auc_pr_campaign_weighted: float | None = None
 
     def to_dict(self) -> dict[str, object]:
         record: dict[str, object] = {
             "model": self.model_name,
             "auc_pr": self.auc_pr,
+            # Every campaign counts once, as in campaign recall; plain AUC-PR weights them by size.
+            "auc_pr_campaign_weighted": self.auc_pr_campaign_weighted,
             "operational": {
                 "budgets": self.curve.budgets,
                 "event_recall": self.curve.event_recall,
@@ -185,9 +168,7 @@ class ModelEvaluation:
 
 
 def evaluate_model(
-    scored: pl.DataFrame,
-    score_col: str,
-    model_name: str,
+    stats: statistics.ModelStatistics,
     *,
     budgets: list[int],
     fpr_targets: list[float] | None = None,
@@ -195,94 +176,49 @@ def evaluate_model(
     warn_roc_auc: bool = True,
     auc_pr_ci: BootstrapResult | None = None,
 ) -> ModelEvaluation:
-    """Every reported metric for one model, from one already-scored frame.
-
-    `scored` must carry `is_malicious`, `campaign_id`, `day` and `time`
-    alongside `score_col` — the alert-budget metrics rank *within a day*, and
-    time-to-detection needs the timestamps.
-    """
-    y_true = scored["is_malicious"].to_numpy()
-    scores = scored[score_col].to_numpy()
-
-    # ROC-AUC and recall-at-FPR are undefined without both classes present,
-    # and sklearn raises rather than returning NaN. A test split with no
-    # positives is a split bug, but it must not surface as a stack trace from
-    # inside a metric.
-    both_classes_present = 0 < int(np.count_nonzero(y_true)) < y_true.size
-
+    """Every reported metric for one model, from its statistics on the split."""
+    # ROC-AUC and recall-at-FPR are undefined without both classes; a test split with no
+    # positives is a split bug, but it must not surface as a stack trace from a metric.
+    both_classes_present = stats.positives.height > 0 and stats.n_benign > 0
+    if report_roc_auc and warn_roc_auc:
+        warnings.warn(ROC_AUC_WARNING, stacklevel=2)
     return ModelEvaluation(
-        model_name=model_name,
-        auc_pr=auc_pr(y_true, scores),
+        model_name=stats.model_name,
+        auc_pr=statistics.average_precision(stats),
         auc_pr_ci=auc_pr_ci,
-        curve=compute_budget_curve(scored, score_col, model_name, budgets=budgets),
-        time_to_detection=[
-            TimeToDetectionSummary.from_frame(scored, score_col, k, model_name) for k in budgets
-        ],
-        roc_auc=(
-            roc_auc(y_true, scores, warn=warn_roc_auc)
-            if report_roc_auc and both_classes_present
-            else None
-        ),
-        precision_at_k_global={k: precision_at_k(y_true, scores, k) for k in budgets},
+        curve=statistics.budget_curve(stats, budgets),
+        time_to_detection=[TimeToDetectionSummary.from_statistics(stats, k) for k in budgets],
+        roc_auc=statistics.roc_auc(stats) if report_roc_auc else None,
+        precision_at_k_global={k: statistics.precision_at_k(stats, k) for k in budgets},
         recall_at_fixed_fpr=(
-            {fpr: recall_at_fixed_fpr(y_true, scores, fpr) for fpr in (fpr_targets or [])}
+            {fpr: statistics.recall_at_fixed_fpr(stats, fpr) for fpr in (fpr_targets or [])}
             if both_classes_present
             else {}
         ),
-        score_resolution=ScoreResolution.from_scores(scores),
+        score_resolution=ScoreResolution.from_statistics(stats),
+        auc_pr_campaign_weighted=(
+            statistics.average_precision(stats, campaign_weighted=True)
+            if both_classes_present
+            else None
+        ),
     )
 
 
-PAIRWISE_METHODS = ("paired_bootstrap", "permutation")
+PAIRWISE_METHODS = ("paired_bootstrap",)
 
 
 def pairwise_comparisons(
-    scored: pl.DataFrame,
-    model_names: list[str],
-    bootstrap: PairedBootstrap,
-    *,
-    method: str = "paired_bootstrap",
-    alpha: float = 0.05,
-    n_permutations: int = 10_000,
-    seed: int = 42,
+    bootstrap: PairedBootstrap, *, method: str = "paired_bootstrap", alpha: float = 0.05
 ) -> list[PairwiseComparison]:
     """Pairwise AUC-PR comparisons across the whole model family (US-128).
 
-    `paired_bootstrap` reuses the resampling pass that already produced the
-    per-model CIs, so the intervals and the comparisons come from one
-    sampling distribution, and it respects campaign-level dependence.
-
-    `permutation` is the exact per-event paired test. It assumes the two
-    models' scores are exchangeable event by event — which is precisely the
-    independence assumption campaign structure violates — and it costs
-    `n_permutations x n_pairs` metric evaluations. Available for small
-    splits; not the default.
+    The paired campaign bootstrap is the only test: it reuses the resampling pass that
+    produced the per-model intervals and respects campaign-level dependence. The
+    per-event permutation test it replaced assumed events exchangeable, which campaign
+    structure violates, and needed every event's score in memory.
     """
-    if method == "paired_bootstrap":
-        return bootstrap.comparisons("auc_pr", alpha=alpha)
-
-    if method == "permutation":
-        n_pairs = len(model_names) * (len(model_names) - 1) // 2
-        logger.warning(
-            "pairwise_test.method=permutation: %d pairs x %d permutations = %d AUC-PR "
-            "evaluations over %d events, and the per-event exchangeability it assumes "
-            "ignores campaign structure. paired_bootstrap is the default for both reasons.",
-            n_pairs,
-            n_permutations,
-            2 * n_pairs * n_permutations,
-            scored.height,
+    if method not in PAIRWISE_METHODS:
+        raise ValueError(
+            f"Unknown pairwise test method {method!r}. Supported: {', '.join(PAIRWISE_METHODS)}."
         )
-        return compare_models(
-            model_names,
-            scored["is_malicious"].to_numpy(),
-            {name: scored[score_column(name)].to_numpy() for name in model_names},
-            auc_pr,
-            "auc_pr",
-            n_permutations=n_permutations,
-            alpha=alpha,
-            seed=seed,
-        )
-
-    raise ValueError(
-        f"Unknown pairwise test method {method!r}. Supported: {', '.join(PAIRWISE_METHODS)}."
-    )
+    return bootstrap.comparisons("auc_pr", alpha=alpha)

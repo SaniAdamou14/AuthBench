@@ -53,6 +53,8 @@
 # immediately-following days would be.
 name: temporal
 mode: temporal
+# Each partition featurised from its own first day minus features.history_warmup_days.
+history: window
 
 train_days: [0, 7]
 val_days: [8, 10]

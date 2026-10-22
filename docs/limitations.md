@@ -35,12 +35,18 @@ this summarizes.
    across the accounts and phases of one operation, not across intrusions.
 10. **Unequal access to labels.** M1's weights are calibrated on validation labels; no other
     model reads labels or the validation partition. See `methodology.md`, "Labels".
-11. **Transductive scores.** M1 (rank normalisation within the scored frame) and ECOD
-    (distributions recomputed from the scored matrix) depend on the test distribution.
-12. **Novelty is relative to the window read.** `pair_is_new` and `pair_global_rarity`
-    count earlier events of the partition plus its warm-up, not the whole history; and the
-    rarity denominator grows within the window, so a pair with a fixed count of earlier
-    occurrences scores slightly higher later in the window.
+11. **Transductive scores.** ECOD (distributions recomputed from the scored matrix) depends
+    on the test distribution. So did M1 in the published LANL runs (rank normalisation over the
+    three test days); its normalisation is fitted on training data since 22 October 2026.
+    Since the same day ECOD is fitted on training data too, and every model is row-local to
+    the last bit (`methodology.md`); ECOD was excluded from both published LANL runs.
+12. **Novelty is relative to the window read.** The F3 `*_is_new` and `*_rarity` features
+    count earlier events of the partition plus its warm-up, not the whole history. In the
+    published LANL runs the rarity denominator grew with every event, so within a day pair
+    rarity ranked equally new events latest first; since 22 October 2026 it is anchored to the
+    start of the day, equally new events of a day tie, and the tie bracket shows the effect.
+    `split.history: cumulative` (22 October 2026) compares every event with all earlier
+    events from day 0; the published runs used `window`.
 
 ## Metrics deliberately not used as primary
 

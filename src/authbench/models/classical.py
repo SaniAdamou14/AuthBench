@@ -56,37 +56,59 @@ class IsolationForestScorer(_PyODScorer):
         self._model = IForest(n_estimators=n_estimators, max_samples=max_samples, random_state=seed)
 
 
-class ECODScorer(_PyODScorer):
-    """M3b — ECOD. Hyperparameter-free, robust; no assumptions to tune wrong.
+class ECODScorer(BaseAnomalyScorer):
+    """M3b — ECOD (Li et al., 2022), with its empirical distributions fitted on training data.
 
-    **ECOD is transductive, and that is a property of the model, not of this
-    wrapper.** PyOD's `ECOD.decision_function` recomputes the empirical
-    cumulative distribution from the matrix it is handed, so an event's score
-    depends on which other events are scored alongside it: the same row scores
-    10.64 alone and 10.81 among four hundred others, and splitting a matrix in
-    two changes every score in it by up to 0.44.
-
-    Two consequences, both real:
-
-    - it cannot be scored in day chunks, hence the override below — the
-      equivalence test in `tests/unit/test_chunked_scoring.py` is what caught
-      this, having been written to catch exactly the opposite mistake;
-    - its test scores depend on the *test* distribution. No label crosses the
-      boundary, so this is not leakage in the sense US-107 guards against, but
-      it does mean M3b is not a pure "fit here, apply there" model, and a
-      benchmark that claims a strictly temporal protocol owes the reader that
-      sentence. See `docs/methodology.md`.
+    PyOD's `ECOD.decision_function` recomputes the empirical CDFs from the training
+    sample concatenated with the matrix it scores, so an event's score depended on the
+    other events scored with it (10.64 alone, 10.81 among four hundred others) and on
+    the test distribution. Here the CDFs and the skewness signs come from the training
+    sample alone, and an event is scored as PyOD would score it if it were the only
+    event scored: the tail counts include the event itself, (count + 1) / (n + 1).
+    The score is then a function of the row and the fit, in any batch.
     """
 
     name = "M3b_ecod"
     requires_labels = False
-    scores_row_locally = False
+    scores_row_locally = True
 
-    def __init__(self, feature_cols: list[str], fit_sample_size: int | None = None) -> None:
-        super().__init__(feature_cols, fit_sample_size)
-        from pyod.models.ecod import ECOD
+    def __init__(
+        self, feature_cols: list[str], fit_sample_size: int | None = None, seed: int = 42
+    ) -> None:
+        self.feature_cols = feature_cols
+        self.fit_sample_size = fit_sample_size
+        self.seed = seed
+        self._sorted: np.ndarray | None = None
+        self._tail_log: np.ndarray = np.empty(0)
+        self._skew_sign: np.ndarray = np.empty(0)
 
-        self._model = ECOD()
+    def _matrix(self, data: pl.LazyFrame) -> np.ndarray:
+        return data.select(self.feature_cols).collect().to_numpy().astype(np.float64)
+
+    def fit(self, train: pl.LazyFrame) -> None:
+        from scipy.stats import skew
+
+        x = self._matrix(sample_for_fit(train, self.fit_sample_size, self.seed))
+        n = x.shape[0]
+        self._sorted = np.sort(x, axis=0)
+        # -log((c + 1) / (n + 1)) for every tail count c, looked up rather than recomputed per batch.
+        self._tail_log = -np.log(np.arange(1, n + 2, dtype=np.float64) / (n + 1))
+        self._skew_sign = np.sign(np.nan_to_num(skew(x, axis=0)))
+
+    def score(self, data: pl.LazyFrame) -> pl.Series:
+        if self._sorted is None:
+            raise RuntimeError(f"{self.name} must be fitted before scoring.")
+        x = self._matrix(data)
+        n = self._sorted.shape[0]
+        total = np.zeros(x.shape[0])
+        for j, sign in enumerate(self._skew_sign):
+            column = self._sorted[:, j]
+            left = self._tail_log[np.searchsorted(column, x[:, j], side="right")]
+            right = self._tail_log[n - np.searchsorted(column, x[:, j], side="left")]
+            # PyOD's skewness-corrected tail: left for a negative skew, right for a positive one, both at zero.
+            skewed = left * -np.sign(sign - 1) + right * np.sign(sign + 1)
+            total += np.maximum(np.maximum(left, right), skewed)
+        return pl.Series(self.name, total)
 
 
 class HBOSScorer(_PyODScorer):

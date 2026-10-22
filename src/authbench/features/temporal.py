@@ -71,79 +71,66 @@ def calibrate_night_window(
     return NightWindow(start_second=start_second, end_second=end_second)
 
 
-def compute_f4(events: pl.LazyFrame, night_window: NightWindow) -> pl.LazyFrame:
-    """Add cyclical hour encoding, per-user circular-mean time-of-day deviation
-    (causal, expanding), inter-event delay, and the calibrated night flag.
+def with_hour_angles(events: pl.LazyFrame, night_window: NightWindow) -> pl.LazyFrame:
+    """Row-local part of F4: hour on the unit circle, night flag, and the `_angle` the profile reads."""
+    return (
+        events.with_columns((pl.col("time") % SECONDS_PER_DAY).alias("_second_of_day"))
+        .with_columns(((pl.col("_second_of_day") / SECONDS_PER_DAY) * TWO_PI).alias("_angle"))
+        .with_columns(
+            pl.col("_angle").sin().alias("hour_sin"),
+            pl.col("_angle").cos().alias("hour_cos"),
+            night_window.contains_expr("_second_of_day").alias("is_night_window"),
+        )
+    )
+
+
+def profile_columns() -> list[pl.Expr]:
+    """F4 columns from a user's prior circular sums, previous time and previous destination.
+
+    Expects `_angle`, `_cum_sin_prior`, `_cum_cos_prior`, `_prev_time_same_user` and
+    `_prev_dst_same_user`; shared by `compute_f4` and the day-by-day path so both compute
+    the same expressions.
     """
-    with_angle = (
-        events.with_columns(
-            [
-                (pl.col("time") % SECONDS_PER_DAY).alias("_second_of_day"),
-            ]
-        )
-        .with_columns(
-            [
-                ((pl.col("_second_of_day") / SECONDS_PER_DAY) * TWO_PI).alias("_angle"),
-            ]
-        )
-        .with_columns(
-            [
-                pl.col("_angle").sin().alias("hour_sin"),
-                pl.col("_angle").cos().alias("hour_cos"),
-                night_window.contains_expr("_second_of_day").alias("is_night_window"),
-            ]
-        )
-    )
-
-    by_user = sort_for_causal(with_angle, "src_user", "time")
-    with_profile = by_user.with_columns(
-        [
-            pl.col("hour_sin").cum_sum().shift(1).over("src_user").alias("_cum_sin_prior"),
-            pl.col("hour_cos").cum_sum().shift(1).over("src_user").alias("_cum_cos_prior"),
-            pl.col("time").shift(1).over("src_user").alias("_prev_time_same_user"),
-        ]
-    )
-
-    with_deviation = with_profile.with_columns(
-        [
-            pl.arctan2("_cum_sin_prior", "_cum_cos_prior").alias("_profile_angle"),
-        ]
-    ).with_columns(
-        # `fill_null(0.0)` is a **known bias**, kept deliberately and recorded
-        # rather than quietly fixed. A user's first event in a partition has no
-        # prior angle to deviate from, and 0.0 is not a neutral filler here: it
-        # is the exact minimum of this column's range, so "no history" is
-        # encoded as *maximally typical*.
-        #
-        # Measured on the demo test split: 350 of 8,049 events are a user's
-        # first, all 350 carry exactly 0.0, and no other event does — the
-        # sentinel and the cold-start set coincide one-to-one. The median
-        # deviation elsewhere is 0.426 and the 99th percentile 3.046. Two of
-        # the eleven malicious test events are in that set, scored as perfectly
-        # ordinary on this axis for want of a past.
-        #
-        # It compounds the one-day-of-history limitation rather than being
-        # independent of it: the shorter each partition, the larger the
-        # cold-start share (41% of test events have no prior hour at all).
-        # Changing the sentinel changes the design matrix, so it moves every
-        # vector-space model's scores and would desynchronise the published
-        # LANL snapshot, which cannot be re-run cheaply. See docs/limitations.md.
-        ((pl.col("_angle") - pl.col("_profile_angle") + math.pi) % TWO_PI - math.pi)
+    profile_angle = pl.arctan2("_cum_sin_prior", "_cum_cos_prior")
+    return [
+        # 0.0 for a user's first event is a known bias: it is the most typical value (docs/limitations.md).
+        ((pl.col("_angle") - profile_angle + math.pi) % TWO_PI - math.pi)
         .abs()
         .fill_null(0.0)
         .alias("hour_deviation_from_profile"),
         ((pl.col("time") - pl.col("_prev_time_same_user")) / 3600.0)
         .fill_null(float("inf"))
         .alias("hours_since_prev_event_same_user"),
-    )
+        # The user's previous event ended on this event's source: the hop of a lateral chain (R7).
+        (pl.col("_prev_dst_same_user").cast(pl.Utf8) == pl.col("src_computer").cast(pl.Utf8))
+        .fill_null(False)
+        .alias("prev_dst_is_src"),
+    ]
 
-    return with_deviation.drop(
+
+PROFILE_HELPERS = [
+    "_second_of_day",
+    "_angle",
+    "_cum_sin_prior",
+    "_cum_cos_prior",
+    "_prev_time_same_user",
+    "_prev_dst_same_user",
+]
+
+
+def compute_f4(events: pl.LazyFrame, night_window: NightWindow) -> pl.LazyFrame:
+    """Add cyclical hour encoding, per-user circular-mean time-of-day deviation
+    (causal, expanding), inter-event delay, previous-hop flag and the calibrated night flag.
+    """
+    with_angle = with_hour_angles(events, night_window)
+    by_user = sort_for_causal(with_angle, "src_user", "time")
+    with_profile = by_user.with_columns(
         [
-            "_second_of_day",
-            "_angle",
-            "_cum_sin_prior",
-            "_cum_cos_prior",
-            "_prev_time_same_user",
-            "_profile_angle",
+            pl.col("hour_sin").cum_sum().shift(1).over("src_user").alias("_cum_sin_prior"),
+            pl.col("hour_cos").cum_sum().shift(1).over("src_user").alias("_cum_cos_prior"),
+            pl.col("time").shift(1).over("src_user").alias("_prev_time_same_user"),
+            pl.col("dst_computer").shift(1).over("src_user").alias("_prev_dst_same_user"),
         ]
     )
+
+    return with_profile.with_columns(profile_columns()).drop(PROFILE_HELPERS)

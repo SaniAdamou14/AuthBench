@@ -28,6 +28,9 @@ f1_event:
 # still starts cold: nothing precedes the converted window for it to read.
 history_warmup_days: 2
 
+# Events featurised and scored: all, remote_logon, or remote_logon_user (pipeline.build_features).
+universe: all
+
 f2_history:
   enabled: true
   windows_hours: [1, 24, 168]  # 1h / 24h / 7d
