@@ -60,6 +60,17 @@ All windowed features (F2 history, F3 novelty, F5 graph) go through
 `tests/unit/test_causality.py` builds synthetic events whose feature value would change if the
 future were visible and asserts the computed value is the causal one.
 
+## Novelty relations (F3)
+
+F3 describes three relations, each by a first-occurrence flag and a rarity
+`-log((k + 1) / (n + 1))`: the user-destination pair (`pair_*`, n = all events), the
+user-source pair (`user_src_*`, n = the user's events) and the source-destination edge
+(`src_dst_*`, n = the source's events). k counts earlier occurrences in (time, event_id)
+order; n counts events on days before the event's day, so equally novel events of one day
+tie instead of being ordered by their time. The user-source relation is the "known source
+pc" signal of Garchery and Granitzer (2020); M2c scores it alone and M1's rule R8 flags its
+first occurrences. The published LANL runs predate the source relations and the day anchor.
+
 ## Fitted quantities (US-107, US-109, US-112)
 
 Two things in the feature pipeline are learned rather than computed row-locally, and both are

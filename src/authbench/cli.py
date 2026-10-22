@@ -65,7 +65,7 @@ from authbench.label.redteam_join import (
 from authbench.models.classical import ECODScorer, IsolationForestScorer
 from authbench.models.floors import AlwaysFailScorer, RandomScorer
 from authbench.models.rules import RulesScorer, rule_discrimination
-from authbench.models.stats import PairRarityScorer, PCAReconstructionScorer
+from authbench.models.stats import PairRarityScorer, PCAReconstructionScorer, SourceRarityScorer
 from authbench.parse.clean import clean_auth, clean_redteam, data_quality_report
 from authbench.pipeline.build_features import CONF_DIR
 from authbench.split.temporal import (
@@ -112,7 +112,7 @@ console = Console()
 # 1000 every comparison would come back non-significant by arithmetic while
 # reading exactly like a real null result. `demo_model_catalog` exists so the
 # same test can hold this number against the catalog it actually serves.
-DEMO_BOOTSTRAP_RESAMPLES = 1000
+DEMO_BOOTSTRAP_RESAMPLES = 2000
 DEMO_FPR_TARGETS = [1.0e-4, 1.0e-3]
 
 
@@ -135,6 +135,7 @@ def demo_model_catalog() -> list[object]:
         RandomScorer(),
         AlwaysFailScorer(),
         PairRarityScorer(),
+        SourceRarityScorer(),
         PCAReconstructionScorer(MODEL_FEATURE_COLUMNS),
         IsolationForestScorer(MODEL_FEATURE_COLUMNS),
         ECODScorer(MODEL_FEATURE_COLUMNS),

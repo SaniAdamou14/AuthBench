@@ -38,10 +38,11 @@ this summarizes.
 11. **Transductive scores.** ECOD (distributions recomputed from the scored matrix) depends
     on the test distribution. So did M1 in the published LANL runs (rank normalisation over the
     three test days); its normalisation is fitted on training data since 22 October 2026.
-12. **Novelty is relative to the window read.** `pair_is_new` and `pair_global_rarity`
-    count earlier events of the partition plus its warm-up, not the whole history; and the
-    rarity denominator grows within the window, so a pair with a fixed count of earlier
-    occurrences scores slightly higher later in the window.
+12. **Novelty is relative to the window read.** The F3 `*_is_new` and `*_rarity` features
+    count earlier events of the partition plus its warm-up, not the whole history. In the
+    published LANL runs the rarity denominator grew with every event, so within a day pair
+    rarity ranked equally new events latest first; since 22 October 2026 it is anchored to the
+    start of the day, equally new events of a day tie, and the tie bracket shows the effect.
 
 ## Metrics deliberately not used as primary
 

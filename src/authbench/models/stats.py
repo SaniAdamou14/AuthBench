@@ -28,6 +28,24 @@ class PairRarityScorer(BaseAnomalyScorer):
         return data.select(pl.col("pair_global_rarity").alias(self.name)).collect().to_series()
 
 
+class SourceRarityScorer(BaseAnomalyScorer):
+    """M2c: rarity of the source computer for the user, `user_src_rarity` from F3.
+
+    A continuous form of the "known source pc" rule that performed on par with a
+    graph detector on LANL (Garchery and Granitzer, 2020).
+    """
+
+    name = "M2c_source_rarity"
+    requires_labels = False
+    scores_row_locally = True
+
+    def fit(self, train: pl.LazyFrame) -> None:
+        return None
+
+    def score(self, data: pl.LazyFrame) -> pl.Series:
+        return data.select(pl.col("user_src_rarity").alias(self.name)).collect().to_series()
+
+
 class PCAReconstructionScorer(BaseAnomalyScorer):
     """M2b — PCA reconstruction error on the numeric feature columns. The
     linear baseline every nonlinear (autoencoder) model must beat to justify

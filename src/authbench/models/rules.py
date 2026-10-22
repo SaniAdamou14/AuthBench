@@ -44,6 +44,7 @@ RULES: list[RuleSpec] = [
     RuleSpec("R5_machine_account_anomaly", "T1550", "Machine account behaving atypically"),
     RuleSpec("R6_new_auth_type", "T1550", "Auth type never used before by this user"),
     RuleSpec("R7_lateral_chain", "T1021", "A→B then B→C chain, same user, short window"),
+    RuleSpec("R8_new_source", "T1021", "First use of a source computer by this user"),
 ]
 
 
@@ -183,6 +184,7 @@ class RulesScorer(BaseAnomalyScorer):
                 _rule_r3(features).alias("R3_fail_then_success"),
                 _rule_r4(features).alias("R4_offhours"),
                 _rule_r5(features).alias("R5_machine_account_anomaly"),
+                pl.col("user_src_is_new").cast(pl.Float64).alias("R8_new_source"),
             ]
         )
 
@@ -312,4 +314,9 @@ def rule_discrimination(model: RulesScorer, features: pl.DataFrame) -> pl.DataFr
         }
         for rule in RULES
     ]
-    return pl.DataFrame(rows).sort("calibrated_weight", descending=True)
+    # Rounded so the committed table does not depend on the platform's last floating-point digit.
+    return (
+        pl.DataFrame(rows)
+        .with_columns(pl.col(pl.Float64).round(12))
+        .sort("calibrated_weight", descending=True)
+    )

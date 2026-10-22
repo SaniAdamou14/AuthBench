@@ -42,7 +42,11 @@ from authbench.models.base import DEFAULT_FIT_SAMPLE_SIZE, AnomalyScorer
 from authbench.models.classical import ECODScorer, HBOSScorer, IsolationForestScorer
 from authbench.models.floors import AlwaysFailScorer, RandomScorer
 from authbench.models.rules import RulesScorer
-from authbench.models.stats import PairRarityScorer, PCAReconstructionScorer
+from authbench.models.stats import (
+    PairRarityScorer,
+    PCAReconstructionScorer,
+    SourceRarityScorer,
+)
 from authbench.pipeline.build_features import CONF_DIR, feature_store_version
 from authbench.pipeline.tracking import open_tracker
 
@@ -108,6 +112,7 @@ def build_model_catalog(
         RandomScorer(),
         AlwaysFailScorer(),
         PairRarityScorer(),
+        SourceRarityScorer(),
         PCAReconstructionScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size),
         IsolationForestScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size),
         ECODScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size),

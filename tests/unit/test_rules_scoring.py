@@ -38,6 +38,7 @@ def _features(n: int = 200, seed: int = 0) -> pl.DataFrame:
             "hour_deviation_from_profile": rng.random(n),
             "src_user_is_machine": rng.integers(0, 2, n).astype(bool),
             "pair_global_rarity": rng.random(n),
+            "user_src_is_new": rng.integers(0, 2, n).astype(bool),
         }
     )
 

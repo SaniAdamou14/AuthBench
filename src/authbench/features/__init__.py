@@ -49,6 +49,10 @@ _F3_COLUMNS: list[str] = [
     "pair_global_rarity",
     "user_new_host_count_24h",
     "host_new_user_count_24h",
+    "user_src_is_new",
+    "user_src_rarity",
+    "src_dst_is_new",
+    "src_dst_rarity",
 ]
 
 # F4 — temporal. `hours_since_prev_event_same_user` is excluded for the same
