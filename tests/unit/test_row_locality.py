@@ -118,3 +118,15 @@ def test_m1_scored_by_day_equals_m1_scored_whole() -> None:
         ]
     )
     np.testing.assert_array_equal(whole, per_day)
+
+
+def test_r2_trains_without_the_red_team_and_r1_with_it() -> None:
+    from authbench.pipeline.train_eval import R1, R2, regime_train
+
+    frame = _featurized()
+    assert regime_train(frame.lazy(), R1).collect().equals(frame)
+    clean = regime_train(frame.lazy(), R2).collect()
+    assert not clean["is_malicious"].any()
+    assert clean.height == frame.height - int(frame["is_malicious"].sum())
+    with pytest.raises(ValueError, match="Unknown regime"):
+        regime_train(frame.lazy(), "r3")

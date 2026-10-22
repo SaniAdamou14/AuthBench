@@ -107,14 +107,22 @@ caller remembering a keyword is not a protocol.
 
 ## Two training regimes (section 6.2)
 
-**Not implemented yet.** The key exists in `conf/split/*.yaml` and nothing reads it. When it
-lands:
+Implemented on 22 October 2026 (S6-10); the published LANL runs used R1 only.
+`split.regimes` lists the regimes `train_eval` runs, each with a fresh catalog:
 
-- **R1 (unsupervised)**: red-team events inside the training window are left in — the realistic
-  situation of a defender who doesn't know they're already compromised.
-- **R2 (semi-supervised)**: red-team events are removed from training.
+- **R1 (unsupervised)**: red-team events inside the training window are left in, the realistic
+  situation of a defender who does not know they are already compromised.
+- **R2 (semi-supervised)**: red-team events are removed from the rows the models are fitted
+  on. Features are still computed with them: the history an event is compared against cannot
+  be cleaned by a defender who has not found the attack. Validation, used only by M1's weight
+  calibration, is unchanged.
 
-Both are to be reported; most published work silently uses R2 only, which inflates results.
+The first regime listed is the reported one and writes to the paths DVC tracks; each further
+regime writes the same tables, figure and `metrics_summary.json` under a directory named after
+it. Both are reported; most published work silently uses R2 only, which inflates results. With
+the harmonised split (`conf/split/harmonised.yaml`) training ends at hour 41, before the first red-team
+event (t = 150,885 s, hour 41.9, the boundary Euler uses), so the two regimes coincide and only
+R1 is run.
 
 ## Evaluation (US-125 to US-128)
 

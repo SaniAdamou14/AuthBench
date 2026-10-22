@@ -124,6 +124,25 @@ def _deep_catalog(fit_sample_size: int | None) -> list[AnomalyScorer]:
     ]
 
 
+R1 = "r1_unsupervised"
+R2 = "r2_semi_supervised"
+
+
+def regime_train(train: pl.LazyFrame, regime: str) -> pl.LazyFrame:
+    """The training rows of a regime (spec section 6.2).
+
+    R1 keeps the red-team events inside the training window, as a defender who does not
+    know they are compromised would; R2 removes them, as most published work does
+    silently. Features are computed with them in either case: the history an event is
+    compared against cannot be cleaned by a defender who has not found the attack.
+    """
+    if regime == R1:
+        return train
+    if regime == R2:
+        return train.filter(~pl.col("is_malicious"))
+    raise ValueError(f"Unknown regime {regime!r}; expected {R1!r} or {R2!r}.")
+
+
 def fit_models(models: list[AnomalyScorer], train: pl.LazyFrame, val: pl.LazyFrame | None) -> None:
     """Fit every model on train; M1 then calibrates its rule weights on validation labels.
 
@@ -233,14 +252,6 @@ def main(cfg: DictConfig) -> None:
         )
 
     tracker = open_tracker(str(cfg.mlflow.tracking_uri), str(cfg.mlflow.experiment_name))
-
-    tables_dir = Path(cfg.paths.tables_dir)
-    tables_dir.mkdir(parents=True, exist_ok=True)
-    figures_dir = Path(cfg.paths.figures_dir)
-    figures_dir.mkdir(parents=True, exist_ok=True)
-
-    budgets = list(cfg.eval.budgets)
-    fpr_targets = list(cfg.eval.fpr_targets)
     report_roc_auc = bool(cfg.eval.roc_auc.report)
     if report_roc_auc and bool(cfg.eval.roc_auc.warn):
         logger.warning("%s", str(cfg.eval.roc_auc.warning_message).strip() or ROC_AUC_WARNING)
@@ -255,6 +266,54 @@ def main(cfg: DictConfig) -> None:
         logger.warning(
             "Excluding from this run (AUTHBENCH_EXCLUDE_MODELS): %s", sorted(exclude_models)
         )
+    users = campaign_users(
+        test.filter(pl.col("is_malicious"))
+        .select("campaign_id", "src_user", "is_malicious")
+        .collect()
+    )
+    regimes = [str(r) for r in cfg.split.get("regimes", [R1])]
+    for index, regime in enumerate(regimes):
+        # The first regime is the reported one and keeps the paths DVC tracks; the others sit beside it.
+        suffix = Path() if index == 0 else Path(regime)
+        logger.info("Regime %s", regime)
+        evaluate_regime(
+            cfg,
+            regime,
+            regime_train(train, regime),
+            val,
+            test,
+            users,
+            tables_dir=Path(cfg.paths.tables_dir) / suffix,
+            figures_dir=Path(cfg.paths.figures_dir) / suffix,
+            metrics_path=Path(cfg.paths.reports_dir) / suffix / "metrics_summary.json",
+            block_of=dict(users.iter_rows()) if block == "account" else None,
+            exclude_models=exclude_models,
+            tracker=tracker,
+            version=version,
+        )
+
+
+def evaluate_regime(
+    cfg: DictConfig,
+    regime: str,
+    train: pl.LazyFrame,
+    val: pl.LazyFrame | None,
+    test: pl.LazyFrame,
+    users: pl.DataFrame,
+    *,
+    tables_dir: Path,
+    figures_dir: Path,
+    metrics_path: Path,
+    block_of: dict[int, str] | None,
+    exclude_models: set[str],
+    tracker: Any,
+    version: str,
+) -> None:
+    """Fit a fresh catalog on `train`, score `test` by day, and write every table and the figure."""
+    tables_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    metrics_path.parent.mkdir(parents=True, exist_ok=True)
+    budgets = list(cfg.eval.budgets)
     models = build_model_catalog(
         fit_sample_size=int(cfg.runtime.fit_sample_size) or None,
         exclude=exclude_models,
@@ -270,17 +329,12 @@ def main(cfg: DictConfig) -> None:
             len(models),
             "; ".join(f"{k} ({v})" for k, v in skipped.items()),
         )
-    users = campaign_users(
-        test.filter(pl.col("is_malicious"))
-        .select("campaign_id", "src_user", "is_malicious")
-        .collect()
-    )
     bootstrap = paired_campaign_bootstrap(
         statistics,
         n_resamples=int(cfg.eval.bootstrap.n_resamples),
         confidence=float(cfg.eval.bootstrap.confidence),
         seed=int(cfg.eval.bootstrap.seed),
-        block_of=dict(users.iter_rows()) if block == "account" else None,
+        block_of=block_of,
     )
 
     summary_rows = []
@@ -289,19 +343,19 @@ def main(cfg: DictConfig) -> None:
         evaluation = evaluate_model(
             statistics[name],
             budgets=budgets,
-            fpr_targets=fpr_targets,
-            report_roc_auc=report_roc_auc,
-            # The caveat is logged once above, from the config's own text —
-            # repeating it per model would bury it.
+            fpr_targets=list(cfg.eval.fpr_targets),
+            report_roc_auc=bool(cfg.eval.roc_auc.report),
+            # The caveat is logged once, from the config's own text; per model it would bury it.
             warn_roc_auc=False,
             auc_pr_ci=bootstrap.ci(name),
         )
         curves.append(evaluation.curve)
-        summary_rows.append(evaluation.to_dict())
+        summary_rows.append({"regime": regime, **evaluation.to_dict()})
 
-        with tracker.run(name):
+        with tracker.run(f"{regime}/{name}"):
             tracker.log_param("feature_store_version", version)
             tracker.log_param("seed", cfg.seed)
+            tracker.log_param("regime", regime)
             tracker.log_metric("auc_pr", evaluation.auc_pr)
             assert evaluation.auc_pr_ci is not None
             tracker.log_metric("auc_pr_ci_low", evaluation.auc_pr_ci.ci_low)
@@ -322,19 +376,17 @@ def main(cfg: DictConfig) -> None:
                     )
 
         logger.info(
-            "%s: AUC-PR=%.4f [%.4f, %.4f]",
+            "%s %s: AUC-PR=%.4f [%.4f, %.4f]",
+            regime,
             name,
             evaluation.auc_pr,
-            bootstrap.ci(name).ci_low,
-            bootstrap.ci(name).ci_high,
+            evaluation.auc_pr_ci.ci_low,
+            evaluation.auc_pr_ci.ci_high,
         )
 
     # Beside reports/tables/, not inside it: DVC will not accept a metric
     # nested in a tracked output directory.
-    Path(cfg.paths.reports_dir).mkdir(parents=True, exist_ok=True)
-    (Path(cfg.paths.reports_dir) / "metrics_summary.json").write_text(
-        json.dumps(summary_rows, indent=2)
-    )
+    metrics_path.write_text(json.dumps(summary_rows, indent=2))
 
     comparisons = pairwise_comparisons(
         bootstrap,
@@ -348,14 +400,13 @@ def main(cfg: DictConfig) -> None:
         for name in sorted(exclude_models)
     }
     (tables_dir / "skipped_models.json").write_text(json.dumps({**excluded, **skipped}, indent=2))
-
     (tables_dir / "pairwise_comparisons.json").write_text(
         json.dumps([c.to_dict() for c in comparisons], indent=2)
     )
-    n_significant = sum(1 for c in comparisons if c.significant)
     logger.info(
-        "%d/%d pairwise AUC-PR differences significant at alpha=%s after %s correction.",
-        n_significant,
+        "%s: %d/%d pairwise AUC-PR differences significant at alpha=%s after %s correction.",
+        regime,
+        sum(1 for c in comparisons if c.significant),
         len(comparisons),
         cfg.eval.pairwise_test.alpha,
         cfg.eval.pairwise_test.correction,
@@ -379,7 +430,8 @@ def main(cfg: DictConfig) -> None:
         curves,
         figures_dir / CAMPAIGN_RECALL_FIGURE,
         subtitle=(
-            f"{cfg.dataset.name} test split — {n_campaigns} campaigns, {reference.n_events:,} events."
+            f"{cfg.dataset.name} test split, {regime}: {n_campaigns} campaigns, "
+            f"{reference.n_events:,} events."
         ),
     )
     logger.info("Wrote headline figure to %s", figure_path)
