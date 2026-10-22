@@ -17,6 +17,7 @@ pytest.importorskip("torch")
 from authbench.models.euler import EulerScorer  # noqa: E402
 
 SNAPSHOT = 1800
+FIRST_ATTACK = 90_900  # inside the snapshot [90000, 91800)
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "euler_fidelity.py"
 
 
@@ -29,19 +30,30 @@ def _script() -> ModuleType:
 
 
 def _network(tmp_path: Path) -> tuple[Path, Path, pl.DataFrame]:
-    """Three days of a small network; the red team strikes twice on day 1 and once on day 2."""
+    """Three days of a small network, NTLM and Kerberos, self-loops included; the red team
+    strikes over NTLM twice on day 1 (once inside the snapshot of its first event) and once on
+    day 2."""
     rng = np.random.default_rng(0)
     n = 6_000
     time = np.sort(rng.integers(0, 3 * 86_400, n))
     src = [f"C{i}" for i in rng.integers(0, 12, n)]
     dst = [f"C{i}" for i in rng.integers(0, 12, n)]
-    attacks = [(90_000, "U1@DOM1", "C3", "C40"), (90_050, "U1@DOM1", "C3", "C40")]
+    auth_type = list(rng.choice(["NTLM", "Kerberos", "Negotiate"], n))
+    attacks = [(FIRST_ATTACK, "U1@DOM1", "C3", "C40"), (FIRST_ATTACK + 50, "U1@DOM1", "C3", "C41")]
     attacks.append((200_000, "U2@DOM1", "C5", "C7"))
+    # Earlier in the first attack's snapshot: a test edge only from the first attack on.
+    time = np.append(time, [FIRST_ATTACK - 30])
+    src.append("C9")
+    dst.append("C10")
+    auth_type.append("NTLM")
     for t, _, s, d in attacks:
         time = np.append(time, t)
         src.append(s)
         dst.append(d)
-    auth = pl.DataFrame({"time": time, "src_computer": src, "dst_computer": dst}).sort("time")
+        auth_type.append("NTLM")
+    auth = pl.DataFrame(
+        {"time": time, "src_computer": src, "dst_computer": dst, "auth_type": auth_type}
+    ).sort("time")
     for day in range(3):
         directory = tmp_path / "auth" / f"day={day}"
         directory.mkdir(parents=True)
@@ -51,28 +63,59 @@ def _network(tmp_path: Path) -> tuple[Path, Path, pl.DataFrame]:
     return tmp_path / "auth", redteam, auth
 
 
-def test_the_day_by_day_check_equals_one_computation_over_every_edge(tmp_path: Path) -> None:
+@pytest.mark.parametrize("variant", ["all", "ntlm"])
+def test_the_day_by_day_check_equals_one_computation_over_every_edge(
+    tmp_path: Path, variant: str
+) -> None:
     script = _script()
     auth_dir, redteam, auth = _network(tmp_path)
     model = EulerScorer(epochs=3, patience=2, window=10, seed=1)
-    result = script.run(auth_dir, redteam, tmp_path / "out", model)
-    assert json.loads((tmp_path / "out" / "euler_fidelity.json").read_text()) == result
+    result = script.run(auth_dir, redteam, tmp_path / "out", model, variant)
+    written = tmp_path / "out" / f"euler_fidelity_{variant}.json"
+    assert json.loads(written.read_text()) == result
 
-    first_attack = 90_000
+    if variant == "ntlm":
+        auth = auth.filter(
+            (pl.col("auth_type") == "NTLM") & (pl.col("src_computer") != pl.col("dst_computer"))
+        )
     edges = (
-        auth.select((pl.col("time") // SNAPSHOT).alias("snapshot"), "src_computer", "dst_computer")
+        auth.filter(pl.col("time") >= FIRST_ATTACK)
+        .select((pl.col("time") // SNAPSHOT).alias("snapshot"), "src_computer", "dst_computer")
         .unique()
-        .filter(pl.col("snapshot") * SNAPSHOT >= first_attack)
     )
-    attacked = {(90_000 // SNAPSHOT, "C3", "C40"), (200_000 // SNAPSHOT, "C5", "C7")}
+    attacked = {
+        (FIRST_ATTACK // SNAPSHOT, "C3", "C40"),
+        ((FIRST_ATTACK + 50) // SNAPSHOT, "C3", "C41"),
+        (200_000 // SNAPSHOT, "C5", "C7"),
+    }
     labels = np.array([tuple(row) in attacked for row in edges.iter_rows()])
     scores = model.score(
         edges.select(
             (pl.col("snapshot") * SNAPSHOT).alias("time"), "src_computer", "dst_computer"
         ).lazy()
     ).to_numpy()
-    assert result["first_red_team_event"] == first_attack
+    assert result["variant"] == variant
+    assert result["first_red_team_event"] == FIRST_ATTACK
     assert result["test_edges"] == edges.height
-    assert result["anomalous_edges"] == 2
+    assert result["anomalous_edges"] == 3
     assert result["auc"] == pytest.approx(roc_auc_score(labels, scores), rel=1e-12)
     assert result["ap"] == pytest.approx(average_precision_score(labels, scores), rel=1e-12)
+
+
+def test_the_ntlm_variant_keeps_ntlm_events_between_two_computers() -> None:
+    script = _script()
+    auth = pl.LazyFrame(
+        {
+            "time": [1, 2, 3, 4],
+            "src_computer": ["C1", "C1", "C2", "C3"],
+            "dst_computer": ["C2", "C1", "C3", "C4"],
+            "auth_type": ["NTLM", "NTLM", "Kerberos", None],
+            "logon_type": ["Network", "Network", "Network", "Ntlm-ish"],
+        }
+    )
+    kept = script.select_events(auth, "ntlm").collect()
+    # The authors' filter is a case-insensitive search of the whole line, not of auth_type.
+    assert kept["time"].to_list() == [1, 4]
+    assert script.select_events(auth, "all").collect().height == 4
+    with pytest.raises(ValueError, match="Unknown variant"):
+        script.select_events(auth, "kerberos")

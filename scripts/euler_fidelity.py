@@ -8,7 +8,17 @@ every authentication event of the converted days (no AuthBench universe, split o
 store) and writes the edge-level AUC and AP beside the published ones. It needs the whole
 dataset and redteam.txt.gz: it is run on the rented machine, not in CI.
 
-    python scripts/euler_fidelity.py data/interim/auth data/raw/redteam.txt.gz reports/lanl
+Two variants of the events, each written to `euler_fidelity_<variant>.json`:
+
+- `ntlm`, the authors' loader: their code (lanl_experiments/loaders/split.py) keeps only the
+  lines of auth.txt that contain "NTLM" ("Some filtering for better FPR/less Kerb noise") and
+  load_lanl.py skips self-loops. The paper does not say so (section VI-A: "for all
+  authentications"), but its table V counts 45,871,390 events and 518 anomalous edges, far
+  from the 1.05 billion events of auth.txt. Measured on LANL: every red-team edge is NTLM, and
+  the filter leaves 14.4 million of the 99.4 million test edges.
+- `all`, every authentication event, self-loops included: the graph AuthBench's M5c sees.
+
+    python scripts/euler_fidelity.py data/interim/auth data/raw/redteam.txt.gz reports/lanl [ntlm] [all]
 """
 
 from __future__ import annotations
@@ -28,6 +38,23 @@ from authbench.parse.schema import RAW_REDTEAM_COLUMNS
 
 PUBLISHED = {"auc": 0.9906, "ap": 0.0155}
 DAY = 86_400
+# The fields of a raw auth.txt line, which the authors' filter searches for "NTLM".
+RAW_FIELDS = [
+    "src_user",
+    "src_domain",
+    "dst_user",
+    "dst_domain",
+    "src_computer",
+    "dst_computer",
+    "auth_type",
+    "logon_type",
+    "auth_orientation",
+    "success",
+]
+VARIANTS = {
+    "ntlm": "NTLM authentications only, self-loops dropped (the authors' loader)",
+    "all": "every authentication event, self-loops included (AuthBench's graph)",
+}
 
 
 def _peak_rss_gb() -> float | None:
@@ -42,6 +69,22 @@ def log(message: str) -> None:
     peak = _peak_rss_gb()
     suffix = f" (peak RSS {peak:.1f} GB)" if peak is not None else ""
     print(f"[{datetime.now(UTC):%Y-%m-%dT%H:%M:%SZ}] {message}{suffix}", flush=True)
+
+
+def select_events(auth: pl.LazyFrame, variant: str) -> pl.LazyFrame:
+    """The events a variant keeps, as (time, source computer, destination computer)."""
+    if variant == "ntlm":
+        fields = [c for c in RAW_FIELDS if c in auth.collect_schema().names()]
+        line = pl.concat_str(
+            [pl.col(c).cast(pl.Utf8).fill_null("") for c in fields], separator=","
+        ).str.to_uppercase()
+        auth = auth.filter(
+            line.str.contains("NTLM", literal=True)
+            & (pl.col("src_computer").cast(pl.Utf8) != pl.col("dst_computer").cast(pl.Utf8))
+        )
+    elif variant != "all":
+        raise ValueError(f"Unknown variant {variant!r}; expected one of {sorted(VARIANTS)}.")
+    return auth.select("time", "src_computer", "dst_computer")
 
 
 def edge_level(auth: pl.LazyFrame, redteam: pl.LazyFrame, snapshot: int) -> pl.DataFrame:
@@ -89,22 +132,22 @@ def score_edges(model: EulerScorer, edges: pl.DataFrame) -> tuple[np.ndarray, np
     return np.concatenate(scores), np.concatenate(labels)
 
 
-def run(auth_dir: Path, redteam_path: Path, out_dir: Path, model: EulerScorer) -> dict[str, object]:
-    auth = pl.scan_parquet(auth_dir / "**" / "*.parquet").select(
-        "time", "src_computer", "dst_computer"
-    )
+def run(
+    auth_dir: Path, redteam_path: Path, out_dir: Path, model: EulerScorer, variant: str = "all"
+) -> dict[str, object]:
+    auth = select_events(pl.scan_parquet(auth_dir / "**" / "*.parquet"), variant)
     redteam, _ = clean_redteam(
         pl.scan_csv(redteam_path, has_header=False, new_columns=RAW_REDTEAM_COLUMNS)
     )
     first_attack = int(redteam.select(pl.col("time").min()).collect().item())
-    log(f"first red-team event at t={first_attack}; fitting")
+    log(f"variant {variant}; first red-team event at t={first_attack}; fitting")
     model.fit(auth.filter(pl.col("time") < first_attack))
     log(f"fitted in {len(model.history)} epochs; preparing the timeline")
     model.prepare([auth])
     log("prepared; building the test edges")
-    edges = edge_level(auth, redteam, model.snapshot_seconds).filter(
-        pl.col("snapshot") * model.snapshot_seconds >= first_attack
-    )
+    # Every event from the first red-team one on, as the authors' loader reads the test range:
+    # the snapshot holding it is kept, without its earlier events.
+    edges = edge_level(auth.filter(pl.col("time") >= first_attack), redteam, model.snapshot_seconds)
     log(f"{edges.height} test edges, {int(edges['is_malicious'].sum())} anomalous; scoring")
     scores, labels = score_edges(model, edges)
     n_edges = edges.height
@@ -113,6 +156,8 @@ def run(auth_dir: Path, redteam_path: Path, out_dir: Path, model: EulerScorer) -
     result = {
         "protocol": "King and Huang (2022): link prediction, edges per 30-minute snapshot, "
         "training before the first red-team event",
+        "variant": variant,
+        "events": VARIANTS[variant],
         "first_red_team_event": first_attack,
         "test_edges": n_edges,
         "anomalous_edges": int(labels.sum()),
@@ -122,14 +167,17 @@ def run(auth_dir: Path, redteam_path: Path, out_dir: Path, model: EulerScorer) -
         "training_epochs": len(model.history),
     }
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "euler_fidelity.json").write_text(json.dumps(result, indent=2) + "\n")
-    log(f"wrote {out_dir / 'euler_fidelity.json'}")
+    path = out_dir / f"euler_fidelity_{variant}.json"
+    path.write_text(json.dumps(result, indent=2) + "\n")
+    log(f"wrote {path}")
     return result
 
 
 def main() -> None:
     auth_dir, redteam_path, out_dir = (Path(a) for a in sys.argv[1:4])
-    print(json.dumps(run(auth_dir, redteam_path, out_dir, EulerScorer()), indent=2))
+    for variant in sys.argv[4:] or list(VARIANTS):
+        result = run(auth_dir, redteam_path, out_dir, EulerScorer(), variant)
+        print(json.dumps(result, indent=2), flush=True)
 
 
 if __name__ == "__main__":
