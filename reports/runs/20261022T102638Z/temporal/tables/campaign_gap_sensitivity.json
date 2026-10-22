@@ -1,0 +1,598 @@
+[
+  {
+    "gap_hours": 1.0,
+    "n_campaigns": 79,
+    "models": {
+      "M0a_random": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 48891,
+        "median_budget": 5623558,
+        "log_area": 0.0
+      },
+      "M0b_always_fail": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 5505419,
+        "median_budget": 10201763,
+        "log_area": 0.0
+      },
+      "M2a_pair_rarity": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 7436,
+        "median_budget": 67698,
+        "log_area": 0.000407153857
+      },
+      "M2c_source_rarity": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 5010,
+        "median_budget": 685142,
+        "log_area": 0.000949880614
+      },
+      "M2b_pca_reconstruction": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.06329113924050633
+        },
+        "first_detection": 246,
+        "median_budget": 49066,
+        "log_area": 0.050909464067
+      },
+      "M3a_iforest": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 98938,
+        "median_budget": 490751,
+        "log_area": 0.0
+      },
+      "M3b_ecod": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 5123,
+        "median_budget": 172069,
+        "log_area": 0.001783916158
+      },
+      "M3b_hbos": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 8572,
+        "median_budget": 333039,
+        "log_area": 0.000211765309
+      },
+      "M1_rules": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.012658227848101266,
+          "100": 0.02531645569620253,
+          "500": 0.0379746835443038
+        },
+        "first_detection": 42,
+        "median_budget": 8495886,
+        "log_area": 0.033623193347
+      },
+      "M1u_rules_uniform": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 529646,
+        "median_budget": 14348917,
+        "log_area": 0.0
+      },
+      "M4a_autoencoder": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.012658227848101266
+        },
+        "first_detection": 494,
+        "median_budget": 8604,
+        "log_area": 0.053866325318
+      },
+      "M4b_vae": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 5845,
+        "median_budget": 28094,
+        "log_area": 0.000876579162
+      },
+      "M5c_euler": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 15945,
+        "median_budget": 57009,
+        "log_area": 0.0
+      }
+    }
+  },
+  {
+    "gap_hours": 6.0,
+    "n_campaigns": 60,
+    "models": {
+      "M0a_random": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 48891,
+        "median_budget": 4522579,
+        "log_area": 0.0
+      },
+      "M0b_always_fail": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 5505419,
+        "median_budget": 9160223,
+        "log_area": 0.0
+      },
+      "M2a_pair_rarity": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 7436,
+        "median_budget": 57875,
+        "log_area": 0.000536085912
+      },
+      "M2c_source_rarity": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 5010,
+        "median_budget": 597490,
+        "log_area": 0.001250676142
+      },
+      "M2b_pca_reconstruction": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.08333333333333333
+        },
+        "first_detection": 246,
+        "median_budget": 24722,
+        "log_area": 0.066523916948
+      },
+      "M3a_iforest": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 98938,
+        "median_budget": 340731,
+        "log_area": 0.0
+      },
+      "M3b_ecod": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 5123,
+        "median_budget": 99825,
+        "log_area": 0.002348822941
+      },
+      "M3b_hbos": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 8572,
+        "median_budget": 281991,
+        "log_area": 0.000278824323
+      },
+      "M1_rules": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.016666666666666666,
+          "100": 0.03333333333333333,
+          "500": 0.05
+        },
+        "first_detection": 42,
+        "median_budget": 6786671,
+        "log_area": 0.044270537906
+      },
+      "M1u_rules_uniform": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 529646,
+        "median_budget": 11200549,
+        "log_area": 0.0
+      },
+      "M4a_autoencoder": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.016666666666666666
+        },
+        "first_detection": 494,
+        "median_budget": 6556,
+        "log_area": 0.067063258263
+      },
+      "M4b_vae": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 5845,
+        "median_budget": 26442,
+        "log_area": 0.001154162564
+      },
+      "M5c_euler": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 15945,
+        "median_budget": 56503,
+        "log_area": 0.0
+      }
+    }
+  },
+  {
+    "gap_hours": 24.0,
+    "n_campaigns": 50,
+    "models": {
+      "M0a_random": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 48891,
+        "median_budget": 4237669,
+        "log_area": 0.0
+      },
+      "M0b_always_fail": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 5505419,
+        "median_budget": 8828157,
+        "log_area": 0.0
+      },
+      "M2a_pair_rarity": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 7436,
+        "median_budget": 55417,
+        "log_area": 0.000643303095
+      },
+      "M2c_source_rarity": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 5010,
+        "median_budget": 568805,
+        "log_area": 0.001500811371
+      },
+      "M2b_pca_reconstruction": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.1
+        },
+        "first_detection": 246,
+        "median_budget": 20880,
+        "log_area": 0.075025072179
+      },
+      "M3a_iforest": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 98938,
+        "median_budget": 316336,
+        "log_area": 0.0
+      },
+      "M3b_ecod": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 5123,
+        "median_budget": 81956,
+        "log_area": 0.00281858753
+      },
+      "M3b_hbos": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 8572,
+        "median_budget": 288900,
+        "log_area": 0.000334589188
+      },
+      "M1_rules": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.02,
+          "100": 0.04,
+          "500": 0.06
+        },
+        "first_detection": 42,
+        "median_budget": 5592031,
+        "log_area": 0.053124645487
+      },
+      "M1u_rules_uniform": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 529646,
+        "median_budget": 9433364,
+        "log_area": 0.0
+      },
+      "M4a_autoencoder": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.02
+        },
+        "first_detection": 494,
+        "median_budget": 6114,
+        "log_area": 0.076213627979
+      },
+      "M4b_vae": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 5845,
+        "median_budget": 25949,
+        "log_area": 0.001384995076
+      },
+      "M5c_euler": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 15945,
+        "median_budget": 57010,
+        "log_area": 0.0
+      }
+    }
+  },
+  {
+    "gap_hours": 72.0,
+    "n_campaigns": 48,
+    "models": {
+      "M0a_random": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 48891,
+        "median_budget": 3817914,
+        "log_area": 0.0
+      },
+      "M0b_always_fail": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 5505419,
+        "median_budget": 8480768,
+        "log_area": 0.0
+      },
+      "M2a_pair_rarity": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 7436,
+        "median_budget": 54536,
+        "log_area": 0.00067010739
+      },
+      "M2c_source_rarity": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 5010,
+        "median_budget": 564505,
+        "log_area": 0.001563345178
+      },
+      "M2b_pca_reconstruction": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.10416666666666667
+        },
+        "first_detection": 246,
+        "median_budget": 20401,
+        "log_area": 0.078151116854
+      },
+      "M3a_iforest": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 98938,
+        "median_budget": 282893,
+        "log_area": 0.0
+      },
+      "M3b_ecod": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 5123,
+        "median_budget": 82324,
+        "log_area": 0.002936028677
+      },
+      "M3b_hbos": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 8572,
+        "median_budget": 281991,
+        "log_area": 0.000348530404
+      },
+      "M1_rules": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.020833333333333332,
+          "100": 0.041666666666666664,
+          "500": 0.0625
+        },
+        "first_detection": 42,
+        "median_budget": 5592031,
+        "log_area": 0.055338172383
+      },
+      "M1u_rules_uniform": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 529646,
+        "median_budget": 9407383,
+        "log_area": 0.0
+      },
+      "M4a_autoencoder": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.020833333333333332
+        },
+        "first_detection": 494,
+        "median_budget": 5837,
+        "log_area": 0.079389195812
+      },
+      "M4b_vae": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 5845,
+        "median_budget": 25378,
+        "log_area": 0.001442703204
+      },
+      "M5c_euler": {
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        },
+        "first_detection": 15945,
+        "median_budget": 56504,
+        "log_area": 0.0
+      }
+    }
+  }
+]
