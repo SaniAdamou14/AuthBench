@@ -86,7 +86,7 @@ def test_training_stops_early_and_keeps_its_history() -> None:
 
 
 def test_snapshot_edges_aggregated_by_day_equal_one_aggregation() -> None:
-    from authbench.models.euler import _snapshot_edges
+    from authbench.models.euler import snapshot_edges
 
     frame = pl.concat([_routine(range(0, 40)), _routine(range(40, 100), seed=2)])
     expected = (
@@ -99,4 +99,11 @@ def test_snapshot_edges_aggregated_by_day_equal_one_aggregation() -> None:
         .len()
         .sort("snapshot", "src", "dst")
     )
-    assert _snapshot_edges(frame.lazy(), SNAPSHOT).equals(expected)
+    assert snapshot_edges(frame.lazy(), SNAPSHOT).equals(expected)
+
+
+def test_a_snapshot_that_does_not_divide_a_day_is_refused() -> None:
+    from authbench.models.euler import snapshot_edges
+
+    with pytest.raises(ValueError, match="does not divide a day"):
+        snapshot_edges(_routine(range(0, 2)).lazy(), 7_000)

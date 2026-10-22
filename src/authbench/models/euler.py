@@ -36,13 +36,15 @@ COLUMNS = ["time", "src_computer", "dst_computer"]
 _COMPUTER = re.compile(r"^C\d+$")
 
 
-def _snapshot_edges(frame: pl.LazyFrame, snapshot_seconds: int) -> pl.DataFrame:
+def snapshot_edges(frame: pl.LazyFrame, snapshot_seconds: int) -> pl.DataFrame:
     """Distinct (snapshot, source, destination) edges and their event counts.
 
     Aggregated one day at a time: a snapshot never spans two days, so this is exact, and
     memory is bounded by a day of events rather than the timeline (all of LANL at once
     needed more than 50 GB).
     """
+    if 86_400 % snapshot_seconds:
+        raise ValueError(f"A snapshot of {snapshot_seconds} s does not divide a day.")
     bounds = frame.select(pl.col("time").min().alias("first"), pl.col("time").max().alias("last"))
     first, last = bounds.collect().row(0)
     if first is None:
@@ -201,7 +203,7 @@ class EulerScorer(BaseAnomalyScorer):
     def _fit(self, train: pl.LazyFrame) -> None:
         torch.manual_seed(self.seed)
         generator = torch.Generator().manual_seed(self.seed)
-        edges = _snapshot_edges(train, self.snapshot_seconds)
+        edges = snapshot_edges(train, self.snapshot_seconds)
         names = sorted(set(edges["src"].to_list()) | set(edges["dst"].to_list()))
         self._nodes = {n: i for i, n in enumerate(names)}
         n_nodes = len(names)
@@ -281,7 +283,7 @@ class EulerScorer(BaseAnomalyScorer):
         if self._module is None:
             raise RuntimeError(f"{self.name} must be fitted before it is prepared.")
         frames = [f.select(COLUMNS) for f in timeline]
-        edges = pl.concat([_snapshot_edges(f, self.snapshot_seconds) for f in frames])
+        edges = pl.concat([snapshot_edges(f, self.snapshot_seconds) for f in frames])
         first, last = int(edges["snapshot"].min()), int(edges["snapshot"].max())  # type: ignore[arg-type]
         graphs = self._graphs(edges, first, last)
         directory = Path(self.cache_dir or tempfile.mkdtemp(prefix="authbench_euler_"))
