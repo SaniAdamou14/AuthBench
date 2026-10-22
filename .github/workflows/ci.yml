@@ -68,7 +68,7 @@ jobs:
       # every confidence interval drifted while the point estimates held still.
       - name: Committed reference results must regenerate byte for byte
         run: |
-          git diff --exit-code --stat -- reports/demo/tables reports/demo/data_quality.json \
+          git diff --exit-code -- reports/demo/tables reports/demo/data_quality.json \
             || { echo "::error::reports/demo/ drifted — a seeded run is no longer reproducible."; exit 1; }
 
       - name: Report numbers, tables and figure must regenerate from the committed runs
@@ -77,7 +77,9 @@ jobs:
           git diff --exit-code --stat -- 'reports/paper/generated/*.tex' \
             || { echo "::error::reports/paper/generated/ is stale; run scripts/paper_assets.py."; exit 1; }
 
+      # Uploaded on failure too: the regenerated reports are what a drift is diagnosed from.
       - name: Upload report artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: demo-reports
