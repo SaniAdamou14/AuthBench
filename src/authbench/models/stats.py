@@ -8,6 +8,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 from authbench.models.base import BaseAnomalyScorer, sample_for_fit
+from authbench.models.rowwise import affine, row_sum
 
 
 class PairRarityScorer(BaseAnomalyScorer):
@@ -82,8 +83,10 @@ class PCAReconstructionScorer(BaseAnomalyScorer):
         self.pca.fit(x_scaled)
 
     def score(self, data: pl.LazyFrame) -> pl.Series:
-        x = self._matrix(data)
-        x_scaled = self.scaler.transform(x)
-        x_reconstructed = self.pca.inverse_transform(self.pca.transform(x_scaled))
-        error = np.mean((x_scaled - x_reconstructed) ** 2, axis=1)
+        x_scaled = self.scaler.transform(self._matrix(data))
+        # transform then inverse_transform, in `rowwise` arithmetic so a row scores the same in any batch.
+        components = self.pca.components_
+        projected = affine(x_scaled - self.pca.mean_, components)
+        reconstructed = affine(projected, components.T, self.pca.mean_)
+        error = row_sum((x_scaled - reconstructed) ** 2) / x_scaled.shape[1]
         return pl.Series(self.name, error)

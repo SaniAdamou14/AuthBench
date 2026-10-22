@@ -54,7 +54,8 @@ def recall_at_fixed_fpr(y_true: np.ndarray, scores: np.ndarray, target_fpr: floa
     """
     from sklearn.metrics import roc_curve
 
-    fpr, tpr, _ = roc_curve(y_true, scores)
+    # Every threshold: the default drops collinear ROC points, and one of them can be the answer.
+    fpr, tpr, _ = roc_curve(y_true, scores, drop_intermediate=False)
     valid = fpr <= target_fpr
     if not np.any(valid):
         return 0.0

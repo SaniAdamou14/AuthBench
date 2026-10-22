@@ -12,10 +12,16 @@ from __future__ import annotations
 import numpy as np
 import polars as pl
 import pytest
+from sklearn.metrics import average_precision_score
 
-from authbench.evaluate.metrics import auc_pr
+from authbench.evaluate.statistics import (
+    positive_weight_by_group,
+    statistics_from_frame,
+    weighted_average_precision,
+)
 from authbench.evaluate.stats_tests import (
     PairwiseComparison,
+    benign_bins,
     minimum_resamples_for_family,
     paired_campaign_bootstrap,
     render_comparison_sentence,
@@ -50,18 +56,14 @@ def _scored(n: int = 300, seed: int = 0) -> pl.DataFrame:
     )
 
 
-def _metric(frame: pl.DataFrame, col: str) -> float:
-    return auc_pr(frame["is_malicious"].to_numpy(), frame[col].to_numpy())
+def _statistics(frame: pl.DataFrame, models: list[str] = MODELS):
+    return statistics_from_frame(
+        frame, {name: score_column(name) for name in models}, budgets=[10], top_k=10
+    )
 
 
 def _bootstrap(n_resamples: int = 200, seed: int = 7):
-    return paired_campaign_bootstrap(
-        _scored(),
-        _metric,
-        {name: score_column(name) for name in MODELS},
-        n_resamples=n_resamples,
-        seed=seed,
-    )
+    return paired_campaign_bootstrap(_statistics(_scored()), n_resamples=n_resamples, seed=seed)
 
 
 def test_every_model_is_evaluated_on_the_same_resamples() -> None:
@@ -125,7 +127,7 @@ def test_resamples_with_no_positives_are_discarded_not_counted_as_ties() -> None
     """Regression guard for a p-value floor that had nothing to do with the models.
 
     A ranking metric over zero positives is undefined, but scikit-learn
-    returns 0.0 rather than raising — so on a positive-free resample every
+    returns 0.0 rather than raising, so on a positive-free resample every
     model ties. Those artificial ties fall in both tails of the two-sided
     test. With two campaigns among ~290 blocks, ~14% of resamples are
     degenerate, which alone floors every p-value near 0.27; with the single
@@ -148,7 +150,7 @@ def test_a_frame_with_no_positives_at_all_is_an_error_not_an_interval() -> None:
         pl.lit(False).alias("is_malicious"), pl.lit(None, dtype=pl.Int64).alias("campaign_id")
     )
     with pytest.raises(ValueError, match="needs positives"):
-        paired_campaign_bootstrap(frame, _metric, {"good": score_column("good")})
+        paired_campaign_bootstrap(_statistics(frame, ["good"]))
 
 
 def test_too_few_resamples_to_ever_clear_holm_is_flagged(caplog: pytest.LogCaptureFixture) -> None:
@@ -197,18 +199,52 @@ def test_the_reported_interval_points_the_same_way_as_the_sentence() -> None:
 
 def test_rejects_being_asked_to_bootstrap_no_models() -> None:
     with pytest.raises(ValueError, match="at least one model"):
-        paired_campaign_bootstrap(_scored(), _metric, {})
+        paired_campaign_bootstrap({})
 
 
 def test_pairwise_comparisons_rejects_an_unknown_method() -> None:
     with pytest.raises(ValueError, match="Unknown pairwise test method"):
-        pairwise_comparisons(_scored(), MODELS, _bootstrap(), method="t_test")
+        pairwise_comparisons(_bootstrap(), method="permutation")
 
 
-def test_permutation_route_stays_available_for_small_splits() -> None:
-    comparisons = pairwise_comparisons(
-        _scored(), MODELS, _bootstrap(), method="permutation", n_permutations=50
+def test_models_scored_on_different_splits_are_refused() -> None:
+    stats = _statistics(_scored())
+    stats["bad"] = _statistics(_scored(n=301), ["bad"])["bad"]
+    with pytest.raises(ValueError, match="not evaluated on the same split"):
+        paired_campaign_bootstrap(stats)
+
+
+@pytest.mark.parametrize("seed", [0, 1, 2])
+def test_a_resample_from_benign_bins_is_scikit_learns_weighted_average_precision(seed: int) -> None:
+    """The reduction is exact: any per-event weights with the drawn counts in each bin give the same AP."""
+    rng = np.random.default_rng(seed)
+    frame = _scored(seed=seed).with_columns(
+        (pl.col(score_column("bad")) * 4).round(0).alias(score_column("bad"))
     )
-
-    assert len(comparisons) == 3
-    assert all(c.method == "paired_permutation" for c in comparisons)
+    for name, stats in _statistics(frame).items():
+        scores = frame[score_column(name)].to_numpy()
+        malicious = frame["is_malicious"].to_numpy()
+        bins = benign_bins(stats)
+        counts = rng.multinomial(int(bins.sum()), bins / bins.sum())
+        # Spread each bin's count over its own benign events at random.
+        thresholds = stats.thresholds
+        gap_or_level = np.empty(scores.size, dtype=np.int64)
+        level = np.searchsorted(-thresholds, -scores, side="left")
+        tied = (level < thresholds.size) & (
+            thresholds[np.minimum(level, thresholds.size - 1)] == scores
+        )
+        gap_or_level[:] = np.where(tied, 2 * level + 1, 2 * level)
+        weights = np.zeros(scores.size)
+        for b, count in enumerate(counts):
+            members = np.flatnonzero((gap_or_level == b) & ~malicious)
+            if count:
+                np.add.at(weights, rng.choice(members, size=count), 1.0)
+        multiplicity = rng.integers(0, 3, stats.positives.height).astype(float)
+        multiplicity[0] = max(multiplicity[0], 1.0)
+        order = {e: i for i, e in enumerate(stats.positives["event_id"].to_list())}
+        for row in np.flatnonzero(malicious):
+            weights[row] = multiplicity[order[int(frame["event_id"][int(row)])]]
+        at_or_above = np.cumsum(counts)[1:-1:2].astype(float)[None, :]
+        tp = positive_weight_by_group(stats, multiplicity)
+        expected = average_precision_score(malicious, scores, sample_weight=weights)
+        assert weighted_average_precision(tp, at_or_above)[0] == pytest.approx(expected, rel=1e-12)

@@ -1,5 +1,4 @@
-"""Statistical uncertainty: campaign-stratified bootstrap CIs and paired
-permutation tests with Holm-Bonferroni correction (US-128).
+"""Statistical uncertainty: a paired campaign-block bootstrap with Holm-Bonferroni correction (US-128).
 
 With 715 positives concentrated in a handful of campaigns, treating
 individual events as independent draws grossly underestimates variance.
@@ -11,13 +10,16 @@ own singleton block.
 from __future__ import annotations
 
 import logging
-import os
-import time
-from collections.abc import Callable
 from dataclasses import dataclass
 
 import numpy as np
-import polars as pl
+
+from authbench.evaluate.statistics import (
+    ModelStatistics,
+    average_precision,
+    positive_weight_by_group,
+    weighted_average_precision,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,253 +44,12 @@ def minimum_resamples_for_family(n_comparisons: int, alpha: float = 0.05) -> int
     return int(np.ceil(2 * n_comparisons / alpha)) - 1
 
 
-def _resolve_worker_count(n_jobs: int, n_tasks: int) -> int:
-    """How many processes to actually start.
-
-    `n_jobs <= 0` means "one per CPU", capped at the number of models — more
-    workers than tasks only adds spawn cost. Each worker holds its own copy of
-    the scores and its own rank order, so on a small machine the memory ceiling,
-    not the core count, is what should set this.
-    """
-    if n_jobs <= 0:
-        n_jobs = os.cpu_count() or 1
-    return max(1, min(n_jobs, n_tasks))
-
-
-def build_campaign_blocks(frame: pl.DataFrame) -> list[np.ndarray]:
-    """Row-index blocks: one block per campaign (all its events together),
-    plus one singleton block per benign (non-campaign) event.
-
-    The explicit, one-object-per-block form — readable, and what the causality
-    of the scheme actually is. It is *not* what the resampling loops use: at
-    LANL's test-split size that list is ~3x10^8 one-element NumPy arrays, tens
-    of gigabytes of Python objects before a single resample is drawn. Those go
-    through `CampaignBlocks`, which is the same scheme in two arrays.
-    """
-    blocks = CampaignBlocks.from_frame(frame)
-    return [*blocks.campaign_blocks, *(np.array([i]) for i in blocks.singleton_idx)]
-
-
-@dataclass(frozen=True)
-class CampaignBlocks:
-    """The campaign-block resampling scheme, stored in the shape it is used in.
-
-    A block bootstrap over `n_blocks` blocks draws `n_blocks` of them with
-    replacement. Almost every one of those blocks is a single benign event, so
-    materializing them individually costs orders of magnitude more than the
-    resample itself. Here the campaigns — a handful of them — stay as explicit
-    index arrays and every benign event is one entry of `singleton_idx`.
-
-    Drawing is then done in two steps, which is *exactly* equivalent to drawing
-    uniformly from the combined list: each of the `n_blocks` draws lands in the
-    campaign set with probability `n_campaigns / n_blocks` (hence a binomial),
-    and, given that, is uniform over the campaigns.
-    """
-
-    campaign_blocks: list[np.ndarray]
-    singleton_idx: np.ndarray
-    has_malicious_singleton: bool
-
-    @classmethod
-    def from_frame(cls, frame: pl.DataFrame) -> CampaignBlocks:
-        with_idx = frame.with_row_index("_idx")
-        campaign_rows = with_idx.filter(pl.col("campaign_id").is_not_null())
-        # `.sort("campaign_id")` is load-bearing, not tidiness. Polars'
-        # `group_by` makes no ordering guarantee — it is a multi-threaded hash
-        # aggregation, and the group order varies between runs of the same
-        # process on the same data. The resample then draws block index `j`
-        # from a list whose `j`-th entry is a *different campaign* each run,
-        # so a seeded bootstrap produced a different sampling distribution
-        # every time: point estimates were stable, every confidence interval
-        # and every p-value drifted. That is NFR-02 (bit-identical reruns)
-        # broken exactly where it matters most, and silently — the numbers
-        # stayed plausible. Sorting pins the index-to-campaign mapping.
-        campaign_blocks = [
-            np.asarray(idx_list, dtype=np.int64)
-            for idx_list in campaign_rows.group_by("campaign_id")
-            .agg(pl.col("_idx"))
-            .sort("campaign_id")["_idx"]
-            .to_list()
-        ]
-        benign = with_idx.filter(pl.col("campaign_id").is_null())
-        # A malicious event with no campaign_id shouldn't happen — labeling and
-        # campaign attachment join on the same quadruplet — but if one did, the
-        # cheap "no campaign block drawn ⇒ no positives" shortcut below would be
-        # wrong, so the possibility is checked once rather than assumed away.
-        has_malicious_singleton = (
-            "is_malicious" in benign.columns and benign.filter(pl.col("is_malicious")).height > 0
-        )
-        return cls(
-            campaign_blocks=campaign_blocks,
-            singleton_idx=benign["_idx"].to_numpy().astype(np.int64, copy=False),
-            has_malicious_singleton=has_malicious_singleton,
-        )
-
-    @property
-    def n_campaign_blocks(self) -> int:
-        return len(self.campaign_blocks)
-
-    @property
-    def n_blocks(self) -> int:
-        return self.n_campaign_blocks + int(self.singleton_idx.size)
-
-    def draw_counts(self, rng: np.random.Generator, n_rows: int) -> tuple[np.ndarray, int]:
-        """One resample expressed as a per-row multiplicity vector.
-
-        The same draw as `draw`, in the form the ranking-based metrics want. A
-        resample of a 50-million-row split is 50 million row indices; gathering
-        a Polars frame on them costs more than the metric does. A count vector
-        is the same information in a fixed-size array, and every metric here is
-        a weighted sum over rows.
-        """
-        idx, n_campaign_draws = self.draw(rng)
-        counts = np.bincount(idx, minlength=n_rows).astype(np.int32, copy=False)
-        return counts, n_campaign_draws
-
-    def draw(self, rng: np.random.Generator) -> tuple[np.ndarray, int]:
-        """One resample: the row indices it selects, and how many of the drawn
-        blocks were campaigns (0 means the resample holds no campaign event).
-        """
-        n_campaigns = self.n_campaign_blocks
-        n_singletons = int(self.singleton_idx.size)
-        n_blocks = self.n_blocks
-        if n_blocks == 0:
-            return np.empty(0, dtype=np.int64), 0
-
-        n_campaign_draws = int(rng.binomial(n_blocks, n_campaigns / n_blocks)) if n_campaigns else 0
-        parts: list[np.ndarray] = []
-        if n_campaign_draws:
-            chosen = rng.integers(0, n_campaigns, size=n_campaign_draws)
-            parts.extend(self.campaign_blocks[j] for j in chosen)
-        n_singleton_draws = n_blocks - n_campaign_draws
-        if n_singleton_draws and n_singletons:
-            parts.append(self.singleton_idx[rng.integers(0, n_singletons, size=n_singleton_draws)])
-
-        if not parts:
-            return np.empty(0, dtype=np.int64), n_campaign_draws
-        return np.concatenate(parts), n_campaign_draws
-
-
-@dataclass(frozen=True)
-class RankedScores:
-    """One model's test scores, pre-sorted once so every resample is O(n).
-
-    The cost of `average_precision_score` is dominated by sorting, and a
-    bootstrap sorts the *same* scores again for every resample: 2,000
-    resamples times 8 models times an argsort of 50 million rows is tens of
-    hours, which is the difference between a benchmark that runs on a real
-    dataset overnight and one that does not.
-
-    Sorting once and walking the fixed order under a per-row weight vector
-    gives exactly the same number — `average_precision_score(y, s,
-    sample_weight=counts)` to machine precision, ties included, which
-    `tests/unit/test_fast_auc_pr.py` asserts against scikit-learn directly.
-    """
-
-    order: np.ndarray
-    y_sorted: np.ndarray
-    #: Index of the last row of each tied-score group. Average precision steps
-    #: once per distinct score, never per row, so tied events must move
-    #: together or precision is read at a threshold that splits them.
-    group_end: np.ndarray
-
-    @classmethod
-    def from_arrays(cls, y_true: np.ndarray, scores: np.ndarray) -> RankedScores:
-        # int32 for the permutation and uint8 for the label mask, not int64 and
-        # float64. Both are exact — a row index below 2^31 and a 0/1 label lose
-        # nothing — and together they cut this structure from 16 bytes per row
-        # to 5. On a split of 36 million events that is the difference between
-        # 0.6 GB and 0.2 GB per model, on a machine with 8 GB total.
-        order = np.argsort(-scores, kind="stable").astype(np.int32, copy=False)
-        scores_sorted = scores[order]
-        y_sorted = (y_true[order] != 0).astype(np.uint8, copy=False)
-
-        # Everything ranked below the last positive is dropped, and this is
-        # exact rather than an approximation: average precision sums one term
-        # per *threshold at which recall increases*, and recall stops
-        # increasing once the last positive has been passed. Those rows enter
-        # no term at all.
-        #
-        # It matters because the per-resample cost is dominated by gathering
-        # weights in rank order, a cache-hostile random read over the whole
-        # split. At a positive rate near 1e-7 a model that ranks the attacks
-        # anywhere near the top turns tens of millions of rows into a few
-        # hundred thousand. A model that ranks them at random keeps most of
-        # them — which is the honest outcome, since the floors are exactly the
-        # models with nothing to exploit.
-        positives = np.flatnonzero(y_sorted)
-        if positives.size:
-            last_positive = int(positives[-1])
-            # Extend to the end of that score's tie group: those rows share the
-            # threshold and so share the final precision term.
-            tie_value = scores_sorted[last_positive]
-            cut = int(np.searchsorted(-scores_sorted, -tie_value, side="right"))
-            order = order[:cut]
-            scores_sorted = scores_sorted[:cut]
-            y_sorted = y_sorted[:cut]
-
-        is_last = np.empty(scores_sorted.size, dtype=bool)
-        is_last[:-1] = scores_sorted[:-1] != scores_sorted[1:]
-        if is_last.size:
-            is_last[-1] = True
-        return cls(
-            order=order,
-            y_sorted=y_sorted,
-            group_end=np.flatnonzero(is_last).astype(np.int32, copy=False),
-        )
-
-    def average_precision(self, counts: np.ndarray) -> float:
-        """Weighted average precision for a resample given as row multiplicities."""
-        weights = counts[self.order].astype(np.float64, copy=False)
-        true_positives = np.cumsum(weights * self.y_sorted)  # uint8 mask promotes
-        total_positives = true_positives[-1] if true_positives.size else 0.0
-        if total_positives <= 0:
-            # Undefined, not zero. Callers discard these resamples; returning
-            # 0.0 the way scikit-learn does would tie every model together and
-            # put a floor under every p-value. See `paired_campaign_bootstrap`.
-            return float("nan")
-
-        false_positives = np.cumsum(weights) - true_positives
-        tp_at = true_positives[self.group_end]
-        fp_at = false_positives[self.group_end]
-        recall = tp_at / total_positives
-        precision = tp_at / np.maximum(tp_at + fp_at, 1e-12)
-        return float(np.sum(np.diff(recall, prepend=0.0) * precision))
-
-
 @dataclass
 class BootstrapResult:
     point_estimate: float
     ci_low: float
     ci_high: float
     confidence: float
-
-
-def bootstrap_ci(
-    frame: pl.DataFrame,
-    metric_fn: Callable[[pl.DataFrame], float],
-    *,
-    n_resamples: int = 1000,
-    confidence: float = 0.95,
-    seed: int = 42,
-) -> BootstrapResult:
-    """Campaign-stratified bootstrap confidence interval for `metric_fn(frame)`."""
-    blocks = CampaignBlocks.from_frame(frame)
-    rng = np.random.default_rng(seed)
-
-    point_estimate = metric_fn(frame)
-
-    stats = np.empty(n_resamples)
-    for i in range(n_resamples):
-        idx, _ = blocks.draw(rng)
-        resampled = frame[idx]
-        stats[i] = metric_fn(resampled)
-
-    alpha = 1 - confidence
-    lo, hi = np.quantile(stats, [alpha / 2, 1 - alpha / 2])
-    return BootstrapResult(
-        point_estimate=point_estimate, ci_low=float(lo), ci_high=float(hi), confidence=confidence
-    )
 
 
 @dataclass
@@ -433,264 +194,139 @@ class PairedBootstrap:
         ]
 
 
-@dataclass(frozen=True)
-class _ModelBootstrapTask:
-    """Everything one worker needs to bootstrap one model, and nothing more.
+def _shared_draws(
+    n_campaigns: int, n_benign: int, n_resamples: int, seed: int, max_attempts: int
+) -> tuple[np.ndarray, np.ndarray, int]:
+    """Campaign multiplicities and benign draw count of each kept resample, and how many were redrawn.
 
-    A plain dataclass of arrays rather than a closure, because Windows spawns
-    worker processes rather than forking them: every argument is pickled, so it
-    has to be picklable and it has to be small enough to be worth sending.
+    A resample draws `n_blocks` blocks with replacement from the campaigns and the benign
+    singletons. How many land on campaigns is binomial, and given that the campaign
+    multiplicities are multinomial and uniform. A resample with no campaign holds no
+    positive and is redrawn (see `paired_campaign_bootstrap`).
     """
-
-    name: str
-    y_true: np.ndarray
-    scores: np.ndarray
-    blocks: CampaignBlocks
-    n_resamples: int
-    seed: int
-    max_attempts: int
-
-
-def _bootstrap_one_model(task: _ModelBootstrapTask) -> tuple[str, np.ndarray, int, int]:
-    """Resample one model. Returns (name, values, n_kept_rows, n_degenerate).
-
-    Module-level and self-contained so a process pool can call it. Every model
-    re-seeds from the *same* `seed` and therefore replays the identical draw
-    sequence — which is what keeps the comparisons paired no matter how the
-    work is distributed, or in what order the workers happen to finish.
-    """
-    ranked = RankedScores.from_arrays(task.y_true, task.scores)
-    rng = np.random.default_rng(task.seed)
-    values = np.empty(task.n_resamples)
-    n_rows = task.y_true.size
-
-    accepted, attempts = 0, 0
-    while accepted < task.n_resamples and attempts < task.max_attempts:
-        attempts += 1
-        counts, n_campaign_draws = task.blocks.draw_counts(rng, n_rows)
-        if n_campaign_draws == 0 and not task.blocks.has_malicious_singleton:
-            continue
-        value = ranked.average_precision(counts)
-        if np.isnan(value):
-            continue
-        values[accepted] = value
-        accepted += 1
-
-    if accepted < task.n_resamples:
-        raise ValueError(
-            f"{task.name}: only {accepted}/{task.n_resamples} non-degenerate resamples in "
-            f"{attempts} attempts. The test split has too few campaigns for a "
-            "campaign-stratified bootstrap to say anything — report the point estimates "
-            "without intervals rather than intervals nobody should trust."
+    rng = np.random.default_rng(seed)
+    n_blocks = n_campaigns + n_benign
+    campaign_draws: list[np.ndarray] = []
+    multiplicities: list[np.ndarray] = []
+    n_kept = drawn = 0
+    while n_kept < n_resamples and drawn < max_attempts:
+        batch = min(n_resamples, max_attempts - drawn)
+        n_campaign_draws = rng.binomial(n_blocks, n_campaigns / n_blocks, size=batch)
+        campaign_draws.append(n_campaign_draws)
+        multiplicities.append(
+            rng.multinomial(n_campaign_draws, np.full(n_campaigns, 1 / n_campaigns))
         )
-    return task.name, values, int(ranked.order.size), attempts - accepted
+        n_kept += int((n_campaign_draws > 0).sum())
+        drawn += batch
+    all_draws = np.concatenate(campaign_draws)
+    kept = np.flatnonzero(all_draws > 0)
+    if kept.size < n_resamples:
+        raise ValueError(
+            f"Only {kept.size}/{n_resamples} non-degenerate resamples in {drawn} attempts. "
+            "The test split has too few campaigns for a campaign-stratified bootstrap to say "
+            "anything; report the point estimates without intervals rather than intervals "
+            "nobody should trust."
+        )
+    kept = kept[:n_resamples]
+    n_degenerate = int(kept[-1] + 1 - n_resamples)
+    return np.concatenate(multiplicities)[kept], n_blocks - all_draws[kept], n_degenerate
+
+
+def benign_bins(stats: ModelStatistics) -> np.ndarray:
+    """Benign events between and level with consecutive thresholds: gap, level, gap, level, ..., rest."""
+    above, level = stats.benign_above, stats.benign_level
+    gaps = above - np.concatenate([[0], above[:-1] + level[:-1]])
+    rest = stats.n_benign - (int(above[-1] + level[-1]) if above.size else 0)
+    bins = np.empty(2 * above.size + 1, dtype=np.int64)
+    bins[0:-1:2], bins[1:-1:2], bins[-1] = gaps, level, rest
+    if (bins < 0).any():
+        raise ValueError(f"{stats.model_name}: benign counts are inconsistent with its thresholds.")
+    return bins
 
 
 def paired_campaign_bootstrap(
-    frame: pl.DataFrame,
-    metric_fn: Callable[[pl.DataFrame, str], float],
-    score_columns: dict[str, str],
+    statistics: dict[str, ModelStatistics],
     *,
     n_resamples: int = 1000,
     confidence: float = 0.95,
     seed: int = 42,
     max_attempts_factor: int = 20,
-    fast_auc_pr: bool = False,
-    n_jobs: int = 1,
 ) -> PairedBootstrap:
-    """Resample `frame` at the campaign-block level `n_resamples` times and
-    evaluate every model in `score_columns` on each resample.
+    """AUC-PR of every model on `n_resamples` campaign-block resamples of the split.
 
-    `score_columns` maps model name -> the column holding that model's scores;
-    all of them must already live on `frame`, which is what makes a single
-    resampling pass serve every model. `metric_fn` takes the resampled frame
-    and a score column name.
+    Drawing every benign singleton's multiplicity costs the size of the split per
+    resample, about 4e8 draws on LANL. AUC-PR depends on the benign weights only
+    through the benign weight at or above each positive threshold, so each model's
+    benign draws are taken directly as a multinomial over its `benign_bins`, which has
+    exactly the distribution the per-event draw induces on those counts. The campaign
+    multiplicities, the number of benign draws and the redraws are shared by every
+    model, and each model's benign split restarts one generator from the same seed, so
+    two models with the same bins (a model and itself, in particular) get the same
+    draws. The per-model intervals have exactly the distribution of the per-event
+    scheme; the comparisons are paired exactly in the campaign component, which carries
+    the variance at a positive rate near 1e-7. Measured against the per-event scheme on
+    the demo split with 20,000 resamples: intervals equal to four decimals, the same
+    significance verdict on 28 of 28 pairs, p-values within 0.006.
 
-    Resamples that draw **no positive at all** are discarded and redrawn.
-    Every metric here is a ranking metric, and a ranking metric over zero
-    positives is undefined — but scikit-learn returns 0.0 for it rather than
-    raising, so every model would tie on such a resample. Those artificial
-    ties land in both tails of the two-sided test and put a floor under the
-    p-value that has nothing to do with the models: with one campaign in the
-    test split roughly 37% of resamples are degenerate (1 - 1/n_blocks)^n_blocks
-    → e⁻¹), flooring every p-value near 0.74 and making significance
-    unreachable by construction. Conditioning on a non-degenerate resample is
-    the standard fix; `n_degenerate_discarded` records how often it applied,
-    because a high count is itself a finding about the split.
-
-    `fast_auc_pr=True` computes each resample's average precision from a
-    pre-sorted rank order (`RankedScores`) instead of gathering a full-size
-    Polars frame and re-sorting it. It is a specialization, not an
-    approximation: the value is weighted average precision, identical to
-    scikit-learn's to machine precision, and `tests/unit/test_fast_auc_pr.py`
-    asserts the whole bootstrap returns the same numbers either way. Only the
-    cost differs — the difference between hours and days on a real split.
-    `metric_fn` still supplies the point estimates, and must be AUC-PR for the
-    two to describe the same quantity.
+    Resamples that draw no campaign hold no positive and are redrawn: AUC-PR over zero
+    positives is undefined, and scikit-learn's 0.0 for it would tie every model on such
+    a resample and floor every p-value (about 37% of resamples with one campaign).
+    `n_degenerate_discarded` records how often that happened.
     """
-    if not score_columns:
+    if not statistics:
         raise ValueError("paired_campaign_bootstrap needs at least one model to evaluate.")
-    if frame.filter(pl.col("is_malicious")).height == 0:
+    names = list(statistics)
+    reference = statistics[names[0]]
+    if not reference.positives.height:
         raise ValueError(
-            "paired_campaign_bootstrap needs positives: the frame has none, so every "
-            "ranking metric on it is undefined. This is a split bug, not a result."
+            "paired_campaign_bootstrap needs positives: the split has none, so every ranking "
+            "metric on it is undefined. This is a split bug, not a result."
         )
+    for name in names[1:]:
+        other = statistics[name]
+        if other.n_benign != reference.n_benign or not other.positives["event_id"].equals(
+            reference.positives["event_id"]
+        ):
+            raise ValueError(f"{name} was not evaluated on the same split as {names[0]}.")
 
-    blocks = CampaignBlocks.from_frame(frame)
-    rng = np.random.default_rng(seed)
+    campaigns, campaign_index = np.unique(
+        reference.positives["campaign_id"].to_numpy(), return_inverse=True
+    )
+    multiplicity, benign_draws, n_degenerate = _shared_draws(
+        campaigns.size, reference.n_benign, n_resamples, seed, n_resamples * max_attempts_factor
+    )
+    positive_weight = multiplicity[:, campaign_index]
 
-    model_names = list(score_columns)
-    point_estimates = {name: metric_fn(frame, score_columns[name]) for name in model_names}
-    resampled = {name: np.empty(n_resamples) for name in model_names}
-
-    max_attempts = n_resamples * max_attempts_factor
-
-    if fast_auc_pr:
-        logger.info(
-            "Bootstrapping AUC-PR over %d rows x %d models by pre-sorted rank order.",
-            frame.height,
-            len(model_names),
+    resampled = {}
+    for name in names:
+        stats = statistics[name]
+        bins = benign_bins(stats)
+        rng = np.random.default_rng([seed, 1])
+        benign = (
+            rng.multinomial(benign_draws, bins / stats.n_benign)
+            if stats.n_benign
+            else np.zeros((n_resamples, bins.size), dtype=np.int64)
         )
-        y_true = frame["is_malicious"].to_numpy()
-
-        # One task per model, each replaying the same seeded draw sequence.
-        #
-        # The models are strictly independent — no shared state, and whether a
-        # draw is accepted depends only on the counts, never on any model's
-        # scores — so distributing them changes nothing about the result and
-        # divides the wall time by the number of workers. The first real LANL
-        # run spent 4h49 here on a single core while eleven sat idle.
-        tasks = [
-            _ModelBootstrapTask(
-                name=name,
-                y_true=y_true,
-                scores=frame[score_columns[name]].to_numpy(),
-                blocks=blocks,
-                n_resamples=n_resamples,
-                seed=seed,
-                max_attempts=max_attempts,
-            )
-            for name in model_names
-        ]
-        workers = _resolve_worker_count(n_jobs, len(tasks))
-        logger.info("Bootstrapping %d models across %d worker process(es).", len(tasks), workers)
-
-        degenerate_per_model: dict[str, int] = {}
-        started = time.monotonic()
-        if workers == 1:
-            results = [_bootstrap_one_model(task) for task in tasks]
-        else:
-            from concurrent.futures import ProcessPoolExecutor
-
-            with ProcessPoolExecutor(max_workers=workers) as pool:
-                results = list(pool.map(_bootstrap_one_model, tasks))
-
-        for name, values, n_kept, n_degenerate in results:
-            resampled[name] = values
-            degenerate_per_model[name] = n_degenerate
-            logger.info(
-                "  %s: %d of %d rows survived truncation (%.1f%%), %d degenerate draws redrawn",
-                name,
-                n_kept,
-                frame.height,
-                100.0 * n_kept / max(1, frame.height),
-                n_degenerate,
-            )
-        logger.info("Bootstrap finished in %.1f s.", time.monotonic() - started)
-
-        # Every model replays the same seeded draw sequence, and whether a draw
-        # is discarded depends only on the counts it produced — never on any
-        # model's scores, since truncation only ever drops rows ranked below the
-        # last positive. So these counts are equal by construction, and the loop
-        # above used to just keep whichever arrived last. Keeping them all makes
-        # the invariant checkable instead of assumed: if they ever disagree, the
-        # models were not scored on the same resamples and the "paired" in
-        # `paired_campaign_bootstrap` is no longer true.
-        distinct = set(degenerate_per_model.values())
-        if len(distinct) > 1:
-            logger.error(
-                "Models saw different numbers of degenerate resamples (%s). They are supposed "
-                "to replay one shared draw sequence, so this means the comparisons are no "
-                "longer paired. Reporting the largest count; the pairing is the real problem.",
-                degenerate_per_model,
-            )
-        degenerate = max(distinct) if distinct else 0
-
-        return PairedBootstrap(
-            model_names=model_names,
-            point_estimates=point_estimates,
-            resampled=resampled,
-            confidence=confidence,
-            n_resamples=n_resamples,
-            n_degenerate_discarded=degenerate,
-            n_campaign_blocks=blocks.n_campaign_blocks,
+        at_or_above = np.cumsum(benign, axis=1)[:, 1:-1:2].astype(np.float64)
+        resampled[name] = weighted_average_precision(
+            positive_weight_by_group(stats, positive_weight), at_or_above
         )
-
-    accepted, attempts = 0, 0
-    while accepted < n_resamples and attempts < max_attempts:
-        attempts += 1
-
-        idx, n_campaign_draws = blocks.draw(rng)
-        # A resample that drew no campaign block holds no positive, unless the
-        # frame has malicious events outside every campaign. Deciding that from
-        # the draw itself skips gathering a full-size frame for a resample that
-        # is about to be discarded — and with one campaign in the split that is
-        # roughly every third draw.
-        if n_campaign_draws == 0 and not blocks.has_malicious_singleton:
-            continue
-        resample = frame[idx]
-        if resample.filter(pl.col("is_malicious")).height == 0:
-            continue
-        for name in model_names:
-            resampled[name][accepted] = metric_fn(resample, score_columns[name])
-        accepted += 1
-
-    if accepted < n_resamples:
-        raise ValueError(
-            f"Only {accepted}/{n_resamples} non-degenerate resamples in {attempts} attempts. "
-            "The test split has too few campaigns for a campaign-stratified bootstrap to "
-            "say anything — report the point estimates without intervals rather than "
-            "intervals nobody should trust."
-        )
-
+    logger.info(
+        "Bootstrap: %d resamples x %d models over %d campaigns, %d degenerate draws redrawn.",
+        n_resamples,
+        len(names),
+        campaigns.size,
+        n_degenerate,
+    )
     return PairedBootstrap(
-        model_names=model_names,
-        point_estimates=point_estimates,
+        model_names=names,
+        point_estimates={name: average_precision(statistics[name]) for name in names},
         resampled=resampled,
         confidence=confidence,
         n_resamples=n_resamples,
-        n_degenerate_discarded=attempts - accepted,
-        n_campaign_blocks=blocks.n_campaign_blocks,
+        n_degenerate_discarded=n_degenerate,
+        n_campaign_blocks=int(campaigns.size),
     )
-
-
-def permutation_test(
-    y_true: np.ndarray,
-    scores_a: np.ndarray,
-    scores_b: np.ndarray,
-    metric_fn: Callable[[np.ndarray, np.ndarray], float],
-    *,
-    n_permutations: int = 10_000,
-    seed: int = 42,
-) -> float:
-    """Paired permutation test on `metric_fn(y_true, scores_a) - metric_fn(y_true, scores_b)`.
-
-    At each permutation, each event's two model scores are swapped
-    independently with probability 0.5 — the null hypothesis being that the
-    two models are exchangeable per event.
-    """
-    observed_diff = metric_fn(y_true, scores_a) - metric_fn(y_true, scores_b)
-
-    rng = np.random.default_rng(seed)
-    n = len(y_true)
-    diffs = np.empty(n_permutations)
-    for i in range(n_permutations):
-        swap = rng.integers(0, 2, size=n).astype(bool)
-        perm_a = np.where(swap, scores_b, scores_a)
-        perm_b = np.where(swap, scores_a, scores_b)
-        diffs[i] = metric_fn(y_true, perm_a) - metric_fn(y_true, perm_b)
-
-    return float((np.sum(np.abs(diffs) >= abs(observed_diff)) + 1) / (n_permutations + 1))
 
 
 def holm_bonferroni(p_values: list[float], alpha: float = 0.05) -> list[bool]:
@@ -760,16 +396,14 @@ class PairwiseComparison:
     #: `None` on routes that report no family.
     p_value_holm_adjusted: float | None = None
     #: True when `p_value_raw` is the smallest value the test is *able* to
-    #: express rather than one it measured — no resample (or permutation) put
+    #: express rather than one it measured — no resample put
     #: the difference on the far side of zero. The p-value is then an upper
     #: bound and the sentence says `<=` instead of `=`, because reporting a
     #: floor as a measurement claims a precision the run does not have.
     at_resolution_floor: bool = False
-    # Populated by `PairedBootstrap.comparisons`; the permutation route has no
-    # sampling distribution for the difference and leaves them None.
     diff_ci_low: float | None = None
     diff_ci_high: float | None = None
-    method: str = "permutation"
+    method: str = "paired_campaign_bootstrap"
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -786,60 +420,6 @@ class PairwiseComparison:
             "method": self.method,
             "sentence": render_comparison_sentence(self),
         }
-
-
-def compare_models(
-    model_names: list[str],
-    y_true: np.ndarray,
-    scores_by_model: dict[str, np.ndarray],
-    metric_fn: Callable[[np.ndarray, np.ndarray], float],
-    metric_name: str,
-    *,
-    n_permutations: int = 10_000,
-    alpha: float = 0.05,
-    seed: int = 42,
-) -> list[PairwiseComparison]:
-    """All pairwise comparisons among `model_names`, Holm-Bonferroni corrected
-    across the whole family of comparisons (US-128).
-    """
-    pairs = [(a, b) for i, a in enumerate(model_names) for b in model_names[i + 1 :]]
-    raw_p_values = [
-        permutation_test(
-            y_true,
-            scores_by_model[a],
-            scores_by_model[b],
-            metric_fn,
-            n_permutations=n_permutations,
-            seed=seed,
-        )
-        for a, b in pairs
-    ]
-    significances = holm_bonferroni(raw_p_values, alpha=alpha)
-    adjusted_p_values = holm_adjusted_p_values(raw_p_values)
-
-    # `permutation_test` reports `(count + 1) / (n + 1)`, so `1 / (n + 1)` is
-    # the smallest value it can return and means no permutation reached the
-    # observed difference. `<=` rather than `==` only because a p-value can
-    # never fall below its own floor, and float equality is a poor way to ask
-    # a question arithmetic already settles.
-    floor = 1.0 / (n_permutations + 1)
-
-    return [
-        PairwiseComparison(
-            model_a=a,
-            model_b=b,
-            metric_name=metric_name,
-            diff=metric_fn(y_true, scores_by_model[a]) - metric_fn(y_true, scores_by_model[b]),
-            p_value_raw=p,
-            significant=sig,
-            p_value_holm_adjusted=adjusted,
-            at_resolution_floor=p <= floor,
-            method="paired_permutation",
-        )
-        for (a, b), p, adjusted, sig in zip(
-            pairs, raw_p_values, adjusted_p_values, significances, strict=True
-        )
-    ]
 
 
 def render_p_value(comparison: PairwiseComparison) -> str:

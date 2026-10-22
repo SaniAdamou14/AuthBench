@@ -87,7 +87,6 @@ def test_runtime_knobs_match() -> None:
     conf = _load("conf", "config.yaml")
 
     assert params.runtime.fit_sample_size == conf.runtime.fit_sample_size  # type: ignore[union-attr]
-    assert params.runtime.bootstrap_workers == conf.runtime.bootstrap_workers  # type: ignore[union-attr]
 
 
 def test_dataset_knobs_match() -> None:

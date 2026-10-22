@@ -38,6 +38,8 @@ this summarizes.
 11. **Transductive scores.** ECOD (distributions recomputed from the scored matrix) depends
     on the test distribution. So did M1 in the published LANL runs (rank normalisation over the
     three test days); its normalisation is fitted on training data since 22 October 2026.
+    Since the same day ECOD is fitted on training data too, and every model is row-local to
+    the last bit (`methodology.md`); ECOD was excluded from both published LANL runs.
 12. **Novelty is relative to the window read.** The F3 `*_is_new` and `*_rarity` features
     count earlier events of the partition plus its warm-up, not the whole history. In the
     published LANL runs the rarity denominator grew with every event, so within a day pair

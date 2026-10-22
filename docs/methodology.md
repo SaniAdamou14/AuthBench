@@ -169,9 +169,8 @@ descriptive: "decoupled", not "anti-correlated", is the claim the data support.
 `stats_tests.paired_campaign_bootstrap` runs **one** campaign-stratified resampling pass and
 evaluates every model on each resample. That single pass yields both the per-model CIs and
 every pairwise difference, which means the intervals and the comparisons come from the same
-sampling distribution, each difference is paired (campaign-composition noise cancels between
-two models rather than being counted twice), and the cost is `O(n_resamples x n_models)`
-instead of `O(n_permutations x n_pairs)`.
+sampling distribution, and each difference is paired: campaign-composition noise cancels
+between two models rather than being counted twice.
 
 `eval.bootstrap.stratify_by` accepts only `campaign`; any other value is rejected rather than
 silently ignored.
@@ -186,37 +185,84 @@ handled explicitly:
 | Bootstrap resolution vs. Holm | A percentile bootstrap cannot report p below `2/(R+1)`; Holm's strictest threshold is `alpha/n_pairs`. The 8-model catalog needs `R >= 1119`, so the original `n_resamples: 1000` could never yield a significant result. | `minimum_resamples_for_family` computes the bound; `comparisons()` warns when it is not met. `conf/eval/default.yaml` sets 2000. |
 | A single campaign | The sample size of a campaign-stratified bootstrap is the number of campaigns. With one, every resample re-weights the same attack: no pairwise difference changes sign, the tail count is 0, and every p-value lands on `2/(R+1)` — *below* Holm's threshold, so **every** comparison reads "outperforms". The demo produced 21/21 this way. | `MIN_CAMPAIGNS_FOR_SIGNIFICANCE = 2`. Below it `comparisons()` logs the reason and reports every pair as not significant. Point estimates and intervals are unchanged; only the verdict is withheld. |
 
-The resampling itself is `stats_tests.CampaignBlocks`: campaigns as explicit index arrays,
-every benign event as one entry of a single array. Each draw picks `n_blocks` blocks with
-replacement — a binomial split between the campaign set and the singleton set, then uniform
-within each — which is exactly the uniform draw over the combined list, at a cost that does
-not involve materializing one Python object per benign event. `build_campaign_blocks` keeps
-the explicit form as the readable reference the tests check against.
+**How a resample is drawn (since 22 October 2026).** A resample draws `n_blocks` blocks
+with replacement from the campaigns and the benign singletons: how many land on campaigns is
+binomial, and the campaign multiplicities are then multinomial and uniform. AUC-PR depends on
+the benign multiplicities only through the benign weight at or above each distinct positive
+score, so each model's benign draws are taken as one multinomial over its benign bins
+(`stats_tests.benign_bins`: the benign events between and level with consecutive positive
+scores). That has exactly the distribution the per-event draw induces, at a cost of a few
+hundred numbers per resample instead of one per benign event (about 4e8 on LANL). The campaign
+multiplicities, the benign total and the redraws are shared by every model, and each model's
+benign split restarts one generator from the same seed, so two models with the same bins (a
+model and itself) receive the same draws.
 
-## Two models are transductive
+What this changes: the per-model intervals have exactly the old distribution; the comparisons
+stay paired exactly in the campaign component, which carries the variance at this positive
+rate. Measured on identical scores (the demo split, 20,000 resamples, both schemes): point
+estimates equal to six decimals, interval bounds to four, the same significance verdict on 28
+of 28 pairs, raw p-values within 0.006. A test checks that a resample's AUC-PR equals
+scikit-learn's weighted average precision for per-event weights consistent with the bins. The
+published LANL runs used the per-event draw (`stats_tests.CampaignBlocks`, removed with it).
 
-`M3b_ecod` is not a pure "fit here, apply there" model. PyOD's
-`ECOD.decision_function` recomputes the empirical cumulative distribution from the matrix it
-is handed, so an event's score depends on which other events are scored alongside it: the same
-row scores 10.64 alone and 10.81 among four hundred others.
+## Every model is row-local, to the last bit
 
-No label crosses the train/test boundary, so this is not leakage in the sense US-107 guards
-against, and it is how ECOD is used in the literature. But it does mean M3b's test scores
-depend on the *test* distribution, and a benchmark claiming a strictly temporal protocol owes
-its reader that sentence rather than leaving it in a library's source.
+The test split is scored one day at a time, and the positives on their own
+(`pipeline.train_eval.score_split`), so an event must score the same alone, in any chunk and
+in the whole split. A tolerance would hide the failure that matters: a one-ULP difference moves
+an event across a tie and changes its rank. `tests/unit/test_row_locality.py` asserts bit
+equality for every model, and every scored day re-checks it on the positives.
 
-It was found by `tests/unit/test_chunked_scoring.py`, which exists to assert the opposite —
-that scoring a split piecewise gives the same answer as scoring it whole. `M3a_iforest`,
-`M3b_hbos`, `M2b_pca_reconstruction` and `M0b_always_fail` pass that test; ECOD does not, and
-`AnomalyScorer.scores_row_locally` records which is which.
+Five models failed this before 22 October 2026, and the published LANL runs used them as they
+were:
+
+- **M3b ECOD was transductive.** PyOD's `ECOD.decision_function` recomputes the empirical
+  distributions from the training sample concatenated with the matrix it scores, so the same
+  row scored 10.64 alone and 10.81 among four hundred others, and M3b's scores depended on the
+  test distribution. It is now fitted: per-feature empirical CDFs and skewness signs from the
+  training sample, and an event scored as PyOD would score it if it were the only event scored,
+  with tail counts `(count + 1) / (n + 1)` (Li et al., 2022). ECOD was excluded from both LANL
+  runs for memory, so no published LANL number changes.
+- **M0a drew by position.** A seeded generator over the frame scored the k-th row, not an
+  event. It now hashes `event_id` with the seed (SplitMix64), uniform on [0, 1).
+- **M2b PCA, M4a and M4b depended on the batch** through BLAS and torch matrix products, whose
+  summation order follows the shape of the whole matrix: one ULP for PCA, up to 1.9e-6 for the
+  VAE. They now score in `models.rowwise` arithmetic (one input column at a time, separate
+  multiply and add), the autoencoders as their trained network evaluated in float64. M4c, still
+  batched in torch, declares itself not row-local and is refused by the day-by-day scorer.
+
+The earlier chunked-scoring test compared scores with a tolerance of 1e-12, which is why the
+PCA difference went unnoticed.
 
 **M1 was transductive in the published runs.** Until 22 October 2026 it divided each rule's
 rank by the size of the frame being scored, so an event's M1 score depended on the other test
 events, across the three test days. M1 now scores each rule on an empirical CDF fitted on the
-last training day (`normalization_days`, seeded sample of at most 2,000,000 events), and a test
-asserts that scoring a time prefix gives the same scores as scoring the whole frame. The LANL
-results in `reports/lanl/` predate the change; the next run uses the fitted normalisation.
-M1 is also not row-local for an intended reason: R6 and R7 look backwards across the split.
+last training day (`normalization_days`, seeded sample of at most 2,000,000 events), and R6 and
+R7 are stored features, so M1 is row-local. The LANL results in `reports/lanl/` predate the
+change; the next run uses the fitted normalisation.
+
+## Evaluation from sufficient statistics
+
+Every reported metric depends on the scores only through the positives
+(`evaluate.statistics.SplitAccumulator`, since 22 October 2026): each positive's rank in its
+day's queue and under the two bracketing tie-breaks, the benign events of the whole split above
+and level with each distinct positive score, and, per day, the tie at each budget and the first
+events in queue order. These are accumulated one day at a time, so evaluating a split needs the
+memory of its largest day (measured: 872 bytes per event of the day, `docs/scaling.md`). Each
+metric is tested equal to its whole-frame definition (`evaluate.budget`, `evaluate.campaign`,
+`evaluate.ledger`, scikit-learn) on tie-heavy frames.
+
+Three definitions changed with it, each for a reason a test now pins:
+
+- **Global precision@k** breaks ties in queue order (time, then `event_id`), as the daily
+  budget does. It used the frame's row order, the artifact `evaluate.budget` documents.
+- **Recall at a fixed FPR** reads every threshold. `roc_curve`'s default drops collinear ROC
+  points, and one of them can be the answer: for labels (0, 0, 0, 1, 1) and scores
+  (0, 1, 2, 0, 1) at FPR 2/3 the true recall is 0.5 and the old function returned 0.
+- **Score resolution** reports exact quantities computable by day: the share of
+  (positive, benign) pairs on the same score, which is the part of ROC-AUC credited one half,
+  and per day the fewest distinct scores and the largest tie as a share of the day. The global
+  distinct-value count it replaced would need every score of the split in memory.
 
 ## Labels
 
@@ -232,17 +278,17 @@ The protocol is written against 1.05 billion auth events. Five changes brought a
 ~161 GB of disk and ~439 GB of RAM down to ~81 GB and ~49 GB — a day-window conversion, a
 feature store projected to the columns anything reads, bounded-sample fitting, day-chunked
 scoring, and a rank-ordered AUC-PR bootstrap. None of them moves a measured number:
-`reports/demo/` regenerates byte for byte after all five.
+`reports/demo/` regenerates byte for byte after all five. Since 22 October 2026 features and
+evaluation both run one day at a time, so memory follows the largest day rather than the run.
 
 [`scaling.md`](scaling.md) has the measured per-stage budget, the recommended 14-day LANL
 slice, and what each change bought. `authbench preflight` prints the budget for the machine it
 runs on and exits non-zero when the run does not fit, naming the event count that would.
 
-`eval.pairwise_test.method` also accepts `permutation` — the exact per-event paired test
-(`compare_models`). It assumes the two models' scores are exchangeable event by event, which
-is precisely the independence campaign structure violates, and it costs
-`n_permutations x n_pairs` metric evaluations. Kept available for small splits; not the
-default.
+`eval.pairwise_test.method` accepted `permutation`, a per-event paired test, until 22 October
+2026. It assumed the two models' scores exchangeable event by event, which campaign structure
+violates, and it needed every event's score in memory; it was removed with the per-event
+evaluation.
 
 `render_comparison_sentence` can only emit "outperforms" on the `significant` branch, and
 reflects the reported interval through zero whenever it swaps the pair into

@@ -73,3 +73,11 @@ def test_precision_at_k_breaks_ties_by_event_order() -> None:
     y[:10] = True
     assert precision_at_k(y, np.zeros(1000), 10) == 1.0
     assert precision_at_k(y[::-1].copy(), np.zeros(1000), 10) == 0.0
+
+
+def test_recall_at_fixed_fpr_keeps_collinear_roc_points() -> None:
+    # At threshold 1.0: one positive of two, two benign of three, FPR exactly 2/3.
+    # roc_curve's default drop_intermediate removed that point and the recall read 0.
+    y = np.array([0, 0, 0, 1, 1])
+    scores = np.array([0.0, 1.0, 2.0, 0.0, 1.0])
+    assert recall_at_fixed_fpr(y, scores, 2 / 3) == 0.5

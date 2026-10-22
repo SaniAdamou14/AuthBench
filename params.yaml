@@ -57,7 +57,6 @@ eval:
 # conf/config.yaml (runtime)
 runtime:
   fit_sample_size: 5_000_000
-  bootstrap_workers: 4
 
 # conf/dataset/lanl.yaml
 campaign_gap_hours: 24

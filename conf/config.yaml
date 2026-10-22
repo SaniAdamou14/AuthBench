@@ -34,12 +34,6 @@ runtime:
   # it is a real methodological choice a reader is entitled to check. Every
   # event is still *scored*; only the fit is bounded. 0 means "no limit".
   fit_sample_size: 5_000_000
-  # Worker processes for the campaign bootstrap. The models are independent, so
-  # this divides wall time directly — the first real LANL run spent 4h49 in that
-  # loop on one core with eleven idle. Each worker holds its own copy of one
-  # model's scores and rank order, so on a small machine memory, not core count,
-  # should set this. 0 means "one per CPU".
-  bootstrap_workers: 4
   # M4a/M4b in the train_eval catalog. Needs the `deep` extra; off so the stage runs without PyTorch.
   deep_models: false
 

@@ -17,9 +17,10 @@ the score it had before.
 
 from __future__ import annotations
 
+import numpy as np
 import polars as pl
 import pytest
-from tests.unit.test_chunked_scoring import _featurized
+from tests.unit.test_row_locality import _featurized
 
 from authbench.cli import demo_model_catalog
 from authbench.models.base import BaseAnomalyScorer
@@ -87,34 +88,25 @@ def test_every_score_follows_its_own_row_through_a_shuffle(model: object) -> Non
     frame = _featurized()
     model.fit(frame.lazy())  # type: ignore[attr-defined]
 
-    if isinstance(model, RandomScorer):
-        pytest.skip("M0a's score is positional by construction — see the test below.")
-
     shuffled = frame.sample(fraction=1.0, shuffle=True, seed=19)
     assert shuffled["event_id"].to_list() != frame["event_id"].to_list(), "the shuffle did nothing"
 
-    assert _scores_by_event(model, frame) == pytest.approx(_scores_by_event(model, shuffled))
+    assert _scores_by_event(model, frame) == _scores_by_event(model, shuffled)
 
 
-def test_the_random_floor_is_the_one_model_whose_score_is_not_a_row_property() -> None:
-    """M0a draws from a seeded generator by position, so it scores the *k*-th
-    row rather than a given event — shuffling moves its scores around.
-
-    That is correct for a random floor (every permutation is equally random)
-    and it is why `RandomScorer.scores_row_locally` is False. It is recorded
-    here because it is the single exception to the rule the test above
-    enforces, and an exception nobody wrote down is indistinguishable from a
-    bug next time someone reads it.
+def test_the_random_floor_scores_an_event_not_a_position() -> None:
+    """M0a hashes `event_id`, so an event keeps its score through a shuffle; it used
+    to draw by position, which made it the one model that could not be scored by day.
     """
     frame = _featurized()
     model = RandomScorer()
-    model.fit(frame.lazy())
-
     shuffled = frame.sample(fraction=1.0, shuffle=True, seed=19)
 
-    assert model.score(frame.lazy()).to_list() == model.score(shuffled.lazy()).to_list()
-    assert _scores_by_event(model, frame) != _scores_by_event(model, shuffled)
-    assert model.scores_row_locally is False
+    assert _scores_by_event(model, frame) == _scores_by_event(model, shuffled)
+    scores = model.score(frame.lazy()).to_numpy()
+    assert scores.min() >= 0.0 and scores.max() < 1.0
+    assert np.unique(scores).size == scores.size
+    assert RandomScorer(seed=1).score(frame.lazy()).to_list() != scores.tolist()
 
 
 @pytest.mark.parametrize("model", _catalog(), ids=lambda m: str(m.name))

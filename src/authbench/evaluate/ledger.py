@@ -17,6 +17,7 @@ import numpy as np
 import polars as pl
 
 from authbench.evaluate.budget import _RANK, _ranked
+from authbench.evaluate.statistics import ModelStatistics
 
 LEDGER_COLUMNS = [
     "model",
@@ -213,9 +214,7 @@ def summary_record(
 
 
 def write_ledger_outputs(
-    scored: pl.DataFrame,
-    model_names: list[str],
-    score_columns: dict[str, str],
+    statistics: dict[str, ModelStatistics],
     users: pl.DataFrame,
     tables_dir: Path,
     *,
@@ -227,9 +226,12 @@ def write_ledger_outputs(
 ) -> dict[str, dict[str, object]]:
     """Write positives_ledger.csv, day_sizes.csv and budget_summary.json; return the summaries."""
     ledger = pl.concat(
-        [positives_ledger(scored, score_columns[name], name) for name in model_names]
+        [
+            stats.positives.select(pl.lit(name).alias("model"), *LEDGER_COLUMNS[1:])
+            for name, stats in statistics.items()
+        ]
     )
-    sizes = day_sizes(scored)
+    sizes = next(iter(statistics.values())).day_sizes
     ledger.write_csv(tables_dir / "positives_ledger.csv")
     sizes.write_csv(tables_dir / "day_sizes.csv")
     summaries = {
@@ -243,7 +245,7 @@ def write_ledger_outputs(
             confidence=confidence,
             seed=seed,
         )
-        for name in model_names
+        for name in statistics
     }
     (tables_dir / "budget_summary.json").write_text(json.dumps(summaries, indent=2) + "\n")
     return summaries

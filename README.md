@@ -92,7 +92,8 @@ significance across intrusions. M3b ECOD was excluded before fitting (memory).
 > 3. **Two transductive models.** M1 rank-normalises its rules within the
 >    scored partition and ECOD recomputes its distributions from the scored
 >    matrix: no label crosses the boundary, but scores depend on the test
->    distribution.
+>    distribution. Both are fitted on training data since 22 October 2026,
+>    for the next run.
 >
 > Full list: [`docs/limitations.md`](docs/limitations.md).
 
@@ -118,14 +119,14 @@ it is a finding.
 
 | Model | AUC-PR [95% CI] | ROC-AUC | Camp. @10 | @50 | @100 | @500 | Budget→1st |
 |---|---|---:|---:|---:|---:|---:|---:|
-| M0a random *(floor)* | 0.0016 [0.0005, 0.0041] | 0.497 | 0% | 0% | 0% | 50% | 162 |
+| M0a random *(floor)* | 0.0018 [0.0005, 0.0053] | 0.543 | 0% | 0% | 25% | 25% | 79 |
 | M0b always-fail *(floor)* | 0.0014 [0.0002, 0.0030] | 0.491 | 0% | 0% *[0–50]* | 0% *[0–100]* | 75% *[0–100]* | 165 |
-| M2a pair rarity | 0.0024 [0.0004, 0.0081] | 0.577 | 0% *[0–100]* | 0% *[0–100]* | 0% *[0–100]* | 100% *[0–100]* | 121 |
-| M2c source rarity | 0.0031 [0.0008, 0.0084] | 0.751 | 0% *[0–50]* | 0% *[0–50]* | 0% *[0–50]* | 50% *[0–50]* | 121 |
-| M2b PCA reconstruction | 0.0294 [0.0010, 0.1473] | 0.889 | 25% | 25% | 50% | 100% | 4 |
-| M3a Isolation Forest | 0.0060 [0.0016, 0.0148] | 0.876 | 0% | 0% | 25% | 75% | 95 |
-| M3b ECOD | 0.0024 [0.0006, 0.0071] | 0.673 | 0% | 0% | 0% | 50% | 252 |
-| **M1 rules** | **0.3987 [0.0782, 0.6407]** | 0.956 | **100%** | **100%** | **100%** | **100%** | **1** |
+| M2a pair rarity | 0.0024 [0.0004, 0.0086] | 0.577 | 0% *[0–100]* | 0% *[0–100]* | 0% *[0–100]* | 100% *[0–100]* | 121 |
+| M2c source rarity | 0.0031 [0.0009, 0.0086] | 0.751 | 0% *[0–50]* | 0% *[0–50]* | 0% *[0–50]* | 50% *[0–50]* | 121 |
+| M2b PCA reconstruction | 0.0294 [0.0010, 0.1548] | 0.889 | 25% | 25% | 50% | 100% | 4 |
+| M3a Isolation Forest | 0.0060 [0.0016, 0.0149] | 0.876 | 0% | 0% | 25% | 75% | 95 |
+| M3b ECOD | 0.0026 [0.0005, 0.0085] | 0.662 | 0% | 0% | 0% | 50% | 232 |
+| **M1 rules** | **0.3987 [0.0850, 0.6415]** | 0.956 | **100%** | **100%** | **100%** | **100%** | **1** |
 
 *Italic brackets are the tie-break range: the recall under the least and the
 most favourable ordering of equally scored events. M0b scores every event 0 or 1,
@@ -142,17 +143,20 @@ day. The two registers do not merely differ in scale; they rank differently.
 **Then read the last column, which is the one that does not saturate**, and
 read it against chance: `budget_summary.json` places every budget against random
 rankings of the same campaigns, with intervals from a bootstrap over accounts.
-M0a's 162 is one draw of that distribution, not a threshold.
+M0a's 79 is one draw of that distribution, not a threshold.
 
 **The source side matters even here.** Adding the user-source and
 source-destination relations to the design matrix (F3, 22 October 2026) moved
 PCA's first detection from 114 alerts a day to 4. This is a synthetic sample;
 the LANL runs predate the change.
 
-16 of the 28 pairwise comparisons are significant after Holm-Bonferroni, all 16
+14 of the 28 pairwise comparisons are significant after Holm-Bonferroni, all 14
 on the resolution floor (`Holm-adjusted p ≤ 0.0280` against 0.05); see
 [below](#the-significant-results-are-bounds-not-measurements). Four campaigns in
-a test split is a small sample and the intervals say so.
+a test split is a small sample and the intervals say so. Since 22 October 2026
+M0a hashes `event_id` and ECOD is fitted on training data (their rows changed),
+and the bootstrap draws from sufficient statistics (`docs/methodology.md`); on the
+same scores both bootstrap schemes give the same verdict on 28 of 28 pairs.
 
 ### M1's 100% is partly circular, and here is the measurement
 
@@ -271,16 +275,18 @@ enough: the stage then fails with `'authbench' is not recognized`. Activating
 puts `authbench` and `python` where every stage can find them.
 
 **Run `authbench preflight` first, and read what it says.** The download is
-about 6 GB; converting all 58 days and building features is about **81 GB of
-disk and 49 GB of RAM**, down from 161 GB and 439 GB, see
+about 8 GB; converting all 58 days and building features is about **55 GB of
+disk and 19 GB of RAM** (22 October 2026: features and evaluation now run one day
+at a time, so memory follows the largest day), down from 161 GB and 439 GB, see
 [`docs/scaling.md`](docs/scaling.md) for what changed and what it cost (nothing:
 `reports/demo/` regenerates byte for byte after every one of those changes).
 
-On a laptop, run a **day window** instead. Days 0–13 is about 254 million real
-LANL events in 24 GB of disk and 12 GB of RAM:
+On a laptop, a **day window** bounds disk (days 0-13: about 254 million real LANL
+events, 19 GB) and the **remote LogOn universe** bounds memory (`features.universe`,
+largest day about 8 million events, about 7 GB):
 
 ```bash
-authbench preflight --events 253800000
+authbench preflight --events 253800000 --days 14
 authbench data to-parquet data/raw/auth.txt.gz --out-dir data/interim/auth --days 0:13
 ```
 

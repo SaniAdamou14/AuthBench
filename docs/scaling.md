@@ -78,6 +78,14 @@ regenerates byte for byte after all of them, which is the check that says so:
    `tests/unit/test_fast_auc_pr.py` pins it to scikit-learn's weighted average
    precision to machine precision, ties included.
 
+**Correction, 22 October 2026.** Items 4 and 5 are superseded. Every model is now
+row-local to the last bit, ECOD included (`methodology.md`), and the chunked-scoring
+test that used a 1e-12 tolerance became `tests/unit/test_row_locality.py`, which
+asserts bit equality. The bootstrap no longer holds the scored split: evaluation
+reduces each day to sufficient statistics (`evaluate.statistics`) and draws each
+model's benign weights as a multinomial over a few hundred bins, so 10,000
+resamples of nine models take under a second (measured on a real LANL day).
+
 ## Full LANL — 1,051,430,459 auth events
 
 | Stage | Disk added | Peak RAM |
@@ -93,6 +101,23 @@ Disk is cumulative: no stage deletes its predecessor's output, because DVC needs
 the inputs of every stage it might re-run. The remaining ceiling is the scored
 frame the bootstrap holds — the whole test split, slim — which is what
 `max_events_for_memory` inverts.
+
+**Correction, 22 October 2026: memory follows the largest day.** Features and
+evaluation now run one day at a time, so the table above no longer describes the
+pipeline. Both peaks were measured on LANL on the 8 GB reference machine:
+
+| Stage | Per event of the largest day | Measured on |
+|---|---:|---|
+| `label_split_features`, day by day | 713 bytes | remote LogOn days 0-2 (5.8M to 6.6M events), 4.70 GB peak |
+| `train_eval`, score and evaluate by day | 872 bytes | day 12, remote LogOn to users (2.6M events), nine models, 3.65 GB peak |
+
+The largest LANL day of days 0-13 holds 1.216 times the mean (20.8M against
+17.1M events). For the full dataset `authbench preflight` now gives about 55 GB of
+disk and 19 GB of RAM (the evaluation of a 22M-event day); restricted to remote
+LogOn events (37.5% of LANL), about 7 GB. `max_day_events_for_memory` replaces
+`max_events_for_memory`, and `preflight --days` states the span of `--events`.
+Featuring every event of one day exhausted the 8 GB machine, so the all-events
+run needs the rented one; the remote LogOn protocol fits here.
 
 ## The real run, as actually performed
 
@@ -150,7 +175,8 @@ discoverable from the code:
   variable, not a config key.
 - **`runtime.bootstrap_workers`.** The models are independent, so the bootstrap
   parallelises exactly — 4 h 49 on one core becomes roughly 1 h 15 on four, with
-  bit-identical results (`tests/unit/test_fast_auc_pr.py`).
+  bit-identical results (`tests/unit/test_fast_auc_pr.py`). Removed on 22 October
+  2026, when the bootstrap moved to sufficient statistics and stopped needing it.
 
 ### What did not fit, and why it matters
 

@@ -20,8 +20,9 @@ from rich.table import Table
 
 from authbench.evaluate.budget import DEFAULT_BUDGETS
 from authbench.evaluate.ledger import campaign_users, write_ledger_outputs
-from authbench.evaluate.metrics import ROC_AUC_WARNING, auc_pr
+from authbench.evaluate.metrics import ROC_AUC_WARNING
 from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
+from authbench.evaluate.statistics import statistics_from_frame
 from authbench.evaluate.stats_tests import (
     MIN_CAMPAIGNS_FOR_SIGNIFICANCE,
     paired_campaign_bootstrap,
@@ -38,8 +39,9 @@ from authbench.ingest.budget import (
     available_memory_bytes,
     free_memory_bytes,
     lanl_budget,
+    largest_day_events,
+    max_day_events_for_memory,
     max_events_for_disk,
-    max_events_for_memory,
     peak_rss_bytes,
     total_disk_bytes,
 )
@@ -363,6 +365,9 @@ def preflight(
     events: int | None = typer.Option(
         None, help="Budget for this many auth events instead of the dataset's published total."
     ),
+    days: int | None = typer.Option(
+        None, help="Days those events span (default: the dataset's); memory follows the largest."
+    ),
 ) -> None:
     """Disk, memory and dependency budget for a full run — before downloading.
 
@@ -380,19 +385,9 @@ def preflight(
             param_hint="--events",
         )
 
-    # The test split's share of the window, taken from the split that is
-    # actually configured rather than from LANL's full-period proportions.
-    # Peak memory is dominated by the scored test split, so using 18/58 while
-    # `conf/split/temporal.yaml` carves 2 days out of 14 overstates it by half
-    # — and turns a run that fits into one the tool refuses.
-    split_cfg = OmegaConf.load(CONF_DIR / "split" / "temporal.yaml")
-    test_lo, test_hi = (int(v) for v in split_cfg.test_days)
-    window_lo = min(int(split_cfg.train_days[0]), test_lo)
-    n_days_window = max(1, test_hi - window_lo + 1)
-    n_days_test = max(1, test_hi - test_lo + 1)
-    test_fraction = n_days_test / n_days_window
-
-    budget = lanl_budget(n_events, test_fraction=test_fraction)
+    n_days = days or int(cfg.get("n_days") or 1)
+    budget = lanl_budget(n_events, n_days=n_days)
+    largest_day = largest_day_events(n_events, n_days)
     disk_needed = total_disk_bytes(budget)
     rss_needed = peak_rss_bytes(budget)
     disk_free = available_disk_bytes(data_dir)
@@ -423,8 +418,7 @@ def preflight(
     console.print(
         f"\nThis machine: {disk_free / 1e9:.1f} GB free under {data_dir.resolve()}, "
         f"{ram_total / 1e9:.1f} GB RAM installed ({ram_free / 1e9:.1f} GB free right now). "
-        f"Split: train/val/test over {n_days_window} days, test is {n_days_test} "
-        f"({test_fraction:.0%} of the window)."
+        f"{n_events:,} events over {n_days} days; the largest day is about {largest_day:,}."
     )
 
     missing = [
@@ -450,11 +444,12 @@ def preflight(
             f"({100 * fits / n_events:.1f}% of {dataset})."
         )
     if ram_total and ram_total < rss_needed:
-        fits = max_events_for_memory(ram_total)
+        fits = max_day_events_for_memory(ram_total)
         problems.append(
-            f"Memory: train_eval needs about {rss_needed / 1e9:.1f} GB for the design matrix, "
-            f"this machine has {ram_total / 1e9:.1f} GB. That caps the run at roughly "
-            f"{fits:,} events."
+            f"Memory: the largest day needs about {rss_needed / 1e9:.1f} GB, this machine has "
+            f"{ram_total / 1e9:.1f} GB, which holds days of about {fits:,} events. Restrict "
+            "features.universe (remote_logon keeps about 37% of LANL's events) or use a "
+            "larger machine."
         )
 
     if problems:
@@ -599,13 +594,13 @@ def demo(
     # per-model CIs and the pairwise differences then come from the same
     # sampling distribution. Fewer resamples than the full pipeline's 1000 —
     # the demo is a smoke test under a five-minute CI ceiling (NFR-04).
-    bootstrap = paired_campaign_bootstrap(
+    stats = statistics_from_frame(
         scored,
-        lambda frame, col: auc_pr(frame["is_malicious"].to_numpy(), frame[col].to_numpy()),
         {name: score_column(name) for name in model_names},
-        n_resamples=DEMO_BOOTSTRAP_RESAMPLES,
-        seed=42,
+        budgets=DEFAULT_BUDGETS,
+        top_k=max(DEFAULT_BUDGETS),
     )
+    bootstrap = paired_campaign_bootstrap(stats, n_resamples=DEMO_BOOTSTRAP_RESAMPLES, seed=42)
 
     # Two tables, because they are two different claims. The operational one
     # is what a SOC would live with; the literature-comparable one exists so
@@ -634,9 +629,7 @@ def demo(
     curves = []
     for name in model_names:
         evaluation = evaluate_model(
-            scored,
-            score_column(name),
-            name,
+            stats[name],
             budgets=DEFAULT_BUDGETS,
             fpr_targets=DEMO_FPR_TARGETS,
             # Emitted once, under the table it applies to, rather than seven
@@ -690,9 +683,7 @@ def demo(
 
     console.print("[bold]7/7[/] Writing report artifacts...")
     write_ledger_outputs(
-        scored,
-        model_names,
-        {name: score_column(name) for name in model_names},
+        stats,
         campaign_users(test_feat),
         reports_dir / "tables",
         k_max=500,
