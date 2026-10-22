@@ -118,6 +118,9 @@ def test_calibrate_weights_rejects_a_validation_set_with_no_positives() -> None:
             "src_user_is_machine": np.zeros(n, dtype=bool),
             "pair_global_rarity": rng.random(n),
             "user_src_is_new": np.zeros(n, dtype=bool),
+            "user_auth_is_new": rng.integers(0, 2, n).astype(bool),
+            "prev_dst_is_src": rng.integers(0, 2, n).astype(bool),
+            "hours_since_prev_event_same_user": rng.random(n),
         }
     )
     all_negative = pl.Series("is_malicious", np.zeros(n, dtype=bool))

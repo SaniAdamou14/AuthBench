@@ -47,6 +47,9 @@ def _featurized(n_days: int = 4, per_day: int = 40) -> pl.DataFrame:
     extra = {name: rng.random(n) for name in MODEL_FEATURE_COLUMNS}
     extra["src_user_1h_n_distinct_dst"] = rng.integers(0, 5, n).astype(float)
     extra["dst_computer_1h_n_failures"] = rng.integers(0, 3, n).astype(float)
+    extra["user_auth_is_new"] = rng.random(n) < 0.1
+    extra["prev_dst_is_src"] = rng.random(n) < 0.2
+    extra["hours_since_prev_event_same_user"] = rng.random(n)
     return frame.with_columns([pl.Series(k, v) for k, v in extra.items()])
 
 
@@ -86,30 +89,19 @@ def test_chunked_scoring_reproduces_whole_split_scoring_exactly() -> None:
         )
 
 
-def test_m1_is_excluded_from_the_chunked_path() -> None:
-    """Not an implementation detail — the reason the test above passes.
-
-    R6 ("has this user ever used this auth type before?") and R7 ("did this
-    user's previous event end where this one starts?") both read backwards
-    across the split. Chunking them resets that state at every boundary.
-    """
+def test_every_model_in_the_catalog_is_row_local() -> None:
+    """M1 joined the chunked path when R6 and R7 became stored features and its scale a training fit."""
     catalog = build_model_catalog()
+    transductive = {"M0a_random", "M3b_ecod"}
+    assert all(m.scores_row_locally for m in catalog if m.name not in transductive)
     rules = next(m for m in catalog if isinstance(m, RulesScorer))
-
-    assert rules.scores_row_locally is False
-    assert [m.name for m in catalog if getattr(m, "scores_row_locally", False)], (  # type: ignore[attr-defined]
-        "at least one model must be chunkable, or the optimisation does nothing"
-    )
+    assert rules.scores_row_locally is True
 
 
-def test_chunking_m1_would_actually_change_its_scores() -> None:
-    """The guard is not hypothetical. Score M1 whole, then per day, and show
-    the answers diverge — which is what would silently ship if `RulesScorer`
-    were ever marked row-local."""
+def test_m1_scored_by_day_equals_m1_scored_whole() -> None:
     frame = _featurized()
     model = RulesScorer()
     model.fit(frame.lazy())
-
     whole = model.score(frame.lazy()).to_numpy()
     per_day = np.concatenate(
         [
@@ -117,7 +109,4 @@ def test_chunking_m1_would_actually_change_its_scores() -> None:
             for day in sorted(frame["day"].unique().to_list())
         ]
     )
-
-    assert not np.allclose(whole, per_day), (
-        "if this ever passes, M1 became row-local and the exclusion can be dropped"
-    )
+    np.testing.assert_array_equal(whole, per_day)

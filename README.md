@@ -125,7 +125,7 @@ it is a finding.
 | M2b PCA reconstruction | 0.0294 [0.0010, 0.1473] | 0.889 | 25% | 25% | 50% | 100% | 4 |
 | M3a Isolation Forest | 0.0060 [0.0016, 0.0148] | 0.876 | 0% | 0% | 25% | 75% | 95 |
 | M3b ECOD | 0.0024 [0.0006, 0.0071] | 0.673 | 0% | 0% | 0% | 50% | 252 |
-| **M1 rules** | **0.4010 [0.0791, 0.6445]** | 0.963 | **100%** | **100%** | **100%** | **100%** | **1** |
+| **M1 rules** | **0.3987 [0.0782, 0.6407]** | 0.956 | **100%** | **100%** | **100%** | **100%** | **1** |
 
 *Italic brackets are the tie-break range: the recall under the least and the
 most favourable ordering of equally scored events. M0b scores every event 0 or 1,
@@ -165,7 +165,7 @@ so R7 was handed the answer:
 | Rule | mean score, benign | mean score, malicious | ratio |
 |---|---:|---:|---:|
 | **R7 lateral chain** | 0.0056 | 0.6364 | **114×** |
-| R6 new auth type | 0.1539 | 0.5455 | 3.5× |
+| R6 new auth type | 0.1973 | 0.5455 | 2.8× |
 | R8 new source | 0.2972 | 1.0000 | 3.4× |
 | R1 new pair | 0.3950 | 1.0000 | 2.5× |
 | R4 off-hours | 0.7237 | 0.6406 | 0.9× *(no discrimination)* |

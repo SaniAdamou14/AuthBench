@@ -101,6 +101,7 @@ def compute_f4(events: pl.LazyFrame, night_window: NightWindow) -> pl.LazyFrame:
             pl.col("hour_sin").cum_sum().shift(1).over("src_user").alias("_cum_sin_prior"),
             pl.col("hour_cos").cum_sum().shift(1).over("src_user").alias("_cum_cos_prior"),
             pl.col("time").shift(1).over("src_user").alias("_prev_time_same_user"),
+            pl.col("dst_computer").shift(1).over("src_user").alias("_prev_dst_same_user"),
         ]
     )
 
@@ -135,6 +136,10 @@ def compute_f4(events: pl.LazyFrame, night_window: NightWindow) -> pl.LazyFrame:
         ((pl.col("time") - pl.col("_prev_time_same_user")) / 3600.0)
         .fill_null(float("inf"))
         .alias("hours_since_prev_event_same_user"),
+        # The user's previous event ended on this event's source: the hop of a lateral chain (R7).
+        (pl.col("_prev_dst_same_user").cast(pl.Utf8) == pl.col("src_computer").cast(pl.Utf8))
+        .fill_null(False)
+        .alias("prev_dst_is_src"),
     )
 
     return with_deviation.drop(
@@ -144,6 +149,7 @@ def compute_f4(events: pl.LazyFrame, night_window: NightWindow) -> pl.LazyFrame:
             "_cum_sin_prior",
             "_cum_cos_prior",
             "_prev_time_same_user",
+            "_prev_dst_same_user",
             "_profile_angle",
         ]
     )

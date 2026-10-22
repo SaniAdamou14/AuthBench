@@ -82,9 +82,8 @@ _IDENTITY_COLUMNS: list[str] = [
 
 # Columns the non-matrix models read directly off the feature store.
 #
-# M1 recomputes two of its seven rules (R6 new auth type, R7 lateral chain)
-# from raw event fields rather than from precomputed features, so those fields
-# have to survive into the store even though no model treats them as features.
+# Columns read by name rather than as part of the design matrix: M1's rule inputs
+# (R2, R3, R6, R7) and M0b's outcome.
 _MODEL_INPUT_COLUMNS: list[str] = [
     "src_user",  # M1 R2 threshold lookup, R6 grouping, R7 partitioning
     "src_computer",  # M1 R7: does this event start where the last one ended?
@@ -93,6 +92,9 @@ _MODEL_INPUT_COLUMNS: list[str] = [
     "success",  # M0b always-fail
     "src_user_1h_n_distinct_dst",  # M1 R2
     "dst_computer_1h_n_failures",  # M1 R3
+    "user_auth_is_new",  # M1 R6
+    "prev_dst_is_src",  # M1 R7
+    "hours_since_prev_event_same_user",  # M1 R7
 ]
 
 #: What `pipeline.build_features` actually writes to disk.

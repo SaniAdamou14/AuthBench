@@ -39,6 +39,9 @@ def _features(n: int = 200, seed: int = 0) -> pl.DataFrame:
             "src_user_is_machine": rng.integers(0, 2, n).astype(bool),
             "pair_global_rarity": rng.random(n),
             "user_src_is_new": rng.integers(0, 2, n).astype(bool),
+            "user_auth_is_new": rng.integers(0, 2, n).astype(bool),
+            "prev_dst_is_src": rng.integers(0, 2, n).astype(bool),
+            "hours_since_prev_event_same_user": rng.random(n),
         }
     )
 

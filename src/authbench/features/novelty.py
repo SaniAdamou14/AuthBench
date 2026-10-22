@@ -29,11 +29,15 @@ NOVELTY_COLUMNS = (
     "user_src_rarity",
     "src_dst_is_new",
     "src_dst_rarity",
+    "user_auth_is_new",
 )
 
 
 def _key(*columns: str) -> pl.Expr:
-    return pl.concat_str([pl.col(c).cast(pl.Utf8) for c in columns], separator="::")
+    # A null field is a value of its own: a null auth type must not merge every user into one key.
+    return pl.concat_str(
+        [pl.col(c).cast(pl.Utf8).fill_null("\x00null") for c in columns], separator="::"
+    )
 
 
 def _occurrences(events: pl.LazyFrame, columns: tuple[str, ...], prefix: str) -> pl.LazyFrame:
@@ -83,7 +87,9 @@ def compute_f3(events: pl.LazyFrame) -> pl.LazyFrame:
     }
     conditioning = {"pair": (), "user_src": ("src_user",), "src_dst": ("src_computer",)}
 
-    novelty = events.select("event_id", "time")
+    novelty = events.select("event_id", "time").join(
+        _occurrences(events, ("src_user", "auth_type"), "user_auth"), on="event_id", how="left"
+    )
     for prefix, columns in relations.items():
         novelty = novelty.join(
             _occurrences(events, columns, prefix), on="event_id", how="left"
@@ -101,6 +107,7 @@ def compute_f3(events: pl.LazyFrame) -> pl.LazyFrame:
         _rarity("_user_src_k", "_user_src_n").alias("user_src_rarity"),
         (pl.col("_src_dst_k") == 0).alias("src_dst_is_new"),
         _rarity("_src_dst_k", "_src_dst_n").alias("src_dst_rarity"),
+        (pl.col("_user_auth_k") == 0).alias("user_auth_is_new"),
     )
 
     # Rolling sums each need their own [entity, time] sort (US-108), joined back by event_id.
