@@ -1,0 +1,435 @@
+[
+  {
+    "model": "M2b_pca_reconstruction",
+    "chosen": {
+      "n_components": 0.95
+    },
+    "candidates": [
+      {
+        "config": {
+          "n_components": 0.95
+        },
+        "validation_auc_pr": 0.06000403467657787
+      },
+      {
+        "config": {
+          "n_components": 0.5
+        },
+        "validation_auc_pr": 0.003588790325994023
+      },
+      {
+        "config": {
+          "n_components": 0.7
+        },
+        "validation_auc_pr": 0.004768747035674108
+      },
+      {
+        "config": {
+          "n_components": 0.8
+        },
+        "validation_auc_pr": 0.0068713154908763415
+      },
+      {
+        "config": {
+          "n_components": 0.9
+        },
+        "validation_auc_pr": 0.020935263453426025
+      },
+      {
+        "config": {
+          "n_components": 0.99
+        },
+        "validation_auc_pr": 0.047845081841828584
+      }
+    ]
+  },
+  {
+    "model": "M3a_iforest",
+    "chosen": {
+      "n_estimators": 100,
+      "max_samples": 1024
+    },
+    "candidates": [
+      {
+        "config": {
+          "n_estimators": 200,
+          "max_samples": 256
+        },
+        "validation_auc_pr": 0.0043839311246040204
+      },
+      {
+        "config": {
+          "n_estimators": 100,
+          "max_samples": 64
+        },
+        "validation_auc_pr": 0.0039160432005899805
+      },
+      {
+        "config": {
+          "n_estimators": 100,
+          "max_samples": 256
+        },
+        "validation_auc_pr": 0.004975292709836899
+      },
+      {
+        "config": {
+          "n_estimators": 100,
+          "max_samples": 1024
+        },
+        "validation_auc_pr": 0.007290441868302714
+      },
+      {
+        "config": {
+          "n_estimators": 200,
+          "max_samples": 64
+        },
+        "validation_auc_pr": 0.0036098246371862154
+      },
+      {
+        "config": {
+          "n_estimators": 200,
+          "max_samples": 1024
+        },
+        "validation_auc_pr": 0.006874462316501562
+      },
+      {
+        "config": {
+          "n_estimators": 400,
+          "max_samples": 64
+        },
+        "validation_auc_pr": 0.002744454795639391
+      },
+      {
+        "config": {
+          "n_estimators": 400,
+          "max_samples": 256
+        },
+        "validation_auc_pr": 0.004351744745397204
+      },
+      {
+        "config": {
+          "n_estimators": 400,
+          "max_samples": 1024
+        },
+        "validation_auc_pr": 0.005793506121300503
+      }
+    ]
+  },
+  {
+    "model": "M1_rules",
+    "chosen": {
+      "weights": {
+        "R1_new_pair": 0.18255274310965802,
+        "R2_host_burst": 0.07246979863959133,
+        "R3_fail_then_success": 0.005328440621191395,
+        "R4_offhours": 0.02724708548597948,
+        "R5_machine_account_anomaly": 0.04671682660708594,
+        "R6_new_auth_type": 0.12748618868473535,
+        "R7_lateral_chain": 0.2352965754367602,
+        "R8_new_source": 0.3029023414149982
+      }
+    },
+    "candidates": [
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.125,
+            "R2_host_burst": 0.125,
+            "R3_fail_then_success": 0.125,
+            "R4_offhours": 0.125,
+            "R5_machine_account_anomaly": 0.125,
+            "R6_new_auth_type": 0.125,
+            "R7_lateral_chain": 0.125,
+            "R8_new_source": 0.125
+          }
+        },
+        "validation_auc_pr": 0.021896414818814665
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.042554561710925955,
+            "R2_host_burst": 0.16571682906061386,
+            "R3_fail_then_success": 0.1890916774050078,
+            "R4_offhours": 0.1443425631160495,
+            "R5_machine_account_anomaly": 0.1697738206256721,
+            "R6_new_auth_type": 0.102202013849527,
+            "R7_lateral_chain": 0.060017470775426636,
+            "R8_new_source": 0.12630106345677716
+          }
+        },
+        "validation_auc_pr": 0.0032584186244518803
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.178051150479027,
+            "R2_host_burst": 0.047057959466252956,
+            "R3_fail_then_success": 0.1034445918399082,
+            "R4_offhours": 0.40802049670490775,
+            "R5_machine_account_anomaly": 0.18097742380288523,
+            "R6_new_auth_type": 0.022494548856831855,
+            "R7_lateral_chain": 0.00566482389941987,
+            "R8_new_source": 0.05428900495076695
+          }
+        },
+        "validation_auc_pr": 0.0021600008403387014
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.11848225210123656,
+            "R2_host_burst": 0.03796398629544145,
+            "R3_fail_then_success": 0.015977541160573587,
+            "R4_offhours": 0.006459936405128985,
+            "R5_machine_account_anomaly": 0.4091270505546936,
+            "R6_new_auth_type": 0.23791083050084444,
+            "R7_lateral_chain": 0.14151598681806105,
+            "R8_new_source": 0.032562416164020475
+          }
+        },
+        "validation_auc_pr": 0.009642533815796923
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.2511784358406034,
+            "R2_host_burst": 0.016170102055979813,
+            "R3_fail_then_success": 0.044154020241252714,
+            "R4_offhours": 0.028145735166422662,
+            "R5_machine_account_anomaly": 0.030823737429323293,
+            "R6_new_auth_type": 0.2976515589802595,
+            "R7_lateral_chain": 0.07286764830673789,
+            "R8_new_source": 0.25900876197942063
+          }
+        },
+        "validation_auc_pr": 0.1901883114656766
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.10960011977153922,
+            "R2_host_burst": 0.1490743522317615,
+            "R3_fail_then_success": 0.014971056004916545,
+            "R4_offhours": 0.18345851891455642,
+            "R5_machine_account_anomaly": 0.17825739698248225,
+            "R6_new_auth_type": 0.036515843525455616,
+            "R7_lateral_chain": 0.19992313301206072,
+            "R8_new_source": 0.12819957955722786
+          }
+        },
+        "validation_auc_pr": 0.023211886563989526
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.26264754800688916,
+            "R2_host_burst": 0.10789359446880335,
+            "R3_fail_then_success": 0.11243400678582638,
+            "R4_offhours": 0.090867900842528,
+            "R5_machine_account_anomaly": 0.1973067416528481,
+            "R6_new_auth_type": 0.04162135322547519,
+            "R7_lateral_chain": 0.18302938627116133,
+            "R8_new_source": 0.004199468746468509
+          }
+        },
+        "validation_auc_pr": 0.0204553677010766
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.004057080011362665,
+            "R2_host_burst": 0.06354965158836089,
+            "R3_fail_then_success": 0.0015770783359409504,
+            "R4_offhours": 0.367301911652832,
+            "R5_machine_account_anomaly": 0.10342735016253789,
+            "R6_new_auth_type": 0.28153765084171595,
+            "R7_lateral_chain": 0.13259517369411328,
+            "R8_new_source": 0.04595410371313629
+          }
+        },
+        "validation_auc_pr": 0.006832123031194864
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.018683568340966236,
+            "R2_host_burst": 0.08185754515269113,
+            "R3_fail_then_success": 0.052611836413092805,
+            "R4_offhours": 0.03735792125762865,
+            "R5_machine_account_anomaly": 0.1639671080731452,
+            "R6_new_auth_type": 0.002315674686574166,
+            "R7_lateral_chain": 0.06646426526892965,
+            "R8_new_source": 0.5767420808069722
+          }
+        },
+        "validation_auc_pr": 0.003504276767383914
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.05228712168515989,
+            "R2_host_burst": 0.07226636681821422,
+            "R3_fail_then_success": 0.22302604764396977,
+            "R4_offhours": 0.09007530522770588,
+            "R5_machine_account_anomaly": 0.06743501981644934,
+            "R6_new_auth_type": 0.153239582871987,
+            "R7_lateral_chain": 0.2231215022900539,
+            "R8_new_source": 0.11854905364645997
+          }
+        },
+        "validation_auc_pr": 0.07295324655558921
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.18255274310965802,
+            "R2_host_burst": 0.07246979863959133,
+            "R3_fail_then_success": 0.005328440621191395,
+            "R4_offhours": 0.02724708548597948,
+            "R5_machine_account_anomaly": 0.04671682660708594,
+            "R6_new_auth_type": 0.12748618868473535,
+            "R7_lateral_chain": 0.2352965754367602,
+            "R8_new_source": 0.3029023414149982
+          }
+        },
+        "validation_auc_pr": 0.4043984042672941
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.06904868550422964,
+            "R2_host_burst": 0.012938324514030064,
+            "R3_fail_then_success": 0.40296497806989323,
+            "R4_offhours": 0.05320532506390185,
+            "R5_machine_account_anomaly": 0.12354287943389484,
+            "R6_new_auth_type": 0.17701063073828147,
+            "R7_lateral_chain": 0.004311908977558336,
+            "R8_new_source": 0.15697726769821055
+          }
+        },
+        "validation_auc_pr": 0.0030874227412366353
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.23843924604626532,
+            "R2_host_burst": 0.01476650535234463,
+            "R3_fail_then_success": 0.06862500741148198,
+            "R4_offhours": 0.31347355801723026,
+            "R5_machine_account_anomaly": 0.016987536513537384,
+            "R6_new_auth_type": 0.29332435790928846,
+            "R7_lateral_chain": 0.006772856409648911,
+            "R8_new_source": 0.04761093234020309
+          }
+        },
+        "validation_auc_pr": 0.004321737002701754
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.017197239548639,
+            "R2_host_burst": 0.0346771762430789,
+            "R3_fail_then_success": 0.1299408510818088,
+            "R4_offhours": 0.0006469049525411114,
+            "R5_machine_account_anomaly": 0.26514962452600105,
+            "R6_new_auth_type": 0.08322315455394041,
+            "R7_lateral_chain": 0.36116579965563517,
+            "R8_new_source": 0.1079992494383555
+          }
+        },
+        "validation_auc_pr": 0.14747234456239813
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.24909059205409298,
+            "R2_host_burst": 0.014287679926899053,
+            "R3_fail_then_success": 0.12813624758474576,
+            "R4_offhours": 0.13987806114359028,
+            "R5_machine_account_anomaly": 0.22642860106191626,
+            "R6_new_auth_type": 0.09915621367722388,
+            "R7_lateral_chain": 0.09638071995335934,
+            "R8_new_source": 0.046641884598172326
+          }
+        },
+        "validation_auc_pr": 0.0033394734376185793
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.34835618238834004,
+            "R2_host_burst": 0.003912115505249692,
+            "R3_fail_then_success": 0.09444486211489032,
+            "R4_offhours": 0.07161018834311693,
+            "R5_machine_account_anomaly": 0.24243744184839272,
+            "R6_new_auth_type": 0.013486022160901386,
+            "R7_lateral_chain": 0.16936234129187142,
+            "R8_new_source": 0.05639084634723737
+          }
+        },
+        "validation_auc_pr": 0.004375024483994364
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.0613983011585397,
+            "R2_host_burst": 0.0031177101267837143,
+            "R3_fail_then_success": 0.20536917142414793,
+            "R4_offhours": 0.003185560638175994,
+            "R5_machine_account_anomaly": 0.1299961513801925,
+            "R6_new_auth_type": 0.1528457459345975,
+            "R7_lateral_chain": 0.04907837307720651,
+            "R8_new_source": 0.3950089862603562
+          }
+        },
+        "validation_auc_pr": 0.007622031054264465
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.33704985881502175,
+            "R2_host_burst": 0.009137176103976057,
+            "R3_fail_then_success": 0.18527907058633028,
+            "R4_offhours": 0.13153543404560394,
+            "R5_machine_account_anomaly": 0.06304473041323436,
+            "R6_new_auth_type": 0.21379805530556584,
+            "R7_lateral_chain": 0.05506758447154918,
+            "R8_new_source": 0.005088090258718568
+          }
+        },
+        "validation_auc_pr": 0.006747467437524706
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.3711660544506432,
+            "R2_host_burst": 0.12121172306705637,
+            "R3_fail_then_success": 0.04106101792918894,
+            "R4_offhours": 0.18964838699609968,
+            "R5_machine_account_anomaly": 0.03298639040241712,
+            "R6_new_auth_type": 0.04689690382333519,
+            "R7_lateral_chain": 0.19152871188560672,
+            "R8_new_source": 0.005500811445652735
+          }
+        },
+        "validation_auc_pr": 0.12402366802557502
+      },
+      {
+        "config": {
+          "weights": {
+            "R1_new_pair": 0.02959561608058727,
+            "R2_host_burst": 0.20618319188691434,
+            "R3_fail_then_success": 0.015423869304111121,
+            "R4_offhours": 0.4605693177049011,
+            "R5_machine_account_anomaly": 0.035794742191489495,
+            "R6_new_auth_type": 0.20737975419634386,
+            "R7_lateral_chain": 0.002493589077802804,
+            "R8_new_source": 0.04255991955785015
+          }
+        },
+        "validation_auc_pr": 0.002447015132401647
+      }
+    ]
+  }
+]

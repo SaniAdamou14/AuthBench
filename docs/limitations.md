@@ -38,8 +38,10 @@ this summarizes.
    labelled LANL activity is a single simulated intrusion (Larroche, arXiv 2607.29390).
    Campaigns are the bootstrap's resampling unit, so every interval describes variability
    across the accounts and phases of one operation, not across intrusions.
-10. **Unequal access to labels.** M1's weights are calibrated on validation labels; no other
-    model reads labels or the validation partition. See `methodology.md`, "Labels".
+10. **Unequal access to labels.** In the published runs M1's weights were calibrated on
+    validation labels and no other model read them. Since 22 October 2026 every tunable model
+    gets the same budget of candidates on validation and M1u reports the rules without labels;
+    the autoencoders are still not tuned. See `methodology.md`, "Labels".
 11. **Transductive scores.** ECOD (distributions recomputed from the scored matrix) depends
     on the test distribution. So did M1 in the published LANL runs (rank normalisation over the
     three test days); its normalisation is fitted on training data since 22 October 2026.

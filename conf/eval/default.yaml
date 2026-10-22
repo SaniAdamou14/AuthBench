@@ -21,6 +21,12 @@ bootstrap:
   confidence: 0.95
   seed: 42
 
+# Every tunable model (M1's rule weights, PCA, Isolation Forest, HBOS) gets the same
+# number of candidates, its default among them, chosen on validation AUC-PR (S6-11).
+tuning:
+  n_configs: 20
+  seed: 42
+
 pairwise_test:
   # The only method: the comparisons reuse the bootstrap pass above, so the
   # per-model CIs and the pairwise differences share one sampling

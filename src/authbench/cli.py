@@ -66,10 +66,11 @@ from authbench.label.redteam_join import (
 )
 from authbench.models.classical import ECODScorer, IsolationForestScorer
 from authbench.models.floors import AlwaysFailScorer, RandomScorer
-from authbench.models.rules import RulesScorer, rule_discrimination
+from authbench.models.rules import RulesScorer, UniformRulesScorer, rule_discrimination
 from authbench.models.stats import PairRarityScorer, PCAReconstructionScorer, SourceRarityScorer
 from authbench.parse.clean import clean_auth, clean_redteam, data_quality_report
 from authbench.pipeline.build_features import CONF_DIR
+from authbench.pipeline.tuning import tune_and_fit
 from authbench.split.temporal import (
     TemporalSplitConfig,
     get_test_split,
@@ -116,6 +117,8 @@ console = Console()
 # same test can hold this number against the catalog it actually serves.
 DEMO_BOOTSTRAP_RESAMPLES = 10_000
 DEMO_FPR_TARGETS = [1.0e-4, 1.0e-3]
+# The same candidate budget as conf/eval/default.yaml:tuning.n_configs.
+DEMO_TUNING_CONFIGS = 20
 
 
 def demo_model_catalog() -> list[object]:
@@ -142,6 +145,7 @@ def demo_model_catalog() -> list[object]:
         IsolationForestScorer(MODEL_FEATURE_COLUMNS),
         ECODScorer(MODEL_FEATURE_COLUMNS),
         RulesScorer(),
+        UniformRulesScorer(),
     ]
 
 
@@ -568,24 +572,25 @@ def demo(
     val_feat = featurize(val).collect()
     test_feat = featurize(test).collect()
 
-    console.print("[bold]5/7[/] Fitting models (M0, M1, M2, M3)...")
-    models = demo_model_catalog()
+    console.print("[bold]5/7[/] Fitting and tuning models (M0, M1, M2, M3) on validation...")
+    models, tuning = tune_and_fit(
+        demo_model_catalog(),  # type: ignore[arg-type]
+        train_feat.lazy(),
+        val_feat.lazy(),
+        n_configs=DEMO_TUNING_CONFIGS,
+        seed=42,
+    )
+    (reports_dir / "tables" / "tuning.json").write_text(
+        json.dumps([r.to_dict() for r in tuning], indent=2)
+    )
 
     console.print("[bold]6/7[/] Scoring and evaluating on the test split...")
-    model_names: list[str] = [m.name for m in models]  # type: ignore[attr-defined]
+    model_names: list[str] = [m.name for m in models]
     scored = test_feat.select(EVAL_COLUMNS)
     for model in models:
-        model.fit(train_feat.lazy())  # type: ignore[attr-defined]
-        # M1 alone has a second, label-aware fitting step, and it must run
-        # after `fit` (which re-derives the per-user R2 thresholds the rule
-        # scores are built from) and against the validation split only.
-        if isinstance(model, RulesScorer):
-            model.calibrate_weights(val_feat.lazy(), val_feat["is_malicious"], n_trials=50)
-
-        scores = model.score(test_feat.lazy())  # type: ignore[attr-defined]
-        scored = scored.with_columns(pl.Series(score_column(model.name), scores))  # type: ignore[attr-defined]
-
-        if isinstance(model, RulesScorer):
+        scores = model.score(test_feat.lazy())
+        scored = scored.with_columns(pl.Series(score_column(model.name), scores))
+        if type(model) is RulesScorer:
             rule_discrimination(model, test_feat).write_csv(
                 reports_dir / "tables" / "rule_discrimination.csv"
             )

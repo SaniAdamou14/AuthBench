@@ -18,6 +18,7 @@ from omegaconf import OmegaConf
 
 from authbench.evaluate.stats_tests import MIN_CAMPAIGNS_FOR_SIGNIFICANCE
 from authbench.models.rules import RULES, NoPositivesInValidationError, RulesScorer
+from authbench.pipeline.tuning import tune_and_fit
 from authbench.split.temporal import TemporalSplitConfig
 
 DEMO_REDTEAM = "data/demo/redteam_demo.txt"
@@ -97,7 +98,7 @@ def test_validation_carries_more_than_one_campaign_for_m1_calibration() -> None:
     assert _campaigns_in("val") >= 2
 
 
-def test_calibrate_weights_rejects_a_validation_set_with_no_positives() -> None:
+def test_tuning_rejects_a_validation_set_with_no_positives() -> None:
     """The guard that makes the failure above loud rather than plausible."""
     n = 64
     rng = np.random.default_rng(0)
@@ -121,14 +122,14 @@ def test_calibrate_weights_rejects_a_validation_set_with_no_positives() -> None:
             "user_auth_is_new": rng.integers(0, 2, n).astype(bool),
             "prev_dst_is_src": rng.integers(0, 2, n).astype(bool),
             "hours_since_prev_event_same_user": rng.random(n),
+            "is_malicious": np.zeros(n, dtype=bool),
+            "campaign_id": pl.Series([None] * n, dtype=pl.Int64),
         }
     )
-    all_negative = pl.Series("is_malicious", np.zeros(n, dtype=bool))
 
     scorer = RulesScorer()
-    scorer.fit(features)
     with pytest.raises(NoPositivesInValidationError, match="validation"):
-        scorer.calibrate_weights(features, all_negative, n_trials=5)
+        tune_and_fit([scorer], features, features, n_configs=5, seed=0)
 
     # The weights must be left at their uniform prior, not half-mutated.
     assert scorer.weights == pytest.approx({r.id: 1.0 / len(RULES) for r in RULES})

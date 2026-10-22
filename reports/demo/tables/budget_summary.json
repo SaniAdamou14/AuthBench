@@ -209,39 +209,39 @@
     "n_accounts": 4,
     "k_max": 500,
     "tie_range_first_detection": [
-      95,
-      95
+      49,
+      49
     ],
     "statistics": {
       "first_detection": {
-        "value": 95.0,
-        "ci_low": 95.0,
-        "ci_high": 329.0,
-        "random_ranking_at_least_as_good": 0.3219
+        "value": 49.0,
+        "ci_low": 49.0,
+        "ci_high": 225.0,
+        "random_ranking_at_least_as_good": 0.1775
       },
       "budget_q10": {
-        "value": 95.0,
-        "ci_low": 95.0,
-        "ci_high": 329.0,
-        "random_ranking_at_least_as_good": 0.3219
+        "value": 49.0,
+        "ci_low": 49.0,
+        "ci_high": 225.0,
+        "random_ranking_at_least_as_good": 0.1775
       },
       "budget_q25": {
-        "value": 95.0,
-        "ci_low": 95.0,
-        "ci_high": 329.0,
-        "random_ranking_at_least_as_good": 0.3219
+        "value": 49.0,
+        "ci_low": 49.0,
+        "ci_high": 225.0,
+        "random_ranking_at_least_as_good": 0.1775
       },
       "budget_q50": {
-        "value": 131.0,
-        "ci_low": 95.0,
-        "ci_high": 517.0,
-        "random_ranking_at_least_as_good": 0.0812
+        "value": 90.0,
+        "ci_low": 49.0,
+        "ci_high": 467.0,
+        "random_ranking_at_least_as_good": 0.0396
       },
       "log_area": {
-        "value": 0.137526464886,
-        "ci_low": 0.03367471778,
-        "ci_high": 0.241378211991,
-        "random_ranking_at_least_as_good": 0.1617
+        "value": 0.197292117528,
+        "ci_low": 0.069737827651,
+        "ci_high": 0.324846407405,
+        "random_ranking_at_least_as_good": 0.062
       }
     }
   },
@@ -298,32 +298,73 @@
       "first_detection": {
         "value": 1.0,
         "ci_low": 1.0,
-        "ci_high": 3.0,
+        "ci_high": 2.0,
         "random_ranking_at_least_as_good": 0.0041
       },
       "budget_q10": {
         "value": 1.0,
         "ci_low": 1.0,
-        "ci_high": 3.0,
+        "ci_high": 2.0,
         "random_ranking_at_least_as_good": 0.0041
       },
       "budget_q25": {
         "value": 1.0,
         "ci_low": 1.0,
-        "ci_high": 3.0,
+        "ci_high": 2.0,
         "random_ranking_at_least_as_good": 0.0041
       },
       "budget_q50": {
         "value": 2.0,
         "ci_low": 1.0,
-        "ci_high": 6.0,
+        "ci_high": 5.0,
         "random_ranking_at_least_as_good": 0.0
       },
       "log_area": {
-        "value": 0.855842923572,
-        "ci_low": 0.755880600509,
-        "ci_high": 0.955805246635,
+        "value": 0.879488286867,
+        "ci_low": 0.777883784849,
+        "ci_high": 0.972116215151,
         "random_ranking_at_least_as_good": 0.0
+      }
+    }
+  },
+  "M1u_rules_uniform": {
+    "n_campaigns": 4,
+    "n_accounts": 4,
+    "k_max": 500,
+    "tie_range_first_detection": [
+      4,
+      4
+    ],
+    "statistics": {
+      "first_detection": {
+        "value": 4.0,
+        "ci_low": 4.0,
+        "ci_high": 201.0,
+        "random_ranking_at_least_as_good": 0.0152
+      },
+      "budget_q10": {
+        "value": 4.0,
+        "ci_low": 4.0,
+        "ci_high": 201.0,
+        "random_ranking_at_least_as_good": 0.0152
+      },
+      "budget_q25": {
+        "value": 4.0,
+        "ci_low": 4.0,
+        "ci_high": 201.0,
+        "random_ranking_at_least_as_good": 0.0152
+      },
+      "budget_q50": {
+        "value": 117.0,
+        "ci_low": 4.0,
+        "ci_high": 745.0,
+        "random_ranking_at_least_as_good": 0.0662
+      },
+      "log_area": {
+        "value": 0.289320379394,
+        "ci_low": 0.058428228322,
+        "ci_high": 0.619357011675,
+        "random_ranking_at_least_as_good": 0.0106
       }
     }
   }

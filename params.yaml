@@ -54,6 +54,7 @@ eval:
   ledger_resamples: 10000
   ledger_simulations: 10000
   ledger_campaign_gap_hours: [1, 6, 24, 72]
+  tuning_configs: 20
 
 # conf/config.yaml (runtime)
 runtime:

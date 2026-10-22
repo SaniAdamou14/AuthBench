@@ -165,7 +165,7 @@ to rank models:
 - **Recall at fixed FPR**.
 
 The gap between the registers is the project's thesis, and both runs show it. On the demo
-sample M3a reaches ROC-AUC 0.798 and catches nothing at 10, 50 or 100 alerts/day. On the
+sample M3a reaches ROC-AUC 0.921 and catches nothing at 10 alerts/day (22 October 2026, tuned). On the
 LANL wider window no model detects a campaign at any budget up to 500, and the ordering by
 ROC-AUC does not track the ordering by budget for first detection (Spearman −0.10 over the
 five non-trivial models; AUC-PR: 0.70). The best ROC-AUC (M2a, 0.941) is third
@@ -296,11 +296,21 @@ Three definitions changed with it, each for a reason a test now pins:
 
 ## Labels
 
-M1 is the only model that uses labels: its weights maximise AUC-PR on the validation
-partition (200 Dirichlet draws, seeded), and `RulesScorer.requires_labels` is `True`. Every
-other model is unsupervised, with default hyperparameters, and never reads the validation
-partition. This favours M1 and is stated as such in the report; an equal tuning budget for
-every model is planned.
+In the published runs M1 was the only model that used labels: its weights maximised AUC-PR
+on the validation partition (200 Dirichlet draws, seeded), while every other model kept its
+default hyperparameters. That favoured M1.
+
+**Equal budgets (S6-11, 22 October 2026).** `pipeline.tuning` gives every model with
+something to choose the same number of candidates, `eval.tuning.n_configs` (20), its default
+among them, and keeps the one with the highest validation AUC-PR, validation being scored by
+day like the test split: M1's rule weights (uniform plus Dirichlet draws), PCA's retained
+variance (0.5 to 0.99), Isolation Forest's forest size and sample (100 to 400 trees, 64 to 1024
+rows), HBOS's bins and tolerance. Models with no hyperparameter (M0, M2a, M2c, ECOD) are
+fitted once; the autoencoders are not tuned, and that is stated. `tuning.json` lists every
+candidate and its validation AUC-PR. **M1u** reports the same rules with uniform weights and
+no label, which separates what the rules detect from what choosing their weights adds. On the
+demo it reaches AUC-PR 0.0191 against M1's 0.4395. Without a validation partition (the
+harmonised split) nothing is tuned and no label is read.
 
 ## Scale
 

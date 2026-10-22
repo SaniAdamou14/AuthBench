@@ -79,8 +79,7 @@ def test_an_event_scores_the_same_alone_in_any_chunk_and_whole(model: object) ->
 def test_scoring_by_day_gives_the_statistics_of_the_whole_split() -> None:
     frame = _featurized()
     budgets = [1, 5, 20]
-    models = build_model_catalog(fit_sample_size=None)
-    fit_models(models, frame.lazy(), frame.lazy())
+    models, _ = fit_models(build_model_catalog(fit_sample_size=None), frame.lazy(), frame.lazy())
     by_day, skipped = score_split(models, frame.lazy(), budgets=budgets, top_k=20, chunk_rows=13)
     whole = frame.select(EVAL_COLUMNS).with_columns(
         pl.Series(score_column(m.name), m.score(frame.lazy())) for m in models

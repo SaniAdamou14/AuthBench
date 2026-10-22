@@ -41,7 +41,7 @@ from authbench.features import MODEL_FEATURE_COLUMNS
 from authbench.models.base import DEFAULT_FIT_SAMPLE_SIZE, AnomalyScorer
 from authbench.models.classical import ECODScorer, HBOSScorer, IsolationForestScorer
 from authbench.models.floors import AlwaysFailScorer, RandomScorer
-from authbench.models.rules import RulesScorer
+from authbench.models.rules import RulesScorer, UniformRulesScorer
 from authbench.models.stats import (
     PairRarityScorer,
     PCAReconstructionScorer,
@@ -49,6 +49,7 @@ from authbench.models.stats import (
 )
 from authbench.pipeline.build_features import CONF_DIR, feature_store_version
 from authbench.pipeline.tracking import open_tracker
+from authbench.pipeline.tuning import TuningRecord, tune_and_fit
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +102,7 @@ def build_model_catalog(
         ECODScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size),
         HBOSScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size),
         RulesScorer(),
+        UniformRulesScorer(),
     ]
     if deep_models:
         catalog.extend(_deep_catalog(fit_sample_size))
@@ -143,18 +145,19 @@ def regime_train(train: pl.LazyFrame, regime: str) -> pl.LazyFrame:
     raise ValueError(f"Unknown regime {regime!r}; expected {R1!r} or {R2!r}.")
 
 
-def fit_models(models: list[AnomalyScorer], train: pl.LazyFrame, val: pl.LazyFrame | None) -> None:
-    """Fit every model on train; M1 then calibrates its rule weights on validation labels.
+def fit_models(
+    models: list[AnomalyScorer],
+    train: pl.LazyFrame,
+    val: pl.LazyFrame | None,
+    *,
+    n_configs: int = 20,
+    seed: int = 42,
+) -> tuple[list[AnomalyScorer], list[TuningRecord]]:
+    """Fit every model on train, each tunable one choosing among `n_configs` candidates on validation.
 
-    Without a validation partition M1 keeps uniform weights and no label is read.
+    Without a validation partition nothing is tuned and no label is read (`pipeline.tuning`).
     """
-    for model in models:
-        logger.info("Fitting %s", model.name)
-        model.fit(train)
-        if isinstance(model, RulesScorer) and val is not None:
-            val_frame = val.collect()
-            model.calibrate_weights(val_frame.lazy(), val_frame["is_malicious"], n_trials=200)
-            del val_frame
+    return tune_and_fit(models, train, val, n_configs=n_configs, seed=seed)
 
 
 def _score(model: AnomalyScorer, frame: pl.DataFrame, chunk_rows: int) -> np.ndarray:
@@ -172,6 +175,7 @@ def score_split(
     budgets: list[int],
     top_k: int,
     chunk_rows: int = DEFAULT_SCORING_CHUNK_ROWS,
+    names: list[str] | None = None,
 ) -> tuple[dict[str, ModelStatistics], dict[str, str]]:
     """Score `test` one day at a time into each model's statistics; return them and the skipped models.
 
@@ -179,27 +183,33 @@ def score_split(
     of each day are counted against; each day then checks that it reproduces those
     scores bit for bit. A model that runs out of memory is excluded with its reason,
     and the report says so: a benchmark that silently drops a competitor is worse
-    than one that loses a run.
+    than one that loses a run. `names` labels the models when several share a class,
+    as tuning candidates do.
     """
-    not_row_local = [m.name for m in models if not getattr(m, "scores_row_locally", False)]
+    labels = names or [m.name for m in models]
+    not_row_local = [
+        label
+        for label, m in zip(labels, models, strict=True)
+        if not getattr(m, "scores_row_locally", False)
+    ]
     if not_row_local:
         raise ValueError(f"{not_row_local} are not row-local and cannot be scored by day.")
     skipped: dict[str, str] = {}
     positives = test.filter(pl.col("is_malicious")).collect()
     positive_scores = positives.select(POSITIVE_KEYS)
-    for model in models:
+    for label, model in zip(labels, models, strict=True):
         try:
             positive_column = _score(model, positives, chunk_rows)
         except MemoryError as exc:
-            skipped[model.name] = f"{type(exc).__name__}: {exc}"
+            skipped[label] = f"{type(exc).__name__}: {exc}"
             continue
         positive_scores = positive_scores.with_columns(
-            pl.Series(score_column(model.name), positive_column)
+            pl.Series(score_column(label), positive_column)
         )
-    active = [m for m in models if m.name not in skipped]
+    active = {label: m for label, m in zip(labels, models, strict=True) if label not in skipped}
     accumulator = SplitAccumulator(
         positive_scores,
-        {m.name: score_column(m.name) for m in active},
+        {label: score_column(label) for label in active},
         budgets=budgets,
         top_k=top_k,
     )
@@ -207,14 +217,14 @@ def score_split(
     for day in days:
         frame = test.filter(pl.col("day") == day).collect()
         scores: dict[str, np.ndarray] = {}
-        for model in list(active):
+        for label, model in list(active.items()):
             try:
-                scores[model.name] = _score(model, frame, chunk_rows)
+                scores[label] = _score(model, frame, chunk_rows)
             except MemoryError as exc:
-                skipped[model.name] = f"{type(exc).__name__}: {exc}"
-                logger.error("%s failed on day %s and is EXCLUDED: %s", model.name, day, exc)
-                accumulator.drop(model.name)
-                active.remove(model)
+                skipped[label] = f"{type(exc).__name__}: {exc}"
+                logger.error("%s failed on day %s and is EXCLUDED: %s", label, day, exc)
+                accumulator.drop(label)
+                del active[label]
         accumulator.add_day(frame.select(EVAL_COLUMNS), scores)
         logger.info("Scored day %s: %d events, %d models.", day, frame.height, len(active))
         del frame
@@ -319,7 +329,15 @@ def evaluate_regime(
         exclude=exclude_models,
         deep_models=bool(cfg.runtime.get("deep_models", False)),
     )
-    fit_models(models, train, val)
+    tuning_cfg = cfg.eval.get("tuning", {})
+    models, tuning = fit_models(
+        models,
+        train,
+        val,
+        n_configs=int(tuning_cfg.get("n_configs", 20)),
+        seed=int(tuning_cfg.get("seed", 42)),
+    )
+    (tables_dir / "tuning.json").write_text(json.dumps([r.to_dict() for r in tuning], indent=2))
     statistics, skipped = score_split(models, test, budgets=budgets, top_k=max(budgets))
     model_names = list(statistics)
     if skipped:

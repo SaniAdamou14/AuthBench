@@ -61,13 +61,13 @@
       "M3a_iforest": {
         "campaign_recall": {
           "10": 0.0,
-          "50": 0.0,
-          "100": 0.25,
-          "500": 0.75
+          "50": 0.25,
+          "100": 0.5,
+          "500": 1.0
         },
-        "first_detection": 95,
-        "median_budget": 131,
-        "log_area": 0.137526464886
+        "first_detection": 49,
+        "median_budget": 90,
+        "log_area": 0.197292117528
       },
       "M3b_ecod": {
         "campaign_recall": {
@@ -89,7 +89,18 @@
         },
         "first_detection": 1,
         "median_budget": 2,
-        "log_area": 0.855842923572
+        "log_area": 0.879488286867
+      },
+      "M1u_rules_uniform": {
+        "campaign_recall": {
+          "10": 0.25,
+          "50": 0.25,
+          "100": 0.25,
+          "500": 0.75
+        },
+        "first_detection": 4,
+        "median_budget": 117,
+        "log_area": 0.289320379394
       }
     }
   },
@@ -155,13 +166,13 @@
       "M3a_iforest": {
         "campaign_recall": {
           "10": 0.0,
-          "50": 0.0,
-          "100": 0.25,
-          "500": 0.75
+          "50": 0.25,
+          "100": 0.5,
+          "500": 1.0
         },
-        "first_detection": 95,
-        "median_budget": 131,
-        "log_area": 0.137526464886
+        "first_detection": 49,
+        "median_budget": 90,
+        "log_area": 0.197292117528
       },
       "M3b_ecod": {
         "campaign_recall": {
@@ -183,7 +194,18 @@
         },
         "first_detection": 1,
         "median_budget": 2,
-        "log_area": 0.855842923572
+        "log_area": 0.879488286867
+      },
+      "M1u_rules_uniform": {
+        "campaign_recall": {
+          "10": 0.25,
+          "50": 0.25,
+          "100": 0.25,
+          "500": 0.75
+        },
+        "first_detection": 4,
+        "median_budget": 117,
+        "log_area": 0.289320379394
       }
     }
   },
@@ -249,13 +271,13 @@
       "M3a_iforest": {
         "campaign_recall": {
           "10": 0.0,
-          "50": 0.0,
-          "100": 0.25,
-          "500": 0.75
+          "50": 0.25,
+          "100": 0.5,
+          "500": 1.0
         },
-        "first_detection": 95,
-        "median_budget": 131,
-        "log_area": 0.137526464886
+        "first_detection": 49,
+        "median_budget": 90,
+        "log_area": 0.197292117528
       },
       "M3b_ecod": {
         "campaign_recall": {
@@ -277,7 +299,18 @@
         },
         "first_detection": 1,
         "median_budget": 2,
-        "log_area": 0.855842923572
+        "log_area": 0.879488286867
+      },
+      "M1u_rules_uniform": {
+        "campaign_recall": {
+          "10": 0.25,
+          "50": 0.25,
+          "100": 0.25,
+          "500": 0.75
+        },
+        "first_detection": 4,
+        "median_budget": 117,
+        "log_area": 0.289320379394
       }
     }
   },
@@ -343,13 +376,13 @@
       "M3a_iforest": {
         "campaign_recall": {
           "10": 0.0,
-          "50": 0.0,
-          "100": 0.25,
-          "500": 0.75
+          "50": 0.25,
+          "100": 0.5,
+          "500": 1.0
         },
-        "first_detection": 95,
-        "median_budget": 131,
-        "log_area": 0.137526464886
+        "first_detection": 49,
+        "median_budget": 90,
+        "log_area": 0.197292117528
       },
       "M3b_ecod": {
         "campaign_recall": {
@@ -371,7 +404,18 @@
         },
         "first_detection": 1,
         "median_budget": 2,
-        "log_area": 0.855842923572
+        "log_area": 0.879488286867
+      },
+      "M1u_rules_uniform": {
+        "campaign_recall": {
+          "10": 0.25,
+          "50": 0.25,
+          "100": 0.25,
+          "500": 0.75
+        },
+        "first_detection": 4,
+        "median_budget": 117,
+        "log_area": 0.289320379394
       }
     }
   }

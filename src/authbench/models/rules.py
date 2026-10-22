@@ -5,8 +5,9 @@ models, and the project loses its point if M1 is under-optimized. Each rule
 produces a raw signal, is mapped to [0, 1] by its empirical CDF fitted on the
 last training day (so no rule dominates by its numeric scale and no score
 depends on another scored event), and the eight scores are combined by a
-weighted sum whose weights are calibrated by random search on the validation
-period only.
+weighted sum. M1's weights are chosen on the validation period by
+`pipeline.tuning`, from the same number of candidates as every other tuned
+model's hyperparameters; M1u keeps uniform weights and reads no label.
 
 Every rule carries a MITRE ATT&CK mapping as metadata — the bridge between
 the ML and security framings of the project (spec section 5.1).
@@ -14,6 +15,7 @@ the ML and security framings of the project (spec section 5.1).
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 
 import numpy as np
@@ -23,9 +25,9 @@ from authbench.models.base import BaseAnomalyScorer
 
 
 class NoPositivesInValidationError(ValueError):
-    """Raised when M1's weight calibration is asked to optimize AUC-PR against
-    a validation period containing no malicious events — a degenerate objective
-    that would otherwise return arbitrary weights while looking successful.
+    """Raised when tuning is asked to optimize AUC-PR against a validation
+    period containing no malicious events — a degenerate objective that would
+    otherwise return the first candidate while looking successful.
     """
 
 
@@ -85,11 +87,11 @@ def _rule_r5(features: pl.LazyFrame) -> pl.Expr:
 
 class RulesScorer(BaseAnomalyScorer):
     """M1. Requires the F1-F4 feature columns to already be present on the
-    frames passed to `fit`/`calibrate_weights`/`score`.
+    frames passed to `fit`/`score`.
     """
 
     name = "M1_rules"
-    # Unsupervised fit, but the weights are calibrated on validation labels (`calibrate_weights`).
+    # Unsupervised fit, but the weights are chosen on validation labels (`pipeline.tuning`).
     requires_labels = True
     # R6 and R7 come precomputed from F3/F4 and the rule scale is fitted on training data,
     # so an event's score depends on that event's row alone.
@@ -161,53 +163,11 @@ class RulesScorer(BaseAnomalyScorer):
             pl.Series(r.id, _ecdf(raw[r.id].to_numpy(), self._reference[r.id])) for r in RULES
         )
 
-    def calibrate_weights(
-        self,
-        val_features: pl.LazyFrame,
-        val_labels: pl.Series,
-        *,
-        n_trials: int = 200,
-        seed: int = 42,
-    ) -> None:
-        """Random search over the weight simplex, maximizing AUC-PR on the
-        validation period only (US-118). The seed is stored so the search is
-        reproducible bit-for-bit (NFR-02).
-
-        Raises `NoPositivesInValidationError` if the validation period holds no
-        malicious events: `average_precision_score` returns 0.0 for every
-        candidate in that case, so the search would keep its first arbitrary
-        draw and report a "calibrated" M1 that was never calibrated at all.
-        A validation window with no positives is a split/data-generation bug,
-        and it must not be able to hide behind a plausible-looking result.
-        """
-        from sklearn.metrics import average_precision_score
-
-        rule_ids = [r.id for r in RULES]
-        scores_df = self.rule_scores(val_features)
-        matrix = scores_df.select(rule_ids).to_numpy()
-        y = val_labels.to_numpy()
-
-        n_positives = int(np.count_nonzero(y))
-        if n_positives == 0:
-            raise NoPositivesInValidationError(
-                f"M1 weight calibration needs malicious events in the validation period, "
-                f"but all {y.size} validation labels are negative. AUC-PR is identically 0 "
-                "for every weight vector, so the random search would silently return its "
-                "first arbitrary draw. Check the val_days window of your split config "
-                "against the red-team event timestamps."
-            )
-
-        rng = np.random.default_rng(seed)
-        best_weights, best_ap = None, -1.0
-        for _ in range(n_trials):
-            raw_weights = rng.dirichlet(np.ones(len(rule_ids)))
-            combined = matrix @ raw_weights
-            ap = average_precision_score(y, combined)
-            if ap > best_ap:
-                best_ap, best_weights = ap, raw_weights
-
-        assert best_weights is not None
-        self.weights = dict(zip(rule_ids, best_weights.tolist(), strict=True))
+    def with_weights(self, weights: np.ndarray) -> RulesScorer:
+        """This fitted engine with other rule weights, in `RULES` order; the fit is shared."""
+        variant = copy.copy(self)
+        variant.weights = dict(zip([r.id for r in RULES], weights.tolist(), strict=True))
+        return variant
 
     def score(self, data: pl.LazyFrame) -> pl.Series:
         scores_df = self.rule_scores(data)
@@ -216,6 +176,17 @@ class RulesScorer(BaseAnomalyScorer):
         for rid in rule_ids:
             combined += scores_df[rid].to_numpy() * self.weights.get(rid, 0.0)
         return pl.Series(self.name, combined)
+
+
+class UniformRulesScorer(RulesScorer):
+    """M1u: the same eight rules with uniform weights, never tuned and reading no label.
+
+    The reference that separates what the rules detect from what choosing their weights on
+    validation labels adds: M1 is the only model the published runs tuned on labels.
+    """
+
+    name = "M1u_rules_uniform"
+    requires_labels = False
 
 
 def rule_discrimination(model: RulesScorer, features: pl.DataFrame) -> pl.DataFrame:

@@ -88,7 +88,8 @@ significance across intrusions. M3b ECOD was excluded before fitting (memory).
 >    and phases of one operation, not a population of attacks.
 > 2. **Unequal access to labels.** M1's rule weights are calibrated on
 >    validation labels; every other model is unsupervised with default
->    hyperparameters.
+>    hyperparameters. Since 22 October 2026 every tunable model gets the same
+>    budget on validation, and M1u reports the rules without labels.
 > 3. **Two transductive models.** M1 rank-normalises its rules within the
 >    scored partition and ECOD recomputes its distributions from the scored
 >    matrix: no label crosses the boundary, but scores depend on the test
@@ -124,9 +125,10 @@ it is a finding.
 | M2a pair rarity | 0.0024 [0.0004, 0.0077] | 0.577 | 0% *[0–100]* | 0% *[0–100]* | 0% *[0–100]* | 100% *[0–100]* | 121 |
 | M2c source rarity | 0.0031 [0.0009, 0.0085] | 0.751 | 0% *[0–50]* | 0% *[0–50]* | 0% *[0–50]* | 50% *[0–50]* | 121 |
 | M2b PCA reconstruction | 0.0294 [0.0016, 0.2032] | 0.889 | 25% | 25% | 50% | 100% | 4 |
-| M3a Isolation Forest | 0.0060 [0.0018, 0.0166] | 0.876 | 0% | 0% | 25% | 75% | 95 |
+| M3a Isolation Forest | 0.0090 [0.0025, 0.0275] | 0.921 | 0% | 25% | 50% | 100% | 49 |
 | M3b ECOD | 0.0026 [0.0007, 0.0101] | 0.662 | 0% | 0% | 0% | 50% | 232 |
-| **M1 rules** | **0.3987 [0.0749, 0.6628]** | 0.956 | **100%** | **100%** | **100%** | **100%** | **1** |
+| **M1 rules** | **0.4395 [0.1006, 0.6757]** | 0.971 | **100%** | **100%** | **100%** | **100%** | **1** |
+| M1u rules, uniform weights *(no label)* | 0.0191 [0.0016, 0.1437] | 0.867 | 25% | 25% | 25% | 75% | 4 |
 
 *Italic brackets are the tie-break range: the recall under the least and the
 most favourable ordering of equally scored events. M0b scores every event 0 or 1,
@@ -136,9 +138,10 @@ anchored to the start of the day, so two events that are equally new on the same
 day tie, and the bracket shows how much the tie order decides. Before, the time
 of day broke those ties inside the score, invisibly.*
 
-**Read the Isolation Forest row twice.** ROC-AUC 0.876, a number that would
-pass without comment in a paper, and it catches nothing at 10 or 50 alerts a
-day. The two registers do not merely differ in scale; they rank differently.
+**Read the Isolation Forest row twice.** ROC-AUC 0.921, a number that would
+pass without comment in a paper, and it catches nothing at 10 alerts a day, where
+M1u, at ROC-AUC 0.867, already catches a campaign. The two registers do not
+merely differ in scale; they rank differently.
 
 **Then read the last column, which is the one that does not saturate**, and
 read it against chance: `budget_summary.json` places every budget against random
@@ -150,12 +153,14 @@ source-destination relations to the design matrix (F3, 22 October 2026) moved
 PCA's first detection from 114 alerts a day to 4. This is a synthetic sample;
 the LANL runs predate the change.
 
-14 of the 28 pairwise comparisons are significant after Holm-Bonferroni, all 14
-on the resolution floor (`Holm-adjusted p ≤ 0.0056` against 0.05); see
+16 of the 36 pairwise comparisons are significant after Holm-Bonferroni, all 16
+on the resolution floor (`Holm-adjusted p ≤ 0.0072` against 0.05); see
 [below](#the-significant-results-are-bounds-not-measurements). Four campaigns in
 a test split is a small sample and the intervals say so. Since 22 October 2026
-M0a hashes `event_id` and ECOD is fitted on training data (their rows changed),
-and the bootstrap draws from sufficient statistics (`docs/methodology.md`); on the
+M0a hashes `event_id` and ECOD is fitted on training data, every tunable model is
+tuned on validation with the same budget of 20 candidates and M1u shows the rules
+without labels (those rows changed), and the bootstrap draws from sufficient
+statistics (`docs/methodology.md`); on the
 same scores both bootstrap schemes give the same verdict on 28 of 28 pairs.
 The intervals are BCa over 10,000 resamples of accounts, each endpoint published
 with its Monte Carlo range (`auc_pr_ci_monte_carlo`).
@@ -181,12 +186,17 @@ That table is generated output, not prose: `reports/demo/tables/rule_discriminat
 rewritten by every `make demo` and covered by the reproducibility check, so
 the caveat cannot quietly stop matching the run it describes.
 
-M1's validation-fitted weights then put **0.579 on R7**: more than half its
-score. So "well-built heuristics beat every ML model at every budget" is, on
-this sample, largely one tautological rule doing the work. R1 contributes
-genuinely (real lateral movement does create new user→host pairs); R4 turns out
-not to discriminate at all once the night window is calibrated from data rather
-than assumed.
+M1's weights, chosen on validation from 20 candidates (the budget every tuned
+model gets since 22 October 2026), put 0.235 on R7 and 0.303 on R8 (new
+source); with the 50 draws of the published configuration they had put 0.579 on R7.
+The weight on one rule is not the measurement that matters, though; what choosing
+the weights buys is. **M1u**, the same eight rules with uniform weights and no
+label, reaches AUC-PR 0.0191 against M1's 0.4395, and
+detects 25% of the campaigns at 10 alerts a day against M1's 100%. On this sample,
+most of M1's lead comes from weights chosen on validation labels drawn from the same
+generator that defines the attacks. R1 contributes genuinely (real lateral movement
+does create new user→host pairs); R4 does not discriminate at all once the night
+window is calibrated from data rather than assumed.
 
 This is a property of a **synthetic sample written by the same author as the
 rules**, not a finding about heuristics, and no amount of statistical care fixes
@@ -410,7 +420,7 @@ published**, so it is stated here rather than left for a reader to derive:
 | run | significant | of those, on the resolution floor |
 |---|---:|---:|
 | demo (R = 2000, 28 pairs) | 16 | **16** |
-| demo since 22 Oct. 2026 (R = 10,000, accounts, 28 pairs) | 14 | **14** |
+| demo since 22 Oct. 2026 (R = 10,000, accounts, 36 pairs) | 16 | **16** |
 | LANL single day (R = 2000, 21 pairs) | 13 | **12** |
 | LANL wider window (R = 2000, 21 pairs) | 18 | **18** |
 
@@ -502,9 +512,11 @@ Being explicit about this is part of the point of the benchmark.
 
 - Ingest, parse, label, temporal split with a mechanical leakage guard.
 - Features F1 (event), F2 (history), F3 (novelty), F4 (temporal).
-- Models M0a random, M0b always-fail, M1 rules (7 rules, weights calibrated
-  on validation), M2a pair-rarity, M2b PCA reconstruction, M3a Isolation
-  Forest, M3b ECOD/HBOS.
+- Models M0a random, M0b always-fail, M1 rules (8 rules, weights chosen on
+  validation), M1u the same rules with uniform weights and no label, M2a
+  pair-rarity, M2c source rarity, M2b PCA reconstruction, M3a Isolation Forest,
+  M3b ECOD/HBOS. Every tunable model gets the same budget of 20 candidates on
+  validation (`pipeline.tuning`).
 - Evaluation, in two registers the report keeps separate:
   - *operational*: event and campaign recall at daily alert budgets,
     time-to-detection per campaign, AUC-PR with block-bootstrap BCa CIs;
