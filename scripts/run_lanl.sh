@@ -59,16 +59,35 @@ else
 fi
 step convert uv run authbench data to-parquet data/raw/auth.txt.gz --out-dir data/interim/auth --dataset lanl
 
-for split in temporal harmonised; do
+protocol() {
+    local split="$1"
     step "features_${split}" uv run python -m authbench.pipeline.build_features "split=${split}"
     step "evaluate_${split}" uv run python -m authbench.pipeline.train_eval "split=${split}" \
         runtime.deep_models=true runtime.euler=true \
         "paths.reports_dir=${RUN_DIR}/${split}" \
         "paths.tables_dir=${RUN_DIR}/${split}/tables" \
-        "paths.figures_dir=${RUN_DIR}/${split}/figures"
-done
+        "paths.figures_dir=${RUN_DIR}/${split}/figures" \
+        "mlflow.tracking_uri=sqlite:///${RUN_DIR}/${split}/mlruns.db"
+}
 
-step euler_fidelity uv run python scripts/euler_fidelity.py data/interim/auth data/raw/redteam.txt.gz "${RUN_DIR}"
+# The protocols and the fidelity check are independent and mostly single-threaded, so they run
+# side by side (about 40 GB of RAM together, from the measured budgets in docs/scaling.md).
+pids=()
+for split in temporal harmonised; do
+    mkdir -p "${RUN_DIR}/${split}"
+    protocol "${split}" &
+    pids+=("$!")
+done
+step euler_fidelity uv run python scripts/euler_fidelity.py data/interim/auth data/raw/redteam.txt.gz "${RUN_DIR}" &
+pids+=("$!")
+failed=0
+for pid in "${pids[@]}"; do
+    wait "${pid}" || failed=1
+done
+if ((failed)); then
+    log "a protocol or the fidelity check failed; see the step logs in ${RUN_DIR}"
+    exit 1
+fi
 
 SECONDS_TOTAL="$(($(date +%s) - START))"
 HOURS="$(awk "BEGIN { printf \"%.2f\", ${SECONDS_TOTAL} / 3600 }")"
