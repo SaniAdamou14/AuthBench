@@ -631,8 +631,8 @@ def fixed_threshold(stats: ModelStatistics, budgets: list[int]) -> list[dict[str
         rows.append(
             {
                 "budget": k,
-                # A raw score: LAPACK-fitted models differ in the last bits between machines.
-                "threshold": float(f"{threshold:.12g}") if np.isfinite(threshold) else None,
+                # A raw score: LAPACK-fitted models differ near 1e-12 relative between machines.
+                "threshold": float(f"{threshold:.6g}") if np.isfinite(threshold) else None,
                 "alerts_per_day_mean": float(alerts.mean()) if alerts.size else 0.0,
                 "alerts_per_day_max": int(alerts.max()) if alerts.size else 0,
                 "campaign_recall": hit["campaign_id"].n_unique() / n_campaigns
