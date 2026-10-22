@@ -1,0 +1,17 @@
+# @package _global_
+# The protocol of Larroche (2026), so AuthBench's numbers can be set beside UltraLMD's:
+# the first 41 hours train, everything after tests, remote LogOn events only, and
+# every event featurised against all earlier ones (cumulative history from day 0).
+# Global package because the universe is a feature setting: it changes what history
+# each event is compared against, so it must enter the feature-store hash.
+# No validation partition: M1 keeps uniform rule weights (no label is used anywhere).
+split:
+  name: harmonised
+  mode: temporal
+  history: cumulative
+  train_hours: [0, 41]
+  test_hours: [41, 1392]
+  regimes: [r1_unsupervised]
+
+features:
+  universe: remote_logon

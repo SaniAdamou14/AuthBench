@@ -256,3 +256,10 @@ Trois relecteurs indépendants : deux « révision majeure », un « rejet en l'
 **Priorité de décembre (capacité d'environ 40 h)** : S6-26, S6-28, S6-05/06, S6-20, puis S6-09 (Euler) si le temps le permet. S6-23 et S6-29 tournent dans le même run. S6-24, S6-25 et S6-27 passent en S7 si nécessaire.
 
 **Recommandation sur la v2 publique (décision à Mahamane)** : ne pas publier la v2 sur Zenodo avant ce run. Le texte révisé est honnête, mais la revue montre que sa contribution empirique n'est pas encore au niveau d'une publication ; la v2 publique doit être la version d'après le sprint.
+
+## 10. Avancement (22 octobre)
+
+- **S6-05/06, S6-20, S6-27, S6-28** : faits sur `s6/sprint` (registre des positifs, normalisation de M1 ajustée sur l'entraînement, rareté ancrée au jour, côté source avec M2c et R8, M1 évalué ligne par ligne).
+- **S6-26** : calcul jour par jour fait (`features/incremental.py`, `build_store`), égal bit pour bit au calcul sur la fenêtre entière ; bornes en heures, historique `window` ou `cumulative`, `conf/split/harmonised.yaml`. Reste : l'évaluation par jour dans `train_eval` pour les quelque 400 millions de lignes de test du run complet.
+- **S6-29** : univers `all`, `remote_logon`, `remote_logon_user` faits ; unités (arêtes, utilisateurs-jours) et modèle d'effectif à faire.
+- **Mesure sur la machine de 8 Go (jours 0 à 2 réels)** : univers LogOn distant, pic de 4,7 Go et environ 50 s par jour ; univers complet, échec d'allocation dès le jour 0. Le run complet reste prévu sur Hetzner.

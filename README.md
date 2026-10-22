@@ -284,6 +284,25 @@ authbench preflight --events 253800000
 authbench data to-parquet data/raw/auth.txt.gz --out-dir data/interim/auth --days 0:13
 ```
 
+Features are computed one day at a time, with novelty counts and per-user
+profiles carried from day to day (`features/incremental.py`), and written as one
+Parquet file per day under `data/processed/features/<version>/<split>/`. Peak
+memory is set by a day and its predecessor, not by the length of the run.
+Measured on days 0-2 of the real data on the 8 GB reference machine: the remote
+LogOn universe (about 6 million events a day) peaks at 4.7 GB and 50 s per day;
+all events (about 18 million a day) still exhaust 8 GB on the first day.
+
+Two protocols are configured. `split=temporal` is the published one (train 0-7,
+validation 8-10, test 11-13, two warm-up days per partition, all events).
+`split=harmonised` follows Larroche (2026): train on the first 41 hours, test on
+the rest, remote LogOn events only, every event featurised against all earlier
+ones, and no labels used anywhere:
+
+```bash
+python -m authbench.pipeline.build_features split=harmonised
+python -m authbench.pipeline.train_eval split=harmonised
+```
+
 `preflight` exits non-zero when a run does not fit, and names the event count
 that would. Label every number a partial run produces with the window it came
 from: `to-parquet` refuses to reconcile a day window against the published

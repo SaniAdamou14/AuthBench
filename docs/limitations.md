@@ -43,6 +43,8 @@ this summarizes.
     published LANL runs the rarity denominator grew with every event, so within a day pair
     rarity ranked equally new events latest first; since 22 October 2026 it is anchored to the
     start of the day, equally new events of a day tie, and the tie bracket shows the effect.
+    `split.history: cumulative` (22 October 2026) compares every event with all earlier
+    events from day 0; the published runs used `window`.
 
 ## Metrics deliberately not used as primary
 

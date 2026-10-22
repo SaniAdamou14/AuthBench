@@ -28,6 +28,7 @@ def test_split_bounds_match() -> None:
 
     for key in ("train_days", "val_days", "test_days"):
         assert list(params.split[key]) == list(conf[key]), f"split.{key} drifted"  # type: ignore[index,union-attr]
+    assert params.split.history == conf.history  # type: ignore[union-attr]
 
 
 def test_evaluation_knobs_match() -> None:
@@ -58,6 +59,7 @@ def test_feature_knobs_match() -> None:
     # a silent mismatch changes how much history a run actually got without
     # changing what `dvc params diff` claims it asked for.
     assert params.features.history_warmup_days == conf.history_warmup_days  # type: ignore[union-attr]
+    assert params.features.universe == conf.universe  # type: ignore[union-attr]
 
 
 def test_the_split_lies_inside_the_converted_day_window() -> None:

@@ -30,6 +30,23 @@ evaluated configuration (`reports/lanl/wider_window_results/`). The first LANL
 run used one day per partition (train 5, validation 8, test 12) without warm-up,
 because an 8 GB machine could not hold more; it is kept in `reports/lanl/RUN.md`.
 
+**Day-by-day computation (since 22 October 2026).** `pipeline.build_features`
+featurises one day at a time and carries what later days need: pair, user-source,
+source-destination and user-auth-type counts with their last-seen times (F3), each
+user's circular sums, last time and last destination (F4), and the previous day
+for the 24-hour windows (F2). The carried sums enter each cumulative sum as its
+first term, so the features equal those of the whole window computed at once, bit
+for bit (`tests/unit/test_incremental.py`, `tests/integration/test_build_store.py`).
+Partition bounds may be given in days (inclusive) or hours (half-open), and
+`split.history` selects `window` (each partition from its own first day minus the
+warm-up) or `cumulative` (one pass from day 0, every event compared with all
+earlier ones). `features.universe` restricts the events to all, remote LogOn
+(source differs from destination), or remote LogOn to a user account; it is part
+of the feature-store hash because it changes the history each event is compared
+against. `conf/split/harmonised.yaml` combines hour bounds, cumulative history and
+the remote LogOn universe to reproduce the protocol of Larroche (2026); it has no
+validation partition, so M1 keeps uniform rule weights there.
+
 **Why not the spec's split.** The spec's own split (train 1–30, validation 31–40,
 test 41–58, i.e. 0–29 / 30–39 / 40–57 here) cannot be run at all: the red team stops at
 day 29, so it puts every one of the 749 red-team events in train and leaves validation and

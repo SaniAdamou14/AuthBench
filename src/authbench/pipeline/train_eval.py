@@ -144,7 +144,7 @@ def _deep_catalog(fit_sample_size: int | None) -> list[AnomalyScorer]:
 def fit_and_score_all(
     models: list[AnomalyScorer],
     train: pl.LazyFrame,
-    val: pl.LazyFrame,
+    val: pl.LazyFrame | None,
     test: pl.LazyFrame,
     *,
     chunk_rows: int | None = DEFAULT_SCORING_CHUNK_ROWS,
@@ -162,9 +162,9 @@ def fit_and_score_all(
     21-column float64 matrix in three estimator copies is 9 GB — more than the
     machine this was meant to fit on.
 
-    Models with cross-row state — M1, whose R6 and R7 look backwards across the
-    whole split — are scored whole, because chunking them would silently reset
-    that state at each boundary.
+    Models with cross-row state are scored whole, because chunking them would
+    silently reset that state at each boundary. With no validation partition,
+    M1 keeps its uniform rule weights.
     """
     n_rows = int(test.select(pl.len()).collect().item())
     skipped: dict[str, str] = {}
@@ -176,7 +176,7 @@ def fit_and_score_all(
         # M1 alone has a second, label-aware fitting step. It runs after
         # `fit` (which re-derives the thresholds its rules are built on)
         # and against the validation split only — never train, never test.
-        if isinstance(model, RulesScorer):
+        if isinstance(model, RulesScorer) and val is not None:
             val_frame = val.collect()
             model.calibrate_weights(val_frame.lazy(), val_frame["is_malicious"], n_trials=200)
             del val_frame
@@ -294,9 +294,14 @@ def main(cfg: DictConfig) -> None:
     # frames below let each stage pull only what it needs — a sampled fit, a
     # day of scoring — and are the other half of why this stage now fits in
     # memory.
-    train = pl.scan_parquet(version_dir / "train.parquet")
-    val = pl.scan_parquet(version_dir / "val.parquet")
-    test = pl.scan_parquet(version_dir / "test.parquet")
+    train, val, test = (
+        pl.scan_parquet(version_dir / name / "*.parquet") if (version_dir / name).exists() else None
+        for name in ("train", "val", "test")
+    )
+    if train is None or test is None:
+        raise FileNotFoundError(
+            f"No train or test day files under {version_dir}; run build_features."
+        )
 
     tracker = open_tracker(str(cfg.mlflow.tracking_uri), str(cfg.mlflow.experiment_name))
 

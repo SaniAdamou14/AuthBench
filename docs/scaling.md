@@ -176,6 +176,22 @@ this memory budget.
 warm-up and multi-day partitions immediately affordable — the budget table
 above already prices it), or stateful chunked featurisation for F3/F4.
 
+**Correction, 22 October 2026: the stateful path now exists.** `features/incremental.py`
+carries F3 counts and F4 sums across days and is tested equal, bit for bit, to the
+whole-window computation; `build_features` uses it for every partition and writes one
+file per day. Measured on the real days 0-2 on the 8 GB reference machine (peak RSS
+sampled every 0.2 s, labels stubbed because `redteam.txt.gz` was not on disk):
+
+| universe | events per day | peak RSS after 3 days | time per day |
+|---|---:|---:|---:|
+| remote LogOn | 5.8M to 6.6M | 4.70 GB | 29 to 51 s |
+| all events | about 18M | allocation failure on day 0 | |
+
+The carried state grows with the number of distinct pairs, so the peak rises slowly
+with the length of the run (3.86, 4.20, 4.70 GB over days 0-2). The all-events
+universe still needs a larger machine; the remote LogOn universe of the harmonised
+protocol fits on this one.
+
 ## Pricing any other slice
 
 `authbench.ingest.budget.lanl_budget(n_events=...)` takes an event count, so the
