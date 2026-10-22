@@ -125,7 +125,7 @@ reporting different things. Metrics stay in two registers, kept under separate k
 
 **Operational** — what a SOC at this budget actually gets:
 
-- **AUC-PR**, the headline ranking metric, with a campaign-stratified CI.
+- **AUC-PR**, the headline ranking metric, with a block-bootstrap BCa interval.
 - **Recall at alert budget** (`evaluate.budget`) — top-k scored events **per day**, never
   top-k over the whole period. Reported per event and per campaign.
 - **Tie-break, stated rather than inherited.** "The top 10 events of the day" is not a
@@ -166,14 +166,36 @@ descriptive: "decoupled", not "anti-correlated", is the claim the data support.
 
 ## Uncertainty and pairwise comparisons (US-128)
 
-`stats_tests.paired_campaign_bootstrap` runs **one** campaign-stratified resampling pass and
+`stats_tests.paired_campaign_bootstrap` runs **one** block-bootstrap resampling pass and
 evaluates every model on each resample. That single pass yields both the per-model CIs and
 every pairwise difference, which means the intervals and the comparisons come from the same
 sampling distribution, and each difference is paired: campaign-composition noise cancels
 between two models rather than being counted twice.
 
-`eval.bootstrap.stratify_by` accepts only `campaign`; any other value is rejected rather than
-silently ignored.
+**Blocks, interval and Monte Carlo error (S6-23, 22 October 2026).** The resampling is a block
+bootstrap over one pooled set of blocks, not a stratified one: the number of positive blocks in
+a resample varies, as the number of attacks in another sample would. Earlier text called it
+"campaign-stratified", which was inaccurate.
+
+- *Blocks.* `eval.bootstrap.block` is `account` (default) or `campaign`. Two campaigns of one
+  account are not independent, so the account is the unit; on the wider LANL test window 52
+  campaigns map to 50 accounts. Benign events are singleton blocks either way. Any other value
+  is rejected.
+- *Resamples.* `n_resamples: 10000`, which the sufficient-statistics bootstrap makes cheap
+  (0.7 s for nine models on a real LANL day).
+- *Per-model intervals: BCa* (Efron, 1987; Efron and Tibshirani, 1993, ch. 14). The bias
+  correction is the share of resamples below the estimate; the acceleration comes from the
+  exact jackknife over every resampling unit, positive blocks and benign events, the latter
+  grouped by benign bin because leaving one out depends only on its bin
+  (`stats_tests.jackknife`, tested equal to leaving out each event by hand). Where the
+  correction is undefined (every resample on one side, or a single positive block) the
+  percentile interval is reported and `auc_pr_ci_method` says so. `bca_interval` reproduces
+  `scipy.stats.bootstrap(method="BCa")` on the same resamples to 1e-9.
+- *Intervals of differences* stay percentile, so that an interval excludes zero exactly when
+  the percentile test rejects.
+- *Monte Carlo error.* Each interval endpoint carries the order statistics that cover it with
+  95% probability (`auc_pr_ci_monte_carlo`), and each raw p-value its standard error
+  `sqrt(p (1 - p) / R)` (`p_value_raw_mc_se`).
 
 Three artifacts of the method can manufacture a verdict that is indistinguishable from a real
 one — two of them a spurious "no difference", the third a spurious clean sweep. All are
@@ -182,8 +204,8 @@ handled explicitly:
 | Floor | Cause | Handling |
 |---|---|---|
 | Degenerate resamples | A ranking metric over zero positives is undefined, but scikit-learn returns 0.0, so every model ties — and ties count in both tails. With 1 campaign in the test split ~37% of resamples are degenerate, flooring p near 0.74. | Discarded and redrawn; `n_degenerate_discarded` reported. A frame with no positives at all raises. |
-| Bootstrap resolution vs. Holm | A percentile bootstrap cannot report p below `2/(R+1)`; Holm's strictest threshold is `alpha/n_pairs`. The 8-model catalog needs `R >= 1119`, so the original `n_resamples: 1000` could never yield a significant result. | `minimum_resamples_for_family` computes the bound; `comparisons()` warns when it is not met. `conf/eval/default.yaml` sets 2000. |
-| A single campaign | The sample size of a campaign-stratified bootstrap is the number of campaigns. With one, every resample re-weights the same attack: no pairwise difference changes sign, the tail count is 0, and every p-value lands on `2/(R+1)` — *below* Holm's threshold, so **every** comparison reads "outperforms". The demo produced 21/21 this way. | `MIN_CAMPAIGNS_FOR_SIGNIFICANCE = 2`. Below it `comparisons()` logs the reason and reports every pair as not significant. Point estimates and intervals are unchanged; only the verdict is withheld. |
+| Bootstrap resolution vs. Holm | A percentile bootstrap cannot report p below `2/(R+1)`; Holm's strictest threshold is `alpha/n_pairs`. The 8-model catalog needs `R >= 1119`, so the original `n_resamples: 1000` could never yield a significant result. | `minimum_resamples_for_family` computes the bound; `comparisons()` warns when it is not met. `conf/eval/default.yaml` sets 10,000 (2,000 in the published runs). |
+| A single campaign | The sample size of a block bootstrap is the number of positive blocks. With one, every resample re-weights the same attack: no pairwise difference changes sign, the tail count is 0, and every p-value lands on `2/(R+1)` — *below* Holm's threshold, so **every** comparison reads "outperforms". The demo produced 21/21 this way. | `MIN_CAMPAIGNS_FOR_SIGNIFICANCE = 2`. Below it `comparisons()` logs the reason and reports every pair as not significant. Point estimates and intervals are unchanged; only the verdict is withheld. |
 
 **How a resample is drawn (since 22 October 2026).** A resample draws `n_blocks` blocks
 with replacement from the campaigns and the benign singletons: how many land on campaigns is

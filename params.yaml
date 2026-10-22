@@ -47,7 +47,7 @@ features:
 eval:
   budgets: [10, 50, 100, 500]
   fpr_targets: [1.0e-4, 1.0e-5]
-  bootstrap_resamples: 2000
+  bootstrap_resamples: 10000
   bootstrap_confidence: 0.95
   pairwise_alpha: 0.05
   ledger_k_max: 10000

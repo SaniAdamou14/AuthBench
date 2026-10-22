@@ -114,7 +114,7 @@ console = Console()
 # 1000 every comparison would come back non-significant by arithmetic while
 # reading exactly like a real null result. `demo_model_catalog` exists so the
 # same test can hold this number against the catalog it actually serves.
-DEMO_BOOTSTRAP_RESAMPLES = 2000
+DEMO_BOOTSTRAP_RESAMPLES = 10_000
 DEMO_FPR_TARGETS = [1.0e-4, 1.0e-3]
 
 
@@ -590,7 +590,7 @@ def demo(
                 reports_dir / "tables" / "rule_discrimination.csv"
             )
 
-    # One campaign-stratified resampling pass serves every model: the
+    # One block-bootstrap resampling pass serves every model: the
     # per-model CIs and the pairwise differences then come from the same
     # sampling distribution. Fewer resamples than the full pipeline's 1000 —
     # the demo is a smoke test under a five-minute CI ceiling (NFR-04).
@@ -600,7 +600,13 @@ def demo(
         budgets=DEFAULT_BUDGETS,
         top_k=max(DEFAULT_BUDGETS),
     )
-    bootstrap = paired_campaign_bootstrap(stats, n_resamples=DEMO_BOOTSTRAP_RESAMPLES, seed=42)
+    users = campaign_users(test_feat)
+    bootstrap = paired_campaign_bootstrap(
+        stats,
+        n_resamples=DEMO_BOOTSTRAP_RESAMPLES,
+        seed=42,
+        block_of=dict(users.iter_rows()),
+    )
 
     # Two tables, because they are two different claims. The operational one
     # is what a SOC would live with; the literature-comparable one exists so
@@ -684,7 +690,7 @@ def demo(
     console.print("[bold]7/7[/] Writing report artifacts...")
     write_ledger_outputs(
         stats,
-        campaign_users(test_feat),
+        users,
         reports_dir / "tables",
         k_max=500,
         n_resamples=DEMO_BOOTSTRAP_RESAMPLES,
@@ -737,7 +743,7 @@ def demo(
         # only one of them is a result.
         console.print(
             f"  [yellow]Not that they are close: with {bootstrap.n_campaign_blocks} campaign(s) "
-            "in the test split a campaign-stratified bootstrap has no campaign-level variation "
+            "in the test split a block bootstrap has no block-level variation "
             "to resample, so significance is not estimable at all here. The AUC-PR point "
             "estimates and their intervals stand; the verdict is withheld.[/]"
         )

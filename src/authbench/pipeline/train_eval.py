@@ -206,11 +206,11 @@ def score_split(
 
 @hydra.main(version_base=None, config_path=str(CONF_DIR), config_name="config")
 def main(cfg: DictConfig) -> None:
-    stratify_by = str(cfg.eval.bootstrap.stratify_by)
-    if stratify_by != "campaign":
+    block = str(cfg.eval.bootstrap.block)
+    if block not in ("account", "campaign"):
         raise ValueError(
-            f"eval.bootstrap.stratify_by={stratify_by!r} is not supported. Only 'campaign' is: "
-            "events within a campaign are strongly dependent, and resampling them "
+            f"eval.bootstrap.block={block!r} is not supported; use 'account' or 'campaign'. "
+            "Events within a campaign are strongly dependent, and resampling them "
             "independently would understate every confidence interval in the report."
         )
 
@@ -270,11 +270,17 @@ def main(cfg: DictConfig) -> None:
             len(models),
             "; ".join(f"{k} ({v})" for k, v in skipped.items()),
         )
+    users = campaign_users(
+        test.filter(pl.col("is_malicious"))
+        .select("campaign_id", "src_user", "is_malicious")
+        .collect()
+    )
     bootstrap = paired_campaign_bootstrap(
         statistics,
         n_resamples=int(cfg.eval.bootstrap.n_resamples),
         confidence=float(cfg.eval.bootstrap.confidence),
         seed=int(cfg.eval.bootstrap.seed),
+        block_of=dict(users.iter_rows()) if block == "account" else None,
     )
 
     summary_rows = []
@@ -358,11 +364,7 @@ def main(cfg: DictConfig) -> None:
     ledger_cfg = cfg.eval.ledger
     write_ledger_outputs(
         statistics,
-        campaign_users(
-            test.filter(pl.col("is_malicious"))
-            .select("campaign_id", "src_user", "is_malicious")
-            .collect()
-        ),
+        users,
         tables_dir,
         k_max=int(ledger_cfg.k_max),
         n_resamples=int(ledger_cfg.n_resamples),

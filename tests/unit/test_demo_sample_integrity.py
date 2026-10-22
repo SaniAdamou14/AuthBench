@@ -69,7 +69,7 @@ def test_every_demo_partition_contains_redteam_activity(partition: str) -> None:
 def test_the_test_split_carries_enough_campaigns_to_estimate_significance() -> None:
     """The second way this sample can cripple the benchmark without crashing.
 
-    Campaigns, not events, are the independent unit of the campaign-stratified
+    Campaigns, not events, are the independent unit of the block
     bootstrap: they *are* its sample size. With one campaign in the test split
     no resample can vary the campaign composition, so no pairwise difference
     can change sign, every p-value lands on the resolution floor `2/(R+1)`, and

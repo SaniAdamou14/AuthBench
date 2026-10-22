@@ -11,12 +11,13 @@ bootstrap:
   # read exactly like a real null result. See
   # `stats_tests.minimum_resamples_for_family`, which warns if this is ever
   # set too low for the number of models actually in the catalog.
-  n_resamples: 2000
-  # The only supported value. Events inside a campaign are anything but
-  # independent, so an event-level resample would understate variance by a
-  # wide margin; `stats_tests.paired_campaign_bootstrap` moves each campaign
-  # as one block. Anything else here is rejected rather than silently ignored.
-  stratify_by: campaign
+  n_resamples: 10000
+  # The resampling block of the positives: `account` (every campaign of one
+  # account moves together; two campaigns of one account are not independent)
+  # or `campaign`. Benign events are singleton blocks either way. Events inside
+  # a campaign are anything but independent, so an event-level resample would
+  # understate variance; anything else here is rejected rather than ignored.
+  block: account
   confidence: 0.95
   seed: 42
 

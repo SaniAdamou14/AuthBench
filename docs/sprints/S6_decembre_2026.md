@@ -265,3 +265,8 @@ Trois relecteurs indépendants : deux « révision majeure », un « rejet en l'
 - **S6-29** : univers `all`, `remote_logon`, `remote_logon_user` faits ; unités (arêtes, utilisateurs-jours) et modèle d'effectif à faire.
 - **Mesure sur la machine de 8 Go (jours 0 à 2 réels)** : univers LogOn distant, pic de 4,7 Go et environ 50 s par jour ; univers complet, échec d'allocation dès le jour 0. Le run complet reste prévu sur Hetzner (`preflight` : environ 55 Go de disque et 19 Go de RAM pour LANL entier).
 - **Après le run** : le papier devra décrire ECOD ajusté sur l'entraînement, M0a haché, le bootstrap sur statistiques suffisantes, et les nouvelles définitions de précision@k, rappel à FPR fixe et résolution du score.
+
+## 11. Avancement, seconde moitié (branche `s6/sprint-2`)
+
+- **S6-23** : fait. Blocs par compte (`eval.bootstrap.block: account`, 52 campagnes et 50 comptes sur le test LANL élargi), R = 10 000, intervalles BCa par modèle avec jackknife exact sur toutes les unités (vérifié contre le jackknife brut et contre `scipy.stats.bootstrap`), intervalles des différences en percentile pour rester cohérents avec le test, erreur de Monte-Carlo publiée pour chaque borne et chaque p-valeur, vocabulaire « stratifié » corrigé partout.
+- **Tests** : ils ne dépendent plus de l'espace disque libre de la machine (`tests/conftest.py`) ; six d'entre eux échouaient sur un disque presque plein.

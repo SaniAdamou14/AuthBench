@@ -39,7 +39,7 @@ def score_column(model_name: str) -> str:
     """Where a model's scores live on the shared evaluation frame.
 
     Every model's scores sit on one frame, under its own column, so a single
-    campaign-stratified resampling pass can serve all of them at once —
+    block-bootstrap resampling pass can serve all of them at once —
     which is also what makes the pairwise differences paired.
     """
     return f"_score__{model_name}"
@@ -164,6 +164,12 @@ class ModelEvaluation:
             record["auc_pr_ci_low"] = self.auc_pr_ci.ci_low
             record["auc_pr_ci_high"] = self.auc_pr_ci.ci_high
             record["auc_pr_ci_confidence"] = self.auc_pr_ci.confidence
+            record["auc_pr_ci_method"] = self.auc_pr_ci.method
+            # How far each endpoint could move with another seed (95% Monte Carlo range).
+            record["auc_pr_ci_monte_carlo"] = {
+                "low": self.auc_pr_ci.ci_low_mc,
+                "high": self.auc_pr_ci.ci_high_mc,
+            }
         return record
 
 
