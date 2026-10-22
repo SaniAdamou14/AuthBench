@@ -22,6 +22,7 @@ from authbench.evaluate.budget import DEFAULT_BUDGETS
 from authbench.evaluate.ledger import campaign_users, write_ledger_outputs
 from authbench.evaluate.metrics import ROC_AUC_WARNING
 from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
+from authbench.evaluate.staffing import staffing_table
 from authbench.evaluate.statistics import alert_thresholds, statistics_from_frame
 from authbench.evaluate.stats_tests import (
     MIN_CAMPAIGNS_FOR_SIGNIFICANCE,
@@ -628,6 +629,7 @@ def demo(
             name: alert_thresholds(s, DEFAULT_BUDGETS) for name, s in val_stats.items()
         },
         cluster_column="src_user",
+        with_units=True,
     )
     users = campaign_users(test_feat)
     bootstrap = paired_campaign_bootstrap(
@@ -721,6 +723,9 @@ def demo(
     )
 
     console.print("[bold]7/7[/] Writing report artifacts...")
+    (reports_dir / "tables" / "staffing.json").write_text(
+        json.dumps(staffing_table(DEFAULT_BUDGETS), indent=2)
+    )
     write_ledger_outputs(
         stats,
         users,

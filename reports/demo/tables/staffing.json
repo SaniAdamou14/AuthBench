@@ -1,0 +1,42 @@
+[
+  {
+    "budget": 10,
+    "analysts_at_5_min": 0.31,
+    "analysts_at_10_to_20_min": [
+      0.62,
+      1.23
+    ],
+    "analysts_at_30_min": 1.85,
+    "share_of_soc_daily_capacity": 0.0068
+  },
+  {
+    "budget": 50,
+    "analysts_at_5_min": 1.54,
+    "analysts_at_10_to_20_min": [
+      3.09,
+      6.17
+    ],
+    "analysts_at_30_min": 9.26,
+    "share_of_soc_daily_capacity": 0.0338
+  },
+  {
+    "budget": 100,
+    "analysts_at_5_min": 3.09,
+    "analysts_at_10_to_20_min": [
+      6.17,
+      12.35
+    ],
+    "analysts_at_30_min": 18.52,
+    "share_of_soc_daily_capacity": 0.0676
+  },
+  {
+    "budget": 500,
+    "analysts_at_5_min": 15.43,
+    "analysts_at_10_to_20_min": [
+      30.86,
+      61.73
+    ],
+    "analysts_at_30_min": 92.59,
+    "share_of_soc_daily_capacity": 0.3379
+  }
+]

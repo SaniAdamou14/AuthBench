@@ -138,7 +138,27 @@
           "campaign_recall": 0.25,
           "event_recall": 0.09090909090909091
         }
-      ]
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.25,
+            0.25
+          ],
+          "budget_for_first_detection": 78
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.5,
+            1.0
+          ],
+          "budget_for_first_detection": 61
+        }
+      }
     },
     "literature_comparable": {
       "roc_auc": 0.5431925626003755,
@@ -313,7 +333,27 @@
           "campaign_recall": 1.0,
           "event_recall": 1.0
         }
-      ]
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.75
+          ],
+          "budget_for_first_detection": 163
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.25,
+            1.0
+          ],
+          "budget_for_first_detection": 85
+        }
+      }
     },
     "literature_comparable": {
       "roc_auc": 0.4906693207265489,
@@ -488,7 +528,27 @@
           "campaign_recall": 0.5,
           "event_recall": 0.5454545454545454
         }
-      ]
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "budget_for_first_detection": 120
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.0,
+            0.25,
+            1.0,
+            1.0
+          ],
+          "budget_for_first_detection": 45
+        }
+      }
     },
     "literature_comparable": {
       "roc_auc": 0.5766755637992264,
@@ -663,7 +723,27 @@
           "campaign_recall": 0.25,
           "event_recall": 0.18181818181818182
         }
-      ]
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.5
+          ],
+          "budget_for_first_detection": 120
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.0,
+            0.25,
+            1.0,
+            1.0
+          ],
+          "budget_for_first_detection": 45
+        }
+      }
     },
     "literature_comparable": {
       "roc_auc": 0.7509952724558348,
@@ -838,7 +918,27 @@
           "campaign_recall": 0.75,
           "event_recall": 0.6363636363636364
         }
-      ]
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.25,
+            0.25,
+            0.5,
+            1.0
+          ],
+          "budget_for_first_detection": 4
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.5,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "budget_for_first_detection": 3
+        }
+      }
     },
     "literature_comparable": {
       "roc_auc": 0.8892533194598385,
@@ -1013,7 +1113,27 @@
           "campaign_recall": 1.0,
           "event_recall": 1.0
         }
-      ]
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.25,
+            0.5,
+            1.0
+          ],
+          "budget_for_first_detection": 49
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "budget_for_first_detection": 21
+        }
+      }
     },
     "literature_comparable": {
       "roc_auc": 0.9214752652174897,
@@ -1188,7 +1308,27 @@
           "campaign_recall": 0.5,
           "event_recall": 0.36363636363636365
         }
-      ]
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.5
+          ],
+          "budget_for_first_detection": 217
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.0,
+            0.25,
+            0.25,
+            1.0
+          ],
+          "budget_for_first_detection": 12
+        }
+      }
     },
     "literature_comparable": {
       "roc_auc": 0.662376439186591,
@@ -1363,7 +1503,27 @@
           "campaign_recall": 1.0,
           "event_recall": 0.9090909090909091
         }
-      ]
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "budget_for_first_detection": 1
+        },
+        "user_day": {
+          "campaign_recall": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "budget_for_first_detection": 1
+        }
+      }
     },
     "literature_comparable": {
       "roc_auc": 0.9705037435816236,
@@ -1538,7 +1698,27 @@
           "campaign_recall": 0.75,
           "event_recall": 0.6363636363636364
         }
-      ]
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.25,
+            0.25,
+            0.25,
+            0.75
+          ],
+          "budget_for_first_detection": 4
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.25,
+            0.25,
+            1.0,
+            1.0
+          ],
+          "budget_for_first_detection": 4
+        }
+      }
     },
     "literature_comparable": {
       "roc_auc": 0.8666165260467326,

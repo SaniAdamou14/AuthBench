@@ -191,3 +191,48 @@ def test_without_thresholds_no_fixed_threshold_is_reported() -> None:
     stats = st.statistics_from_frame(_frame(0, 3), COLUMNS, budgets=BUDGETS, top_k=40)
     assert stats["fine"].alert_thresholds.size == 0
     assert st.fixed_threshold(stats["fine"], []) == []
+
+
+def _with_entities(seed: int) -> pl.DataFrame:
+    rng = np.random.default_rng(seed)
+    frame = _frame(seed, 3)
+    n = frame.height
+    return frame.with_columns(
+        pl.Series("src_computer", [f"C{i}" for i in rng.integers(0, 6, n)]),
+        pl.Series("dst_computer", [f"D{i}" for i in rng.integers(0, 6, n)]),
+        pl.Series("src_user", [f"U{i}" for i in rng.integers(0, 9, n)]),
+    )
+
+
+@pytest.mark.parametrize("seed", [0, 1, 2])
+@pytest.mark.parametrize("column", ["s_coarse", "s_fine"])
+def test_unit_ranks_equal_a_brute_force_ranking_of_units(seed: int, column: str) -> None:
+    frame = _with_entities(seed)
+    stats = st.statistics_from_frame(frame, {"m": column}, budgets=[1], top_k=1, with_units=True)[
+        "m"
+    ]
+    for unit, keys in st.UNITS.items():
+        keyed = frame.with_columns(
+            pl.concat_str(
+                [
+                    (pl.col("time") // 3600).cast(pl.Utf8) if k == "hour" else pl.col(k)
+                    for k in keys
+                ],
+                separator="|",
+            ).alias("_unit")
+        )
+        units = (
+            keyed.group_by("day", "_unit")
+            .agg(pl.col(column).max().alias("score"), pl.col("time").min().alias("first"))
+            .sort("day", "score", "first", "_unit", descending=[False, True, False, False])
+            .with_columns(pl.int_range(1, pl.len() + 1).over("day").alias("rank"))
+        )
+        expected = (
+            keyed.filter(pl.col("is_malicious"))
+            .join(units, on=["day", "_unit"])
+            .sort("day", "time", "event_id")["rank"]
+            .to_list()
+        )
+        assert stats.positives[f"rank_{unit}"].to_list() == expected, unit
+        counts = units.group_by("day").len().sort("day")["len"].to_list()
+        assert stats.day_sizes[f"{unit}s"].to_list() == counts

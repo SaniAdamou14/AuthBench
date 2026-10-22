@@ -271,6 +271,32 @@ last training day (`normalization_days`, seeded sample of at most 2,000,000 even
 R7 are stored features, so M1 is row-local. The LANL results in `reports/lanl/` predate the
 change; the next run uses the fitted normalisation.
 
+## Alert units and what a budget costs (S6-29)
+
+**Units.** An analyst does not triage events one by one. Besides events, every run ranks two
+coarser units per day (`statistics.UNITS`, `operational.alert_units`): the **edge-hour**
+(source computer, destination computer, hour) and the **user-day** (source user). A unit scores
+its highest event; equal units go to the one whose first event came first, then to the smaller
+key, which reads no label. A campaign is detected at budget k in a unit when one of its units
+ranks in the top k of its day. The number of units per day is in `day_sizes.csv`, because a
+budget of k user-days can cover a large share of a small day's users. The unit ranks are tested
+against a brute-force ranking of units.
+
+**Staffing** (`evaluate/staffing.py`, `staffing.json`). Analysts needed per budget = budget x
+minutes per alert / triage minutes per analyst-day. Inputs, each with its weakness:
+
+- 2.7 hours of triage per analyst-day (Vectra, 2023: a vendor-commissioned survey of 2,000
+  analysts by Sapio Research, March-April 2023). The same survey reports 4,484 alerts a day per
+  SOC, 67% of which analysts could not deal with: about 1,480 handled a day across every tool,
+  the ceiling for any one detector.
+- 10 to 20 minutes per alert, 5 to 30 as the sensitivity range (Li et al., 2026, section 4.5:
+  half of 10 practitioners of one SOC, self-reported; a preprint). Industry figures run from
+  about 5 to 40 minutes depending on what "triage" covers.
+
+At 10 to 20 minutes, 10 alerts a day is 0.6 to 1.2 analysts, 100 is 6 to 12, and 500 is 31 to
+62, a third of everything a typical SOC handles in a day. The benchmark's budgets therefore
+span one analyst to a whole team; they are not a menu of equally plausible operating points.
+
 ## Two variances the test bootstrap does not see (S6-24)
 
 **The fit.** A bootstrap over the test split holds the fitted models fixed. Isolation Forest grows

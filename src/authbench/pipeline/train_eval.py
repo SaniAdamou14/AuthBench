@@ -29,6 +29,7 @@ from omegaconf import DictConfig, OmegaConf
 from authbench.evaluate.ledger import campaign_users, write_ledger_outputs
 from authbench.evaluate.metrics import ROC_AUC_WARNING
 from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
+from authbench.evaluate.staffing import staffing_table
 from authbench.evaluate.statistics import (
     POSITIVE_KEYS,
     ModelStatistics,
@@ -187,6 +188,7 @@ def score_split(
     names: list[str] | None = None,
     alert_thresholds: dict[str, np.ndarray] | None = None,
     cluster_column: str | None = None,
+    with_units: bool = False,
 ) -> tuple[dict[str, ModelStatistics], dict[str, str]]:
     """Score `test` one day at a time into each model's statistics; return them and the skipped models.
 
@@ -227,6 +229,7 @@ def score_split(
         top_k=top_k,
         alert_thresholds=alert_thresholds,
         cluster_column=cluster_column,
+        with_units=with_units,
     )
     days = test.select(pl.col("day").unique().sort()).collect().to_series().to_list()
     for day in days:
@@ -381,6 +384,7 @@ def evaluate_regime(
         top_k=max(budgets),
         alert_thresholds=thresholds,
         cluster_column="src_user",
+        with_units=True,
     )
     if fit_variance_seeds:
         variance = fit_variance(models, train, test, seeds=fit_variance_seeds, budgets=budgets)
@@ -488,6 +492,7 @@ def evaluate_regime(
         cfg.eval.pairwise_test.correction,
     )
 
+    (tables_dir / "staffing.json").write_text(json.dumps(staffing_table(budgets), indent=2))
     ledger_cfg = cfg.eval.ledger
     write_ledger_outputs(
         statistics,
