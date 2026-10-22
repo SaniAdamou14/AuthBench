@@ -83,3 +83,20 @@ def test_training_stops_early_and_keeps_its_history() -> None:
     model, _, _ = _fitted()
     assert 1 <= len(model.history) <= 15
     assert all(np.isfinite(loss) for _, _, loss in model.history)
+
+
+def test_snapshot_edges_aggregated_by_day_equal_one_aggregation() -> None:
+    from authbench.models.euler import _snapshot_edges
+
+    frame = pl.concat([_routine(range(0, 40)), _routine(range(40, 100), seed=2)])
+    expected = (
+        frame.select(
+            (pl.col("time") // SNAPSHOT).cast(pl.Int64).alias("snapshot"),
+            pl.col("src_computer").alias("src"),
+            pl.col("dst_computer").alias("dst"),
+        )
+        .group_by("snapshot", "src", "dst")
+        .len()
+        .sort("snapshot", "src", "dst")
+    )
+    assert _snapshot_edges(frame.lazy(), SNAPSHOT).equals(expected)
