@@ -131,10 +131,12 @@ class HBOSScorer(_PyODScorer):
         fit_sample_size: int | None = None,
         n_bins: int = 10,
         tol: float = 0.5,
+        seed: int = 42,
     ) -> None:
         super().__init__(feature_cols, fit_sample_size)
         from pyod.models.hbos import HBOS
 
+        self.seed = seed
         self.n_bins = n_bins
         self.tol = tol
         self._model = HBOS(n_bins=n_bins, tol=tol)

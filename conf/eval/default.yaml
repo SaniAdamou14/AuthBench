@@ -27,6 +27,11 @@ tuning:
   n_configs: 20
   seed: 42
 
+# Seeded models (M1, PCA, Isolation Forest, ECOD, HBOS) refitted with each seed, their tuned
+# configuration fixed, to measure the variance the fit adds (S6-24). Reported regime only.
+fit_variance:
+  seeds: [42, 7, 13, 21, 99]
+
 pairwise_test:
   # The only method: the comparisons reuse the bootstrap pass above, so the
   # per-model CIs and the pairwise differences share one sampling

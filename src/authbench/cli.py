@@ -25,6 +25,8 @@ from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recal
 from authbench.evaluate.statistics import alert_thresholds, statistics_from_frame
 from authbench.evaluate.stats_tests import (
     MIN_CAMPAIGNS_FOR_SIGNIFICANCE,
+    cluster_bootstrap,
+    cluster_bootstrap_record,
     paired_campaign_bootstrap,
     render_comparison_sentence,
 )
@@ -70,7 +72,7 @@ from authbench.models.rules import RulesScorer, UniformRulesScorer, rule_discrim
 from authbench.models.stats import PairRarityScorer, PCAReconstructionScorer, SourceRarityScorer
 from authbench.parse.clean import clean_auth, clean_redteam, data_quality_report
 from authbench.pipeline.build_features import CONF_DIR
-from authbench.pipeline.tuning import tune_and_fit
+from authbench.pipeline.tuning import fit_variance, tune_and_fit
 from authbench.split.temporal import (
     TemporalSplitConfig,
     get_test_split,
@@ -583,6 +585,14 @@ def demo(
     (reports_dir / "tables" / "tuning.json").write_text(
         json.dumps([r.to_dict() for r in tuning], indent=2)
     )
+    variance = fit_variance(
+        models,
+        train_feat.lazy(),
+        test_feat.lazy(),
+        seeds=[42, 7, 13, 21, 99],
+        budgets=DEFAULT_BUDGETS,
+    )
+    (reports_dir / "tables" / "fit_variance.json").write_text(json.dumps(variance, indent=2))
 
     console.print("[bold]6/7[/] Scoring and evaluating on the test split...")
     model_names: list[str] = [m.name for m in models]
@@ -617,6 +627,7 @@ def demo(
         alert_thresholds={
             name: alert_thresholds(s, DEFAULT_BUDGETS) for name, s in val_stats.items()
         },
+        cluster_column="src_user",
     )
     users = campaign_users(test_feat)
     bootstrap = paired_campaign_bootstrap(
@@ -704,6 +715,10 @@ def demo(
         )
 
     comparisons = bootstrap.comparisons("auc_pr", alpha=0.05)
+    by_user = cluster_bootstrap(stats, n_resamples=DEMO_BOOTSTRAP_RESAMPLES, seed=42)
+    (reports_dir / "tables" / "bootstrap_user_clusters.json").write_text(
+        json.dumps(cluster_bootstrap_record(by_user, alpha=0.05), indent=2)
+    )
 
     console.print("[bold]7/7[/] Writing report artifacts...")
     write_ledger_outputs(

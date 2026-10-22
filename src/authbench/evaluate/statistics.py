@@ -56,6 +56,11 @@ class ModelStatistics:
     #: `day_sizes` order (S6-25). Empty when no threshold was given.
     alert_thresholds: np.ndarray = field(default_factory=lambda: np.empty(0))
     alerts_per_day: np.ndarray = field(default_factory=lambda: np.empty((0, 0), dtype=np.int64))
+    #: With a cluster column (S6-24): each positive's cluster, and the benign events per
+    #: (cluster, benign bin) as parallel arrays; bins as in `stats_tests.benign_bins`.
+    n_clusters: int = 0
+    positive_cluster: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=np.int64))
+    benign_cluster_bins: tuple[np.ndarray, np.ndarray, np.ndarray] | None = None
 
     @property
     def n_events(self) -> int:
@@ -89,6 +94,7 @@ class _Day:
     positive_rows: np.ndarray
     positive_index: np.ndarray
     number: int
+    cluster: np.ndarray | None
 
 
 @dataclass
@@ -102,6 +108,8 @@ class _ModelState:
     top: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
     alert_thresholds: np.ndarray
     alerts: dict[int, np.ndarray]
+    cluster_keys: list[np.ndarray] = field(default_factory=list)
+    cluster_counts: list[np.ndarray] = field(default_factory=list)
     min_distinct: int | None = None
     largest_tie: float = 0.0
 
@@ -117,10 +125,12 @@ class SplitAccumulator:
         budgets: list[int],
         top_k: int,
         alert_thresholds: dict[str, np.ndarray] | None = None,
+        cluster_column: str | None = None,
     ) -> None:
         """`positives`: every malicious event of the split, with `POSITIVE_KEYS` and each model's score.
 
         `alert_thresholds` gives each model fixed thresholds whose daily alert volume is counted.
+        `cluster_column` (in `positives` and in every day) groups events for the cluster bootstrap.
         """
         if positives["campaign_id"].null_count():
             raise ValueError(
@@ -139,6 +149,13 @@ class SplitAccumulator:
         }
         self._budgets = list(budgets)
         self._top_k = top_k
+        self._cluster_column = cluster_column
+        self._cluster_index: dict[str, int] = {}
+        self._positive_cluster = (
+            self._clusters(self._positives[cluster_column])
+            if cluster_column is not None
+            else np.empty(0, dtype=np.int64)
+        )
         self._days: dict[int, tuple[int, int]] = {}
         self._n_benign = 0
         empty_top = (
@@ -170,6 +187,17 @@ class SplitAccumulator:
     @property
     def model_names(self) -> list[str]:
         return list(self._models)
+
+    def _clusters(self, values: pl.Series) -> np.ndarray:
+        """Stable integer index of each value, shared by every day."""
+        uniques, inverse = np.unique(
+            values.cast(pl.Utf8).to_numpy().astype(str), return_inverse=True
+        )
+        lookup = np.array(
+            [self._cluster_index.setdefault(str(u), len(self._cluster_index)) for u in uniques],
+            dtype=np.int64,
+        )
+        return lookup[inverse] if uniques.size else np.empty(0, dtype=np.int64)
 
     def drop(self, name: str) -> None:
         """Stop accumulating a model, e.g. one that failed to score a day."""
@@ -207,6 +235,11 @@ class SplitAccumulator:
             positive_rows=positive_rows,
             positive_index=positive_index,
             number=day_number,
+            cluster=(
+                self._clusters(frame[self._cluster_column])
+                if self._cluster_column is not None
+                else None
+            ),
         )
         for name, state in self._models.items():
             s = np.asarray(scores[name], dtype=np.float64)
@@ -268,6 +301,18 @@ class SplitAccumulator:
                 state.contested[k][1] += n_tied
                 state.contested[k][2] += 1
 
+        if day.cluster is not None:
+            benign = ~day.malicious
+            # Gap j (2j) below j thresholds, or level j (2j + 1) on the j-th.
+            above = np.searchsorted(-state.thresholds, -s[benign], side="left")
+            on = np.searchsorted(-state.thresholds, -s[benign], side="right") > above
+            bins = 2 * above + on
+            keys, counts = np.unique(
+                day.cluster[benign] * (2 * state.thresholds.size + 1) + bins, return_counts=True
+            )
+            state.cluster_keys.append(keys)
+            state.cluster_counts.append(counts)
+
         if state.alert_thresholds.size:
             state.alerts[day.number] = np.searchsorted(
                 negated, -state.alert_thresholds, side="right"
@@ -291,6 +336,17 @@ class SplitAccumulator:
                 distinct if state.min_distinct is None else min(state.min_distinct, distinct)
             )
             state.largest_tie = max(state.largest_tie, float(runs.max() / n))
+
+    def _cluster_bins(self, state: _ModelState) -> tuple[np.ndarray, np.ndarray, np.ndarray] | None:
+        if self._cluster_column is None:
+            return None
+        n_bins = 2 * state.thresholds.size + 1
+        if not state.cluster_keys:
+            empty = np.empty(0, dtype=np.int64)
+            return empty, empty, empty
+        keys, inverse = np.unique(np.concatenate(state.cluster_keys), return_inverse=True)
+        counts = np.bincount(inverse, weights=np.concatenate(state.cluster_counts)).astype(np.int64)
+        return keys // n_bins, keys % n_bins, counts
 
     def finish(self) -> dict[str, ModelStatistics]:
         missing = sorted(set(self._expected_per_day) - set(self._days))
@@ -333,6 +389,9 @@ class SplitAccumulator:
                 ),
                 min_distinct_scores_in_a_day=state.min_distinct or 0,
                 largest_tie_fraction_in_a_day=state.largest_tie,
+                n_clusters=len(self._cluster_index),
+                positive_cluster=self._positive_cluster,
+                benign_cluster_bins=self._cluster_bins(state),
                 alert_thresholds=state.alert_thresholds,
                 alerts_per_day=np.array(
                     [
@@ -353,13 +412,20 @@ def statistics_from_frame(
     budgets: list[int],
     top_k: int,
     alert_thresholds: dict[str, np.ndarray] | None = None,
+    cluster_column: str | None = None,
 ) -> dict[str, ModelStatistics]:
     """The same statistics from a frame already holding every model's scores (the demo, tests)."""
+    extra = [cluster_column] if cluster_column is not None else []
     positives = scored.filter(pl.col("is_malicious")).select(
-        *POSITIVE_KEYS, *score_columns.values()
+        *POSITIVE_KEYS, *extra, *score_columns.values()
     )
     accumulator = SplitAccumulator(
-        positives, score_columns, budgets=budgets, top_k=top_k, alert_thresholds=alert_thresholds
+        positives,
+        score_columns,
+        budgets=budgets,
+        top_k=top_k,
+        alert_thresholds=alert_thresholds,
+        cluster_column=cluster_column,
     )
     for day in scored.partition_by("day", maintain_order=True):
         accumulator.add_day(day, {name: day[col].to_numpy() for name, col in score_columns.items()})

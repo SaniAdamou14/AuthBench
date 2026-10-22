@@ -45,6 +45,7 @@ def test_evaluation_knobs_match() -> None:
     assert params.eval.ledger_simulations == conf.ledger.n_simulations  # type: ignore[union-attr]
     assert list(params.eval.ledger_campaign_gap_hours) == list(conf.ledger.campaign_gap_hours)  # type: ignore[union-attr]
     assert params.eval.tuning_configs == conf.tuning.n_configs  # type: ignore[union-attr]
+    assert list(params.eval.fit_variance_seeds) == list(conf.fit_variance.seeds)  # type: ignore[union-attr]
 
 
 def test_feature_knobs_match() -> None:

@@ -144,3 +144,80 @@ def test_bca_falls_back_to_percentile_when_the_correction_is_undefined() -> None
     result = bca_interval(resampled, 0.5, np.array([1.0, 2.0]), np.ones(2), 0.95)
     assert result.method == "percentile"
     assert result.ci_low == pytest.approx(np.quantile(resampled, 0.025))
+
+
+def _users_frame(seed: int) -> pl.DataFrame:
+    rng = np.random.default_rng(seed)
+    n = 400
+    malicious = rng.random(n) < 0.05
+    return pl.DataFrame(
+        {
+            "event_id": np.arange(n),
+            "time": np.sort(rng.integers(0, 3 * 86_400, n)),
+            "is_malicious": malicious,
+            "campaign_id": [int(i % 3) + 1 if m else None for i, m in enumerate(malicious)],
+            "src_user": [f"U{u}" for u in rng.integers(0, 25, n)],
+            "score": rng.integers(0, 7, n).astype(float) + malicious * rng.random(n),
+        }
+    ).with_columns((pl.col("time") // 86_400).alias("day"))
+
+
+@pytest.mark.parametrize("seed", [0, 1, 2])
+def test_a_user_cluster_resample_is_scikit_learns_weighted_average_precision(seed: int) -> None:
+    from sklearn.metrics import average_precision_score
+
+    from authbench.evaluate.stats_tests import cluster_average_precision
+
+    frame = _users_frame(seed)
+    stats = statistics_from_frame(
+        frame, {"m": "score"}, budgets=[1], top_k=1, cluster_column="src_user"
+    )["m"]
+    rng = np.random.default_rng(seed)
+    multiplicity = rng.integers(0, 3, (4, stats.n_clusters))
+    multiplicity[:, stats.positive_cluster[0]] += 1
+    assert stats.benign_cluster_bins is not None
+    assert int(stats.benign_cluster_bins[2].sum()) == stats.n_benign
+    assert stats.n_clusters == frame["src_user"].n_unique()
+    ours = cluster_average_precision(stats, multiplicity)
+    index = _cluster_index_of(frame)
+    for r in range(multiplicity.shape[0]):
+        weights = multiplicity[r, index].astype(float)
+        expected = average_precision_score(
+            frame["is_malicious"], frame["score"], sample_weight=weights
+        )
+        assert ours[r] == pytest.approx(expected, rel=1e-12)
+
+
+def _cluster_index_of(frame: pl.DataFrame) -> np.ndarray:
+    """Recover the accumulator's user numbering: positives first, then days in order."""
+    from authbench.evaluate.statistics import SplitAccumulator
+
+    accumulator = SplitAccumulator(
+        frame.filter(pl.col("is_malicious")).select(
+            "event_id", "campaign_id", "day", "time", "src_user", "score"
+        ),
+        {"m": "score"},
+        budgets=[1],
+        top_k=1,
+        cluster_column="src_user",
+    )
+    index = np.empty(frame.height, dtype=np.int64)
+    for day in frame.partition_by("day", maintain_order=True):
+        rows = day["event_id"].to_numpy()
+        index[rows] = accumulator._clusters(day["src_user"])
+    return index
+
+
+def test_the_user_cluster_bootstrap_is_paired_and_reproducible() -> None:
+    from authbench.evaluate.stats_tests import cluster_bootstrap
+
+    frame = _users_frame(0).with_columns(pl.col("score").alias("twin"))
+    stats = statistics_from_frame(
+        frame, {"m": "score", "twin": "twin"}, budgets=[1], top_k=1, cluster_column="src_user"
+    )
+    first = cluster_bootstrap(stats, n_resamples=300, seed=4, chunk=64)
+    second = cluster_bootstrap(stats, n_resamples=300, seed=4, chunk=64)
+    assert np.array_equal(first.resampled["m"], first.resampled["twin"])
+    assert np.array_equal(first.resampled["m"], second.resampled["m"])
+    assert first.resampled["m"].size == 300
+    assert first.ci("m").method == "percentile"

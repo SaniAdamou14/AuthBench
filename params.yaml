@@ -55,6 +55,7 @@ eval:
   ledger_simulations: 10000
   ledger_campaign_gap_hours: [1, 6, 24, 72]
   tuning_configs: 20
+  fit_variance_seeds: [42, 7, 13, 21, 99]
 
 # conf/config.yaml (runtime)
 runtime:

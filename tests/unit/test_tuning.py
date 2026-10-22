@@ -78,3 +78,33 @@ def test_a_tuned_hbos_scores_with_its_chosen_bins() -> None:
     assert (fitted[0].n_bins, fitted[0].tol) == (chosen["n_bins"], chosen["tol"])
     assert fitted[0].score(frame.lazy()).len() == frame.height
     assert pl.Series(records[0].validation_auc_pr).is_finite().all()
+
+
+def test_reseeding_keeps_the_configuration_and_changes_only_the_seed() -> None:
+    from authbench.pipeline.tuning import reseed
+
+    frame = _featurized()
+    fitted, records = tune_and_fit(_catalog(), frame.lazy(), frame.lazy(), n_configs=5, seed=1)
+    forest = next(m for m in fitted if isinstance(m, IsolationForestScorer))
+    copy = reseed(forest, 7)
+    assert (copy.n_estimators, copy.max_samples, copy.seed) == (
+        forest.n_estimators,
+        forest.max_samples,
+        7,
+    )
+    rules = next(m for m in fitted if type(m) is RulesScorer)
+    assert reseed(rules, 7).weights == rules.weights
+
+
+def test_fit_variance_reports_every_seed_of_every_seeded_model() -> None:
+    from authbench.pipeline.tuning import fit_variance
+
+    frame = _featurized()
+    fitted, _ = tune_and_fit(_catalog(), frame.lazy(), frame.lazy(), n_configs=3, seed=1)
+    variance = fit_variance(fitted, frame.lazy(), frame.lazy(), seeds=[1, 2, 3], budgets=[1, 5])
+    assert set(variance) == {"M1_rules", "M2b_pca_reconstruction", "M3a_iforest", "M3b_hbos"}
+    for summary in variance.values():
+        assert [r["seed"] for r in summary["runs"]] == [1, 2, 3]
+        assert summary["auc_pr"]["min"] <= summary["auc_pr"]["max"]
+    # A forest grown with another seed is another forest.
+    assert len({r["auc_pr"] for r in variance["M3a_iforest"]["runs"]}) > 1

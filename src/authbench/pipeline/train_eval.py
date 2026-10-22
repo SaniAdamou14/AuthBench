@@ -35,7 +35,11 @@ from authbench.evaluate.statistics import (
     SplitAccumulator,
     alert_thresholds,
 )
-from authbench.evaluate.stats_tests import paired_campaign_bootstrap
+from authbench.evaluate.stats_tests import (
+    cluster_bootstrap,
+    cluster_bootstrap_record,
+    paired_campaign_bootstrap,
+)
 from authbench.evaluate.summary import (
     EVAL_COLUMNS,
     evaluate_model,
@@ -54,7 +58,7 @@ from authbench.models.stats import (
 )
 from authbench.pipeline.build_features import CONF_DIR, feature_store_version
 from authbench.pipeline.tracking import open_tracker
-from authbench.pipeline.tuning import TuningRecord, tune_and_fit
+from authbench.pipeline.tuning import TuningRecord, fit_variance, tune_and_fit
 
 logger = logging.getLogger(__name__)
 
@@ -182,6 +186,7 @@ def score_split(
     chunk_rows: int = DEFAULT_SCORING_CHUNK_ROWS,
     names: list[str] | None = None,
     alert_thresholds: dict[str, np.ndarray] | None = None,
+    cluster_column: str | None = None,
 ) -> tuple[dict[str, ModelStatistics], dict[str, str]]:
     """Score `test` one day at a time into each model's statistics; return them and the skipped models.
 
@@ -202,7 +207,9 @@ def score_split(
         raise ValueError(f"{not_row_local} are not row-local and cannot be scored by day.")
     skipped: dict[str, str] = {}
     positives = test.filter(pl.col("is_malicious")).collect()
-    positive_scores = positives.select(POSITIVE_KEYS)
+    positive_scores = positives.select(
+        *POSITIVE_KEYS, *([cluster_column] if cluster_column is not None else [])
+    )
     for label, model in zip(labels, models, strict=True):
         try:
             positive_column = _score(model, positives, chunk_rows)
@@ -219,6 +226,7 @@ def score_split(
         budgets=budgets,
         top_k=top_k,
         alert_thresholds=alert_thresholds,
+        cluster_column=cluster_column,
     )
     days = test.select(pl.col("day").unique().sort()).collect().to_series().to_list()
     for day in days:
@@ -320,6 +328,12 @@ def main(cfg: DictConfig) -> None:
             exclude_models=exclude_models,
             tracker=tracker,
             version=version,
+            # The fit variance of the reported regime only: each seed refits and rescores.
+            fit_variance_seeds=(
+                [int(x) for x in cfg.eval.get("fit_variance", {}).get("seeds", [])]
+                if index == 0
+                else None
+            ),
         )
 
 
@@ -338,6 +352,7 @@ def evaluate_regime(
     exclude_models: set[str],
     tracker: Any,
     version: str,
+    fit_variance_seeds: list[int] | None = None,
 ) -> None:
     """Fit a fresh catalog on `train`, score `test` by day, and write every table and the figure."""
     tables_dir.mkdir(parents=True, exist_ok=True)
@@ -360,8 +375,16 @@ def evaluate_regime(
     (tables_dir / "tuning.json").write_text(json.dumps([r.to_dict() for r in tuning], indent=2))
     thresholds = calibrate_alert_thresholds(models, val if val is not None else train, budgets)
     statistics, skipped = score_split(
-        models, test, budgets=budgets, top_k=max(budgets), alert_thresholds=thresholds
+        models,
+        test,
+        budgets=budgets,
+        top_k=max(budgets),
+        alert_thresholds=thresholds,
+        cluster_column="src_user",
     )
+    if fit_variance_seeds:
+        variance = fit_variance(models, train, test, seeds=fit_variance_seeds, budgets=budgets)
+        (tables_dir / "fit_variance.json").write_text(json.dumps(variance, indent=2))
     model_names = list(statistics)
     if skipped:
         logger.error(
@@ -376,6 +399,18 @@ def evaluate_regime(
         confidence=float(cfg.eval.bootstrap.confidence),
         seed=int(cfg.eval.bootstrap.seed),
         block_of=block_of,
+    )
+
+    by_user = cluster_bootstrap(
+        statistics,
+        n_resamples=int(cfg.eval.bootstrap.n_resamples),
+        confidence=float(cfg.eval.bootstrap.confidence),
+        seed=int(cfg.eval.bootstrap.seed),
+    )
+    (tables_dir / "bootstrap_user_clusters.json").write_text(
+        json.dumps(
+            cluster_bootstrap_record(by_user, alpha=float(cfg.eval.pairwise_test.alpha)), indent=2
+        )
     )
 
     summary_rows = []

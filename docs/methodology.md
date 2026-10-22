@@ -271,6 +271,25 @@ last training day (`normalization_days`, seeded sample of at most 2,000,000 even
 R7 are stored features, so M1 is row-local. The LANL results in `reports/lanl/` predate the
 change; the next run uses the fitted normalisation.
 
+## Two variances the test bootstrap does not see (S6-24)
+
+**The fit.** A bootstrap over the test split holds the fitted models fixed. Isolation Forest grows
+a random forest, the vector-space models fit on a seeded sample of at most 5 million rows, and M1
+normalises its rules on a seeded sample: another seed is another model. `fit_variance.json`
+refits every seeded model (M1, PCA, Isolation Forest, ECOD, HBOS) with each of
+`eval.fit_variance.seeds` (five), its tuned configuration fixed, and reports AUC-PR, first
+detection and campaign recall per seed with their range. On the demo only the forest varies
+(no model there fits on a sample): AUC-PR 0.0046 to 0.0090 and first detection 49 to 166
+alerts across seeds, a spread as large as some gaps between models.
+
+**Benign correlation.** The main bootstrap draws benign events as independent singletons, but
+the events of one user are correlated. `bootstrap_user_clusters.json` repeats the analysis with
+source users as the resampling unit, every event of a user moving with it, drawn in chunks
+shared by every model so the comparisons stay paired; each resample's AUC-PR is computed from
+the benign events per (user, benign bin), accumulated by day and tested equal to scikit-learn's
+weighted average precision with per-event user weights. On the demo it changes the intervals
+little and the significance verdicts not at all (16 of 36 either way).
+
 ## A fixed threshold instead of a daily top-k (S6-25)
 
 The alert budget ranks each day and keeps its top k, which no SOC tool does: a detector is

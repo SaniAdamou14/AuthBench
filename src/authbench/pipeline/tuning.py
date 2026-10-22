@@ -25,7 +25,7 @@ import polars as pl
 
 from authbench.evaluate.statistics import average_precision
 from authbench.models.base import AnomalyScorer
-from authbench.models.classical import HBOSScorer, IsolationForestScorer
+from authbench.models.classical import ECODScorer, HBOSScorer, IsolationForestScorer
 from authbench.models.rules import RULES, NoPositivesInValidationError, RulesScorer
 from authbench.models.stats import PCAReconstructionScorer
 
@@ -69,12 +69,15 @@ class TuningRecord:
         }
 
 
-def _variant(model: AnomalyScorer, config: dict[str, Any]) -> AnomalyScorer:
+def _variant(
+    model: AnomalyScorer, config: dict[str, Any], seed: int | None = None
+) -> AnomalyScorer:
+    seed = model.seed if seed is None else seed  # type: ignore[attr-defined]
     if isinstance(model, PCAReconstructionScorer):
         return PCAReconstructionScorer(
             model.feature_cols,
             n_components=float(config["n_components"]),
-            seed=model.seed,
+            seed=seed,
             fit_sample_size=model.fit_sample_size,
         )
     if isinstance(model, IsolationForestScorer):
@@ -82,7 +85,7 @@ def _variant(model: AnomalyScorer, config: dict[str, Any]) -> AnomalyScorer:
             model.feature_cols,
             n_estimators=int(config["n_estimators"]),
             max_samples=int(config["max_samples"]),
-            seed=model.seed,
+            seed=seed,
             fit_sample_size=model.fit_sample_size,
         )
     if isinstance(model, HBOSScorer):
@@ -91,8 +94,46 @@ def _variant(model: AnomalyScorer, config: dict[str, Any]) -> AnomalyScorer:
             fit_sample_size=model.fit_sample_size,
             n_bins=int(config["n_bins"]),
             tol=float(config["tol"]),
+            seed=seed,
         )
     raise TypeError(f"No grid for {model.name}.")
+
+
+def _config_of(model: AnomalyScorer) -> dict[str, Any]:
+    if isinstance(model, PCAReconstructionScorer):
+        return {"n_components": model.n_components}
+    if isinstance(model, IsolationForestScorer):
+        return {"n_estimators": model.n_estimators, "max_samples": model.max_samples}
+    if isinstance(model, HBOSScorer):
+        return {"n_bins": model.n_bins, "tol": model.tol}
+    raise TypeError(f"No hyperparameters for {model.name}.")
+
+
+#: The models whose fit draws on a seed: a fitting sample, a forest, rule normalisation.
+SEEDED = (
+    "M1_rules",
+    "M2b_pca_reconstruction",
+    "M3a_iforest",
+    "M3b_ecod",
+    "M3b_hbos",
+)
+
+
+def reseed(model: AnomalyScorer, seed: int) -> AnomalyScorer:
+    """An unfitted copy of a tuned model with the same configuration and another seed."""
+    if isinstance(model, RulesScorer):
+        copy = type(model)(
+            chain_window_seconds=model.chain_window_seconds,
+            percentile_threshold=model.percentile_threshold,
+            normalization_days=model.normalization_days,
+            normalization_sample_size=model.normalization_sample_size,
+            seed=seed,
+        )
+        copy.weights = dict(model.weights)
+        return copy
+    if isinstance(model, ECODScorer):
+        return ECODScorer(model.feature_cols, fit_sample_size=model.fit_sample_size, seed=seed)
+    return _variant(model, _config_of(model), seed)
 
 
 def _candidates(
@@ -168,3 +209,62 @@ def tune_and_fit(
         fitted.append(variants[best])
         records.append(TuningRecord(model.name, configs, scores, best))
     return fitted, records
+
+
+def fit_variance(
+    models: list[AnomalyScorer],
+    train: pl.LazyFrame,
+    test: pl.LazyFrame,
+    *,
+    seeds: list[int],
+    budgets: list[int],
+) -> dict[str, dict[str, Any]]:
+    """Each seeded model refitted with every seed, its configuration fixed, and scored on test (S6-24).
+
+    The spread is the variance the fit itself adds, which no bootstrap over the test split sees:
+    a forest grown again, another fitting sample, another normalisation sample for M1.
+    """
+    from authbench.evaluate.statistics import budget_curve
+    from authbench.pipeline.train_eval import score_split
+
+    seeded = [m for m in models if m.name in SEEDED]
+    variants, labels = [], []
+    for model in seeded:
+        for seed in seeds:
+            variant = reseed(model, seed)
+            variant.fit(train)
+            variants.append(variant)
+            labels.append(f"{model.name}@{seed}")
+    if not variants:
+        return {}
+    stats, skipped = score_split(variants, test, budgets=budgets, top_k=max(budgets), names=labels)
+    result: dict[str, dict[str, Any]] = {}
+    for model in seeded:
+        runs = []
+        for seed in seeds:
+            label = f"{model.name}@{seed}"
+            if label in skipped:
+                continue
+            curve = budget_curve(stats[label], budgets)
+            runs.append(
+                {
+                    "seed": seed,
+                    "auc_pr": average_precision(stats[label]),
+                    "budget_for_first_detection": curve.budget_for_first_detection,
+                    "campaign_recall": dict(
+                        zip(map(str, budgets), curve.campaign_recall, strict=True)
+                    ),
+                }
+            )
+        values = np.array([r["auc_pr"] for r in runs])
+        firsts = np.array([r["budget_for_first_detection"] or 0 for r in runs], dtype=float)
+        result[model.name] = {
+            "runs": runs,
+            "auc_pr": {
+                "min": float(values.min()),
+                "max": float(values.max()),
+                "sd": float(values.std(ddof=1)) if values.size > 1 else 0.0,
+            },
+            "budget_for_first_detection": {"min": float(firsts.min()), "max": float(firsts.max())},
+        }
+    return result

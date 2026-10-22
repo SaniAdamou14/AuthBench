@@ -32,7 +32,7 @@ from authbench.evaluate.stats_tests import BootstrapResult, PairedBootstrap, Pai
 logger = logging.getLogger(__name__)
 
 # The only columns evaluation reads from a scored day (NFR-01).
-EVAL_COLUMNS = ["event_id", "time", "day", "is_malicious", "campaign_id"]
+EVAL_COLUMNS = ["event_id", "time", "day", "is_malicious", "campaign_id", "src_user"]
 
 
 def score_column(model_name: str) -> str:

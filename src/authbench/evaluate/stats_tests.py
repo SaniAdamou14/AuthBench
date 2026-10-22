@@ -15,6 +15,7 @@ import logging
 from dataclasses import dataclass, field
 
 import numpy as np
+from scipy import sparse
 from scipy.stats import norm
 
 from authbench.evaluate.statistics import (
@@ -588,3 +589,90 @@ def render_comparison_sentence(comparison: PairwiseComparison) -> str:
         f"{comparison.model_a} and {comparison.model_b} are not significantly different "
         f"on {comparison.metric_name} (Δ={comparison.diff:.4f}{interval}, {p_value})."
     )
+
+
+def cluster_average_precision(stats: ModelStatistics, multiplicity: np.ndarray) -> np.ndarray:
+    """AUC-PR when every event of cluster u counts `multiplicity[r, u]` times, one value per row r."""
+    assert stats.benign_cluster_bins is not None
+    cluster, bins, counts = stats.benign_cluster_bins
+    by_cluster = sparse.csr_matrix(
+        (counts.astype(np.float64), (cluster, bins)),
+        shape=(stats.n_clusters, 2 * stats.thresholds.size + 1),
+    )
+    benign = np.asarray((by_cluster.T @ multiplicity.T.astype(np.float64)).T)
+    at_or_above = np.cumsum(benign, axis=1)[:, 1:-1:2]
+    weights = multiplicity[:, stats.positive_cluster]
+    return weighted_average_precision(positive_weight_by_group(stats, weights), at_or_above)
+
+
+def cluster_bootstrap(
+    statistics: dict[str, ModelStatistics],
+    *,
+    n_resamples: int = 1000,
+    confidence: float = 0.95,
+    seed: int = 42,
+    chunk: int = 256,
+    max_attempts_factor: int = 20,
+) -> PairedBootstrap:
+    """Sensitivity analysis: resample source users, every event of a user moving with it (S6-24).
+
+    Benign events of one user are correlated, which the singleton benign blocks of
+    `paired_campaign_bootstrap` ignore. Here the units are the users of the split; a
+    resample draws as many users as there are, uniformly with replacement, and is redrawn
+    if it holds no user with a positive. Drawn in chunks shared by every model, so the
+    comparisons are paired; the intervals are percentile.
+    """
+    names = list(statistics)
+    reference = statistics[names[0]]
+    if reference.benign_cluster_bins is None:
+        raise ValueError("cluster_bootstrap needs statistics accumulated with a cluster column.")
+    n = reference.n_clusters
+    has_positive = np.zeros(n, dtype=bool)
+    has_positive[reference.positive_cluster] = True
+    rng = np.random.default_rng(seed)
+    resampled: dict[str, list[np.ndarray]] = {name: [] for name in names}
+    kept = degenerate = drawn = 0
+    while kept < n_resamples and drawn < n_resamples * max_attempts_factor:
+        multiplicity = rng.multinomial(n, np.full(n, 1.0 / n), size=chunk)
+        drawn += chunk
+        usable = np.flatnonzero((multiplicity[:, has_positive] > 0).any(axis=1))
+        take = usable[: n_resamples - kept]
+        last = int(take[-1]) + 1 if take.size else chunk
+        degenerate += last - take.size
+        kept += take.size
+        for name in names:
+            resampled[name].append(cluster_average_precision(statistics[name], multiplicity[take]))
+    if kept < n_resamples:
+        raise ValueError(f"Only {kept}/{n_resamples} resamples held a user with a positive.")
+    return PairedBootstrap(
+        model_names=names,
+        point_estimates={name: average_precision(statistics[name]) for name in names},
+        resampled={name: np.concatenate(parts) for name, parts in resampled.items()},
+        confidence=confidence,
+        n_resamples=n_resamples,
+        n_degenerate_discarded=degenerate,
+        n_campaign_blocks=int(has_positive.sum()),
+    )
+
+
+def cluster_bootstrap_record(bootstrap: PairedBootstrap, *, alpha: float) -> dict[str, object]:
+    """The user-cluster sensitivity analysis as written to `bootstrap_user_clusters.json`."""
+    models = {}
+    for name in bootstrap.model_names:
+        ci = bootstrap.ci(name)
+        models[name] = {
+            "auc_pr": ci.point_estimate,
+            "ci_low": ci.ci_low,
+            "ci_high": ci.ci_high,
+            "method": ci.method,
+        }
+    comparisons = bootstrap.comparisons("auc_pr", alpha=alpha)
+    return {
+        "unit": "source user",
+        "n_users_with_positives": bootstrap.n_campaign_blocks,
+        "n_resamples": bootstrap.n_resamples,
+        "n_degenerate_discarded": bootstrap.n_degenerate_discarded,
+        "n_significant": sum(c.significant for c in comparisons),
+        "models": models,
+        "comparisons": [c.to_dict() for c in comparisons],
+    }
