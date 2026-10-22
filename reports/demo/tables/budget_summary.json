@@ -33,9 +33,9 @@
         "random_ranking_at_least_as_good": 0.5685
       },
       "log_area": {
-        "value": 0.045822855053131814,
+        "value": 0.045822855053,
         "ci_low": 0.0,
-        "ci_high": 0.1360116050772302,
+        "ci_high": 0.136011605077,
         "random_ranking_at_least_as_good": 0.57
       }
     }
@@ -74,9 +74,9 @@
         "random_ranking_at_least_as_good": 0.185
       },
       "log_area": {
-        "value": 0.09720633967873085,
-        "ci_low": 0.03376438535806955,
-        "ci_high": 0.1567268832087906,
+        "value": 0.097206339679,
+        "ci_low": 0.033764385358,
+        "ci_high": 0.156726883209,
         "random_ranking_at_least_as_good": 0.3005
       }
     }
@@ -115,9 +115,9 @@
         "random_ranking_at_least_as_good": 0.139
       },
       "log_area": {
-        "value": 0.15389182579955954,
-        "ci_low": 0.08347951492351002,
-        "ci_high": 0.21144233538330517,
+        "value": 0.1538918258,
+        "ci_low": 0.083479514924,
+        "ci_high": 0.211442335383,
         "random_ranking_at_least_as_good": 0.1365
       }
     }
@@ -156,9 +156,9 @@
         "random_ranking_at_least_as_good": 0.1375
       },
       "log_area": {
-        "value": 0.10071137619121076,
+        "value": 0.100711376191,
         "ci_low": 0.0,
-        "ci_high": 0.20142275238242152,
+        "ci_high": 0.201422752382,
         "random_ranking_at_least_as_good": 0.29
       }
     }
@@ -197,9 +197,9 @@
         "random_ranking_at_least_as_good": 0.033
       },
       "log_area": {
-        "value": 0.30160594385708,
-        "ci_low": 0.06730559277484385,
-        "ci_high": 0.6053100972642467,
+        "value": 0.301605943857,
+        "ci_low": 0.067305592775,
+        "ci_high": 0.605310097264,
         "random_ranking_at_least_as_good": 0.0085
       }
     }
@@ -238,9 +238,9 @@
         "random_ranking_at_least_as_good": 0.087
       },
       "log_area": {
-        "value": 0.13752646488551196,
-        "ci_low": 0.03367471778011911,
-        "ci_high": 0.24137821199090478,
+        "value": 0.137526464886,
+        "ci_low": 0.03367471778,
+        "ci_high": 0.241378211991,
         "random_ranking_at_least_as_good": 0.1705
       }
     }
@@ -279,9 +279,9 @@
         "random_ranking_at_least_as_good": 0.487
       },
       "log_area": {
-        "value": 0.03353707128535075,
+        "value": 0.033537071285,
         "ci_low": 0.0,
-        "ci_high": 0.08268972878813467,
+        "ci_high": 0.082689728788,
         "random_ranking_at_least_as_good": 0.6495
       }
     }
@@ -320,9 +320,9 @@
         "random_ranking_at_least_as_good": 0.0
       },
       "log_area": {
-        "value": 0.8558429235720464,
-        "ci_low": 0.7558806005086304,
-        "ci_high": 0.9558052466354624,
+        "value": 0.855842923572,
+        "ci_low": 0.755880600509,
+        "ci_high": 0.955805246635,
         "random_ranking_at_least_as_good": 0.0
       }
     }

@@ -31,7 +31,7 @@ def top_contributions(
     n_top: int = 3,
 ) -> list[FeatureContribution]:
     """Rank features by |contribution| and return the top `n_top`."""
-    order = np.argsort(-np.abs(contributions))[:n_top]
+    order = np.argsort(-np.abs(contributions), kind="stable")[:n_top]
     return [
         FeatureContribution(
             feature_name=feature_names[i],

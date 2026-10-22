@@ -43,7 +43,8 @@ def precision_at_k(y_true: np.ndarray, scores: np.ndarray, k: int) -> float:
     """Fraction of true positives among the k highest-scored events."""
     if k <= 0:
         return 0.0
-    top_k_idx = np.argsort(-scores)[:k]
+    # Stable, so ties keep event order: numpy's default sort orders ties differently on different CPUs.
+    top_k_idx = np.argsort(-scores, kind="stable")[:k]
     return float(np.mean(y_true[top_k_idx])) if len(top_k_idx) else 0.0
 
 

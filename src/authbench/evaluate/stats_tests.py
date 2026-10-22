@@ -698,7 +698,7 @@ def holm_bonferroni(p_values: list[float], alpha: float = 0.05) -> list[bool]:
     whether that comparison is significant at the family-wise `alpha`.
     """
     m = len(p_values)
-    order = np.argsort(p_values)
+    order = np.argsort(p_values, kind="stable")
     reject = [False] * m
     for rank, idx in enumerate(order):
         threshold = alpha / (m - rank)
@@ -738,7 +738,7 @@ def holm_adjusted_p_values(p_values: list[float]) -> list[float]:
 
     adjusted = [0.0] * m
     running = 0.0
-    for rank, idx in enumerate(np.argsort(p_values)):
+    for rank, idx in enumerate(np.argsort(p_values, kind="stable")):
         running = max(running, (m - rank) * p_values[idx])
         adjusted[idx] = min(1.0, running)
     return adjusted

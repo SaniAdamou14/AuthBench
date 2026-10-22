@@ -65,3 +65,11 @@ def test_campaign_weighted_auc_pr_counts_each_campaign_once() -> None:
         y, scores, sample_weight=weights
     )
     assert campaign_weighted_auc_pr(y, scores, campaigns) < average_precision_score(y, scores)
+
+
+def test_precision_at_k_breaks_ties_by_event_order() -> None:
+    # 1,000 tied scores: an unstable sort may return any 10, and which ones differs between CPUs.
+    y = np.zeros(1000, dtype=bool)
+    y[:10] = True
+    assert precision_at_k(y, np.zeros(1000), 10) == 1.0
+    assert precision_at_k(y[::-1].copy(), np.zeros(1000), 10) == 0.0

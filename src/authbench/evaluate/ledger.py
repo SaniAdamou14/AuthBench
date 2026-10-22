@@ -87,7 +87,9 @@ def log_area(budgets: np.ndarray, k_max: int) -> float:
     if not budgets.size or k_max <= 1:
         return 0.0
     within = budgets[budgets <= k_max].astype(np.float64)
-    return float(np.sum(np.log(k_max / within)) / (budgets.size * math.log(k_max)))
+    area = np.sum(np.log(k_max / within)) / (budgets.size * math.log(k_max))
+    # numpy's vectorised log differs in the last bit between CPUs; 12 decimals are machine-independent.
+    return round(float(area), 12)
 
 
 @dataclass(frozen=True)
