@@ -79,6 +79,7 @@ def test_metrics_stay_in_separate_registers_in_the_emitted_record() -> None:
         "tie_exposure",
         "budget_for_first_detection",
         "time_to_detection",
+        "fixed_threshold",
     }
     assert set(record["literature_comparable"]) == {  # type: ignore[arg-type]
         "roc_auc",

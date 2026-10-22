@@ -116,6 +116,8 @@ class ModelEvaluation:
     recall_at_fixed_fpr: dict[float, float] = field(default_factory=dict)
     score_resolution: ScoreResolution | None = None
     auc_pr_campaign_weighted: float | None = None
+    #: The same budgets as thresholds fixed on the calibration partition (S6-25).
+    fixed_threshold: list[dict[str, object]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, object]:
         record: dict[str, object] = {
@@ -146,6 +148,8 @@ class ModelEvaluation:
                 # all. `None` means no budget reaches a campaign.
                 "budget_for_first_detection": self.curve.budget_for_first_detection,
                 "time_to_detection": [ttd.__dict__ for ttd in self.time_to_detection],
+                # A SOC sets a threshold, not a daily top-k: the volume it then gets varies by day.
+                "fixed_threshold": self.fixed_threshold,
             },
             "literature_comparable": {
                 "roc_auc": self.roc_auc,
@@ -206,6 +210,9 @@ def evaluate_model(
             statistics.average_precision(stats, campaign_weighted=True)
             if both_classes_present
             else None
+        ),
+        fixed_threshold=(
+            statistics.fixed_threshold(stats, budgets) if stats.alert_thresholds.size else []
         ),
     )
 

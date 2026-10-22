@@ -22,7 +22,7 @@ from authbench.evaluate.budget import DEFAULT_BUDGETS
 from authbench.evaluate.ledger import campaign_users, write_ledger_outputs
 from authbench.evaluate.metrics import ROC_AUC_WARNING
 from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
-from authbench.evaluate.statistics import statistics_from_frame
+from authbench.evaluate.statistics import alert_thresholds, statistics_from_frame
 from authbench.evaluate.stats_tests import (
     MIN_CAMPAIGNS_FOR_SIGNIFICANCE,
     paired_campaign_bootstrap,
@@ -599,11 +599,24 @@ def demo(
     # per-model CIs and the pairwise differences then come from the same
     # sampling distribution. Fewer resamples than the full pipeline's 1000 —
     # the demo is a smoke test under a five-minute CI ceiling (NFR-04).
+    # S6-25: thresholds giving each budget's daily volume on validation, applied unchanged to test.
+    val_scored = val_feat.select(EVAL_COLUMNS).with_columns(
+        pl.Series(score_column(m.name), m.score(val_feat.lazy())) for m in models
+    )
+    val_stats = statistics_from_frame(
+        val_scored,
+        {name: score_column(name) for name in model_names},
+        budgets=[1],
+        top_k=max(DEFAULT_BUDGETS) * val_feat["day"].n_unique(),
+    )
     stats = statistics_from_frame(
         scored,
         {name: score_column(name) for name in model_names},
         budgets=DEFAULT_BUDGETS,
         top_k=max(DEFAULT_BUDGETS),
+        alert_thresholds={
+            name: alert_thresholds(s, DEFAULT_BUDGETS) for name, s in val_stats.items()
+        },
     )
     users = campaign_users(test_feat)
     bootstrap = paired_campaign_bootstrap(

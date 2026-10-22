@@ -18,7 +18,7 @@ whole-frame definition in `evaluate.budget`, `evaluate.campaign`,
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import polars as pl
@@ -52,6 +52,10 @@ class ModelStatistics:
     top: pl.DataFrame
     min_distinct_scores_in_a_day: int
     largest_tie_fraction_in_a_day: float
+    #: Fixed alert thresholds, one per budget, and the events at or above each, per day in
+    #: `day_sizes` order (S6-25). Empty when no threshold was given.
+    alert_thresholds: np.ndarray = field(default_factory=lambda: np.empty(0))
+    alerts_per_day: np.ndarray = field(default_factory=lambda: np.empty((0, 0), dtype=np.int64))
 
     @property
     def n_events(self) -> int:
@@ -84,6 +88,7 @@ class _Day:
     arrival: np.ndarray
     positive_rows: np.ndarray
     positive_index: np.ndarray
+    number: int
 
 
 @dataclass
@@ -95,6 +100,8 @@ class _ModelState:
     ranks: dict[str, np.ndarray]
     contested: dict[int, list[int]]
     top: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+    alert_thresholds: np.ndarray
+    alerts: dict[int, np.ndarray]
     min_distinct: int | None = None
     largest_tie: float = 0.0
 
@@ -109,8 +116,12 @@ class SplitAccumulator:
         *,
         budgets: list[int],
         top_k: int,
+        alert_thresholds: dict[str, np.ndarray] | None = None,
     ) -> None:
-        """`positives`: every malicious event of the split, with `POSITIVE_KEYS` and each model's score."""
+        """`positives`: every malicious event of the split, with `POSITIVE_KEYS` and each model's score.
+
+        `alert_thresholds` gives each model fixed thresholds whose daily alert volume is counted.
+        """
         if positives["campaign_id"].null_count():
             raise ValueError(
                 "A malicious event has no campaign_id. Labelling and campaign attachment join "
@@ -150,6 +161,10 @@ class SplitAccumulator:
                 ranks={key: np.zeros(scores.size, dtype=np.int64) for key in RANK_COLUMNS},
                 contested={k: [0, 0, 0] for k in self._budgets},
                 top=empty_top,
+                alert_thresholds=np.asarray(
+                    (alert_thresholds or {}).get(name, np.empty(0)), dtype=np.float64
+                ),
+                alerts={},
             )
 
     @property
@@ -191,6 +206,7 @@ class SplitAccumulator:
             arrival=np.lexsort((event_id, time)),
             positive_rows=positive_rows,
             positive_index=positive_index,
+            number=day_number,
         )
         for name, state in self._models.items():
             s = np.asarray(scores[name], dtype=np.float64)
@@ -252,6 +268,11 @@ class SplitAccumulator:
                 state.contested[k][1] += n_tied
                 state.contested[k][2] += 1
 
+        if state.alert_thresholds.size:
+            state.alerts[day.number] = np.searchsorted(
+                negated, -state.alert_thresholds, side="right"
+            )
+
         head = order[: self._top_k]
         merged = (
             np.concatenate([state.top[0], descending[: self._top_k]]),
@@ -312,19 +333,34 @@ class SplitAccumulator:
                 ),
                 min_distinct_scores_in_a_day=state.min_distinct or 0,
                 largest_tie_fraction_in_a_day=state.largest_tie,
+                alert_thresholds=state.alert_thresholds,
+                alerts_per_day=np.array(
+                    [
+                        state.alerts.get(day, np.zeros(state.alert_thresholds.size, dtype=np.int64))
+                        for day in sorted(self._days)
+                    ],
+                    dtype=np.int64,
+                ).reshape(len(self._days), state.alert_thresholds.size),
             )
             for name, state in self._models.items()
         }
 
 
 def statistics_from_frame(
-    scored: pl.DataFrame, score_columns: dict[str, str], *, budgets: list[int], top_k: int
+    scored: pl.DataFrame,
+    score_columns: dict[str, str],
+    *,
+    budgets: list[int],
+    top_k: int,
+    alert_thresholds: dict[str, np.ndarray] | None = None,
 ) -> dict[str, ModelStatistics]:
     """The same statistics from a frame already holding every model's scores (the demo, tests)."""
     positives = scored.filter(pl.col("is_malicious")).select(
         *POSITIVE_KEYS, *score_columns.values()
     )
-    accumulator = SplitAccumulator(positives, score_columns, budgets=budgets, top_k=top_k)
+    accumulator = SplitAccumulator(
+        positives, score_columns, budgets=budgets, top_k=top_k, alert_thresholds=alert_thresholds
+    )
     for day in scored.partition_by("day", maintain_order=True):
         accumulator.add_day(day, {name: day[col].to_numpy() for name, col in score_columns.items()})
     return accumulator.finish()
@@ -449,3 +485,43 @@ def time_to_detection(stats: ModelStatistics, k: int) -> TimeToDetectionResult:
         n_never_detected=per_campaign.height - detected.height,
         n_total_campaigns=per_campaign.height,
     )
+
+
+def alert_thresholds(stats: ModelStatistics, budgets: list[int]) -> np.ndarray:
+    """Per budget k, the score at or above which this split had k alerts a day on average.
+
+    Read from the split's first events in queue order, which must hold k times the number of
+    days; `-inf` when the split has fewer events than that (every event is then an alert).
+    """
+    n_days = stats.day_sizes.height
+    scores = stats.top["score"].to_numpy()
+    thresholds = []
+    for k in budgets:
+        rank = k * n_days
+        if rank > scores.size and stats.n_events > scores.size:
+            raise ValueError(f"A threshold for {k} alerts a day needs the first {rank} events.")
+        thresholds.append(scores[rank - 1] if rank <= scores.size else -np.inf)
+    return np.array(thresholds, dtype=np.float64)
+
+
+def fixed_threshold(stats: ModelStatistics, budgets: list[int]) -> list[dict[str, object]]:
+    """Alert volume and recall on this split at thresholds fixed elsewhere for each budget (S6-25)."""
+    positives = stats.positives
+    n_campaigns = positives["campaign_id"].n_unique()
+    rows: list[dict[str, object]] = []
+    for i, (k, threshold) in enumerate(zip(budgets, stats.alert_thresholds, strict=True)):
+        alerts = stats.alerts_per_day[:, i]
+        hit = positives.filter(pl.col("score") >= threshold)
+        rows.append(
+            {
+                "budget": k,
+                "threshold": float(threshold) if np.isfinite(threshold) else None,
+                "alerts_per_day_mean": float(alerts.mean()) if alerts.size else 0.0,
+                "alerts_per_day_max": int(alerts.max()) if alerts.size else 0,
+                "campaign_recall": hit["campaign_id"].n_unique() / n_campaigns
+                if n_campaigns
+                else 0.0,
+                "event_recall": hit.height / positives.height if positives.height else 0.0,
+            }
+        )
+    return rows

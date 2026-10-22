@@ -104,6 +104,40 @@
           "mean_delay_seconds": 0.0,
           "max_delay_seconds": 0.0
         }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 0.9963172241168782,
+          "alerts_per_day_mean": 7.0,
+          "alerts_per_day_max": 10,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 0.9816510173474654,
+          "alerts_per_day_mean": 39.333333333333336,
+          "alerts_per_day_max": 47,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 100,
+          "threshold": 0.9631231672144984,
+          "alerts_per_day_mean": 93.66666666666667,
+          "alerts_per_day_max": 100,
+          "campaign_recall": 0.25,
+          "event_recall": 0.09090909090909091
+        },
+        {
+          "budget": 500,
+          "threshold": 0.8175760966344445,
+          "alerts_per_day_mean": 487.3333333333333,
+          "alerts_per_day_max": 505,
+          "campaign_recall": 0.25,
+          "event_recall": 0.09090909090909091
+        }
       ]
     },
     "literature_comparable": {
@@ -244,6 +278,40 @@
           "median_delay_seconds": 0.0,
           "mean_delay_seconds": 0.0,
           "max_delay_seconds": 0.0
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 1.0,
+          "alerts_per_day_mean": 50.0,
+          "alerts_per_day_max": 54,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 1.0,
+          "alerts_per_day_mean": 50.0,
+          "alerts_per_day_max": 54,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 100,
+          "threshold": 0.0,
+          "alerts_per_day_mean": 2683.0,
+          "alerts_per_day_max": 2699,
+          "campaign_recall": 1.0,
+          "event_recall": 1.0
+        },
+        {
+          "budget": 500,
+          "threshold": 0.0,
+          "alerts_per_day_mean": 2683.0,
+          "alerts_per_day_max": 2699,
+          "campaign_recall": 1.0,
+          "event_recall": 1.0
         }
       ]
     },
@@ -386,6 +454,40 @@
           "mean_delay_seconds": 0.0,
           "max_delay_seconds": 0.0
         }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 8.577347114235984,
+          "alerts_per_day_mean": 218.0,
+          "alerts_per_day_max": 654,
+          "campaign_recall": 0.25,
+          "event_recall": 0.18181818181818182
+        },
+        {
+          "budget": 50,
+          "threshold": 8.577347114235984,
+          "alerts_per_day_mean": 218.0,
+          "alerts_per_day_max": 654,
+          "campaign_recall": 0.25,
+          "event_recall": 0.18181818181818182
+        },
+        {
+          "budget": 100,
+          "threshold": 8.577347114235984,
+          "alerts_per_day_mean": 218.0,
+          "alerts_per_day_max": 654,
+          "campaign_recall": 0.25,
+          "event_recall": 0.18181818181818182
+        },
+        {
+          "budget": 500,
+          "threshold": 7.886081401775745,
+          "alerts_per_day_mean": 628.6666666666666,
+          "alerts_per_day_max": 1002,
+          "campaign_recall": 0.5,
+          "event_recall": 0.5454545454545454
+        }
       ]
     },
     "literature_comparable": {
@@ -526,6 +628,40 @@
           "median_delay_seconds": 0.0,
           "mean_delay_seconds": 0.0,
           "max_delay_seconds": 0.0
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 3.784189633918261,
+          "alerts_per_day_mean": 30.333333333333332,
+          "alerts_per_day_max": 91,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 3.6635616461296463,
+          "alerts_per_day_mean": 63.0,
+          "alerts_per_day_max": 189,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 100,
+          "threshold": 3.5553480614894135,
+          "alerts_per_day_mean": 113.33333333333333,
+          "alerts_per_day_max": 340,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 500,
+          "threshold": 2.4849066497880004,
+          "alerts_per_day_mean": 518.0,
+          "alerts_per_day_max": 837,
+          "campaign_recall": 0.25,
+          "event_recall": 0.18181818181818182
         }
       ]
     },
@@ -668,6 +804,40 @@
           "mean_delay_seconds": 0.0,
           "max_delay_seconds": 0.0
         }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 0.2043632797128484,
+          "alerts_per_day_mean": 23.666666666666668,
+          "alerts_per_day_max": 42,
+          "campaign_recall": 0.25,
+          "event_recall": 0.36363636363636365
+        },
+        {
+          "budget": 50,
+          "threshold": 0.13714376426885294,
+          "alerts_per_day_mean": 75.66666666666667,
+          "alerts_per_day_max": 130,
+          "campaign_recall": 0.25,
+          "event_recall": 0.36363636363636365
+        },
+        {
+          "budget": 100,
+          "threshold": 0.10848507034424308,
+          "alerts_per_day_mean": 136.33333333333334,
+          "alerts_per_day_max": 226,
+          "campaign_recall": 0.5,
+          "event_recall": 0.5454545454545454
+        },
+        {
+          "budget": 500,
+          "threshold": 0.06113021692618171,
+          "alerts_per_day_mean": 541.6666666666666,
+          "alerts_per_day_max": 754,
+          "campaign_recall": 0.75,
+          "event_recall": 0.6363636363636364
+        }
       ]
     },
     "literature_comparable": {
@@ -808,6 +978,40 @@
           "median_delay_seconds": 0.0,
           "mean_delay_seconds": 73.25,
           "max_delay_seconds": 293.0
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 0.07910687172073927,
+          "alerts_per_day_mean": 14.666666666666666,
+          "alerts_per_day_max": 39,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 0.05462489275202764,
+          "alerts_per_day_mean": 61.666666666666664,
+          "alerts_per_day_max": 142,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 100,
+          "threshold": 0.0409893426762411,
+          "alerts_per_day_mean": 115.0,
+          "alerts_per_day_max": 249,
+          "campaign_recall": 0.5,
+          "event_recall": 0.18181818181818182
+        },
+        {
+          "budget": 500,
+          "threshold": 8.274921336359764e-05,
+          "alerts_per_day_mean": 539.6666666666666,
+          "alerts_per_day_max": 1095,
+          "campaign_recall": 1.0,
+          "event_recall": 1.0
         }
       ]
     },
@@ -950,6 +1154,40 @@
           "mean_delay_seconds": 0.0,
           "max_delay_seconds": 0.0
         }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 36.93895426472057,
+          "alerts_per_day_mean": 11.0,
+          "alerts_per_day_max": 30,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 33.27732358915231,
+          "alerts_per_day_mean": 55.333333333333336,
+          "alerts_per_day_max": 119,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 100,
+          "threshold": 31.59943546089014,
+          "alerts_per_day_mean": 114.33333333333333,
+          "alerts_per_day_max": 244,
+          "campaign_recall": 0.25,
+          "event_recall": 0.09090909090909091
+        },
+        {
+          "budget": 500,
+          "threshold": 27.236998397878022,
+          "alerts_per_day_mean": 542.6666666666666,
+          "alerts_per_day_max": 1045,
+          "campaign_recall": 0.5,
+          "event_recall": 0.36363636363636365
+        }
       ]
     },
     "literature_comparable": {
@@ -1091,6 +1329,40 @@
           "mean_delay_seconds": 0.0,
           "max_delay_seconds": 0.0
         }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 0.789040720737705,
+          "alerts_per_day_mean": 8.666666666666666,
+          "alerts_per_day_max": 17,
+          "campaign_recall": 1.0,
+          "event_recall": 0.6363636363636364
+        },
+        {
+          "budget": 50,
+          "threshold": 0.7733705005050717,
+          "alerts_per_day_mean": 47.0,
+          "alerts_per_day_max": 117,
+          "campaign_recall": 1.0,
+          "event_recall": 0.7272727272727273
+        },
+        {
+          "budget": 100,
+          "threshold": 0.7598764635983963,
+          "alerts_per_day_mean": 180.0,
+          "alerts_per_day_max": 512,
+          "campaign_recall": 1.0,
+          "event_recall": 0.9090909090909091
+        },
+        {
+          "budget": 500,
+          "threshold": 0.7204557931682289,
+          "alerts_per_day_mean": 510.3333333333333,
+          "alerts_per_day_max": 653,
+          "campaign_recall": 1.0,
+          "event_recall": 0.9090909090909091
+        }
       ]
     },
     "literature_comparable": {
@@ -1231,6 +1503,40 @@
           "median_delay_seconds": 239.0,
           "mean_delay_seconds": 200.0,
           "max_delay_seconds": 361.0
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 0.7324008892182289,
+          "alerts_per_day_mean": 10.333333333333334,
+          "alerts_per_day_max": 21,
+          "campaign_recall": 0.25,
+          "event_recall": 0.09090909090909091
+        },
+        {
+          "budget": 50,
+          "threshold": 0.692640792886254,
+          "alerts_per_day_mean": 53.333333333333336,
+          "alerts_per_day_max": 77,
+          "campaign_recall": 0.25,
+          "event_recall": 0.18181818181818182
+        },
+        {
+          "budget": 100,
+          "threshold": 0.685415894775843,
+          "alerts_per_day_mean": 105.33333333333333,
+          "alerts_per_day_max": 143,
+          "campaign_recall": 0.25,
+          "event_recall": 0.2727272727272727
+        },
+        {
+          "budget": 500,
+          "threshold": 0.6234716561689515,
+          "alerts_per_day_mean": 512.3333333333334,
+          "alerts_per_day_max": 569,
+          "campaign_recall": 0.75,
+          "event_recall": 0.6363636363636364
         }
       ]
     },

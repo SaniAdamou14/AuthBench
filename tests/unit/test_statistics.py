@@ -155,3 +155,39 @@ def test_a_positive_without_a_campaign_is_refused() -> None:
     )
     with pytest.raises(ValueError, match="no campaign_id"):
         st.statistics_from_frame(frame, COLUMNS, budgets=BUDGETS, top_k=40)
+
+
+def test_a_fixed_threshold_counts_alerts_and_recall_as_a_brute_force_count_does() -> None:
+    calibration, frame = _frame(4, 1000), _frame(5, 1000)
+    columns = {"fine": "s_fine"}
+    budgets = [1, 3, 10]
+    calibrated = st.statistics_from_frame(calibration, columns, budgets=[1], top_k=40)["fine"]
+    thresholds = st.alert_thresholds(calibrated, budgets)
+    # On its own calibration split a continuous score gives exactly k alerts a day on average.
+    own = st.statistics_from_frame(
+        calibration, columns, budgets=budgets, top_k=40, alert_thresholds={"fine": thresholds}
+    )["fine"]
+    assert own.alerts_per_day.sum(axis=0).tolist() == [k * 4 for k in budgets]
+
+    stats = st.statistics_from_frame(
+        frame, columns, budgets=budgets, top_k=40, alert_thresholds={"fine": thresholds}
+    )["fine"]
+    rows = st.fixed_threshold(stats, budgets)
+    for i, (k, row) in enumerate(zip(budgets, rows, strict=True)):
+        above = frame.filter(pl.col("s_fine") >= thresholds[i])
+        per_day = [above.filter(pl.col("day") == d).height for d in sorted(frame["day"].unique())]
+        assert stats.alerts_per_day[:, i].tolist() == per_day
+        assert row["alerts_per_day_mean"] == pytest.approx(sum(per_day) / len(per_day))
+        hit = above.filter(pl.col("is_malicious"))
+        assert (
+            row["campaign_recall"]
+            == hit["campaign_id"].n_unique()
+            / frame.filter(pl.col("is_malicious"))["campaign_id"].n_unique()
+        )
+        assert row["budget"] == k
+
+
+def test_without_thresholds_no_fixed_threshold_is_reported() -> None:
+    stats = st.statistics_from_frame(_frame(0, 3), COLUMNS, budgets=BUDGETS, top_k=40)
+    assert stats["fine"].alert_thresholds.size == 0
+    assert st.fixed_threshold(stats["fine"], []) == []

@@ -29,7 +29,12 @@ from omegaconf import DictConfig, OmegaConf
 from authbench.evaluate.ledger import campaign_users, write_ledger_outputs
 from authbench.evaluate.metrics import ROC_AUC_WARNING
 from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
-from authbench.evaluate.statistics import POSITIVE_KEYS, ModelStatistics, SplitAccumulator
+from authbench.evaluate.statistics import (
+    POSITIVE_KEYS,
+    ModelStatistics,
+    SplitAccumulator,
+    alert_thresholds,
+)
 from authbench.evaluate.stats_tests import paired_campaign_bootstrap
 from authbench.evaluate.summary import (
     EVAL_COLUMNS,
@@ -176,6 +181,7 @@ def score_split(
     top_k: int,
     chunk_rows: int = DEFAULT_SCORING_CHUNK_ROWS,
     names: list[str] | None = None,
+    alert_thresholds: dict[str, np.ndarray] | None = None,
 ) -> tuple[dict[str, ModelStatistics], dict[str, str]]:
     """Score `test` one day at a time into each model's statistics; return them and the skipped models.
 
@@ -212,6 +218,7 @@ def score_split(
         {label: score_column(label) for label in active},
         budgets=budgets,
         top_k=top_k,
+        alert_thresholds=alert_thresholds,
     )
     days = test.select(pl.col("day").unique().sort()).collect().to_series().to_list()
     for day in days:
@@ -231,6 +238,19 @@ def score_split(
     if not active:
         raise RuntimeError("Every model failed to score; there is nothing to report.")
     return accumulator.finish(), skipped
+
+
+def calibrate_alert_thresholds(
+    models: list[AnomalyScorer], calibration: pl.LazyFrame, budgets: list[int]
+) -> dict[str, np.ndarray]:
+    """Per model, the thresholds giving each budget's alerts a day on `calibration` (S6-25).
+
+    Volume, not labels: the thresholds read no label, so the training partition serves when
+    there is no validation one.
+    """
+    n_days = int(calibration.select(pl.col("day").n_unique()).collect().item())
+    stats, _ = score_split(models, calibration, budgets=[1], top_k=max(budgets) * n_days)
+    return {name: alert_thresholds(s, budgets) for name, s in stats.items()}
 
 
 @hydra.main(version_base=None, config_path=str(CONF_DIR), config_name="config")
@@ -338,7 +358,10 @@ def evaluate_regime(
         seed=int(tuning_cfg.get("seed", 42)),
     )
     (tables_dir / "tuning.json").write_text(json.dumps([r.to_dict() for r in tuning], indent=2))
-    statistics, skipped = score_split(models, test, budgets=budgets, top_k=max(budgets))
+    thresholds = calibrate_alert_thresholds(models, val if val is not None else train, budgets)
+    statistics, skipped = score_split(
+        models, test, budgets=budgets, top_k=max(budgets), alert_thresholds=thresholds
+    )
     model_names = list(statistics)
     if skipped:
         logger.error(

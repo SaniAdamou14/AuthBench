@@ -271,6 +271,19 @@ last training day (`normalization_days`, seeded sample of at most 2,000,000 even
 R7 are stored features, so M1 is row-local. The LANL results in `reports/lanl/` predate the
 change; the next run uses the fitted normalisation.
 
+## A fixed threshold instead of a daily top-k (S6-25)
+
+The alert budget ranks each day and keeps its top k, which no SOC tool does: a detector is
+deployed with a threshold, and the number of alerts it raises then varies from day to day.
+For each budget k, `statistics.alert_thresholds` takes the score at or above which the
+calibration partition had k alerts a day on average (validation, or training when there is
+no validation partition: the threshold reads volume, never a label), and the test split is
+then read at that threshold: mean and largest daily alert volume, campaign and event recall
+(`operational.fixed_threshold`). On the demo, a model with heavily tied scores overshoots: M2a
+calibrated for 10 alerts a day raises 218 on average and 654 on its worst test day, because the
+threshold falls inside a tie; continuous scores stay near the target (Isolation Forest, 15 on
+average, 39 at most). The daily top-k hides that overshoot by cutting ties in arrival order.
+
 ## Evaluation from sufficient statistics
 
 Every reported metric depends on the scores only through the positives
