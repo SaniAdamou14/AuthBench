@@ -47,9 +47,11 @@ RULES: list[RuleSpec] = [
 ]
 
 
-def _rank_normalize(expr: pl.Expr) -> pl.Expr:
-    """Percentile rank in [0, 1] within the scored frame, so M1 is transductive (docs/methodology.md)."""
-    return expr.rank(method="average") / pl.len()
+def _ecdf(values: np.ndarray, reference: np.ndarray) -> np.ndarray:
+    """Mid-rank empirical CDF of `values` against a sorted training reference, in [0, 1]."""
+    below = np.searchsorted(reference, values, side="left")
+    at_or_below = np.searchsorted(reference, values, side="right")
+    return (below + at_or_below) / (2.0 * reference.size)
 
 
 def _rule_r1(features: pl.LazyFrame) -> pl.Expr:
@@ -126,11 +128,20 @@ class RulesScorer(BaseAnomalyScorer):
     scores_row_locally = False
 
     def __init__(
-        self, chain_window_seconds: int = 1800, percentile_threshold: float = 99.9
+        self,
+        chain_window_seconds: int = 1800,
+        percentile_threshold: float = 99.9,
+        normalization_days: int = 1,
+        normalization_sample_size: int = 2_000_000,
+        seed: int = 42,
     ) -> None:
         self.chain_window_seconds = chain_window_seconds
         self.percentile_threshold = percentile_threshold
+        self.normalization_days = normalization_days
+        self.normalization_sample_size = normalization_sample_size
+        self.seed = seed
         self._user_host_thresholds: dict[str, float] = {}
+        self._reference: dict[str, np.ndarray] = {}
         self.weights: dict[str, float] = {r.id: 1.0 / len(RULES) for r in RULES}
 
     def fit(self, train: pl.LazyFrame) -> None:
@@ -149,6 +160,13 @@ class RulesScorer(BaseAnomalyScorer):
                 strict=True,
             )
         )
+        # Rule scales come from the last training days, so no scored event depends on another.
+        last_day = train.select(pl.col("day").max()).collect().item()
+        window = train.filter(pl.col("day") > last_day - self.normalization_days)
+        raw = self._raw_rule_scores(window).collect()
+        if raw.height > self.normalization_sample_size:
+            raw = raw.sample(n=self.normalization_sample_size, seed=self.seed)
+        self._reference = {r.id: np.sort(raw[r.id].to_numpy()) for r in RULES}
 
     def _raw_rule_scores(self, features: pl.LazyFrame) -> pl.LazyFrame:
         new_auth_type = causal_first_occurrence(
@@ -181,15 +199,13 @@ class RulesScorer(BaseAnomalyScorer):
         )
 
     def rule_scores(self, features: pl.LazyFrame) -> pl.DataFrame:
-        """Rank-normalized per-rule scores — published as its own table
-        (US-118: "avant agrégation") because individual rule performance is
-        what a security jury actually cares about.
-        """
-        raw = self._raw_rule_scores(features)
-        rule_ids = [r.id for r in RULES]
-        return raw.select(
-            ["event_id", *[_rank_normalize(pl.col(rid)).alias(rid) for rid in rule_ids]]
-        ).collect()
+        """Per-rule scores on the training-fitted empirical CDF of each rule (US-118)."""
+        if not self._reference:
+            raise RuntimeError("RulesScorer.fit() must run before rule_scores().")
+        raw = self._raw_rule_scores(features).collect()
+        return raw.select("event_id").with_columns(
+            pl.Series(r.id, _ecdf(raw[r.id].to_numpy(), self._reference[r.id])) for r in RULES
+        )
 
     def calibrate_weights(
         self,

@@ -775,8 +775,8 @@
   },
   {
     "model": "M1_rules",
-    "auc_pr": 0.33053185390117695,
-    "auc_pr_campaign_weighted": 0.15182791711954086,
+    "auc_pr": 0.3765358172274729,
+    "auc_pr_campaign_weighted": 0.20196071821786268,
     "operational": {
       "budgets": [
         10,
@@ -835,9 +835,9 @@
         },
         {
           "budget": 500,
-          "n_contested_slots": 0,
-          "n_contenders": 0,
-          "n_contested_days": 0
+          "n_contested_slots": 2,
+          "n_contenders": 4,
+          "n_contested_days": 1
         }
       ],
       "budget_for_first_detection": 1,
@@ -881,7 +881,7 @@
       ]
     },
     "literature_comparable": {
-      "roc_auc": 0.9111153837453911,
+      "roc_auc": 0.9108778755457033,
       "precision_at_k_global": {
         "10": 0.4,
         "50": 0.14,
@@ -889,17 +889,17 @@
         "500": 0.016
       },
       "recall_at_fixed_fpr": {
-        "0.0001": 0.0,
+        "0.0001": 0.09090909090909091,
         "0.001": 0.5454545454545454
       }
     },
     "score_resolution": {
       "n_events": 8049,
-      "n_distinct_scores": 7750,
+      "n_distinct_scores": 4934,
       "largest_tie_fraction": 0.020002484780718102
     },
-    "auc_pr_ci_low": 0.08399399991718766,
-    "auc_pr_ci_high": 0.6423443805066738,
+    "auc_pr_ci_low": 0.08398924139758605,
+    "auc_pr_ci_high": 0.6492613845194052,
     "auc_pr_ci_confidence": 0.95
   }
 ]

@@ -21,10 +21,12 @@ from authbench.models.rules import RULES, RulesScorer
 def _features(n: int = 200, seed: int = 0) -> pl.DataFrame:
     rng = np.random.default_rng(seed)
     users = [f"U{i}" for i in rng.integers(0, 7, n)]
+    time = np.sort(rng.integers(0, 200_000, n))
     return pl.DataFrame(
         {
             "event_id": np.arange(n),
-            "time": np.sort(rng.integers(0, 200_000, n)),
+            "time": time,
+            "day": time // 86_400,
             "src_user": users,
             "auth_type": [f"A{i}" for i in rng.integers(0, 3, n)],
             "src_computer": [f"C{i}" for i in rng.integers(0, 9, n)],
@@ -78,3 +80,17 @@ def test_weights_sum_to_one_and_cover_every_rule() -> None:
     scorer = RulesScorer()
     assert set(scorer.weights) == {rule.id for rule in RULES}
     assert sum(scorer.weights.values()) == pytest.approx(1.0)
+
+
+def test_scores_of_earlier_events_do_not_depend_on_later_events() -> None:
+    features = _features(n=300, seed=5)
+    scorer = RulesScorer()
+    scorer.fit(features.lazy())
+    whole = scorer.score(features.lazy()).to_numpy()
+    prefix = scorer.score(features.head(120).lazy()).to_numpy()
+    np.testing.assert_array_equal(prefix, whole[:120])
+
+
+def test_rule_scores_require_a_fitted_reference() -> None:
+    with pytest.raises(RuntimeError, match="fit"):
+        RulesScorer().rule_scores(_features().lazy())

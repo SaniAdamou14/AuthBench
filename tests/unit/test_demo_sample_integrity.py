@@ -105,6 +105,7 @@ def test_calibrate_weights_rejects_a_validation_set_with_no_positives() -> None:
         {
             "event_id": np.arange(n),
             "time": np.arange(n) * 60,
+            "day": np.zeros(n, dtype=np.int64),
             "src_user": ["U1"] * n,
             "auth_type": ["Kerberos"] * n,
             "src_computer": ["C1"] * n,

@@ -182,11 +182,12 @@ that scoring a split piecewise gives the same answer as scoring it whole. `M3a_i
 `M3b_hbos`, `M2b_pca_reconstruction` and `M0b_always_fail` pass that test; ECOD does not, and
 `AnomalyScorer.scores_row_locally` records which is which.
 
-**M1 is transductive too.** `rules._rank_normalize` divides each rule's rank by the size of
-the frame being scored, so an event's M1 score depends on the distribution of the other test
-events; the weights are calibrated on validation ranks computed the same way. No label is
-involved. Fitting the normalisation (an empirical CDF per rule) on the training partition
-would remove the property, and is planned with the next run because it changes M1's scores.
+**M1 was transductive in the published runs.** Until 22 October 2026 it divided each rule's
+rank by the size of the frame being scored, so an event's M1 score depended on the other test
+events, across the three test days. M1 now scores each rule on an empirical CDF fitted on the
+last training day (`normalization_days`, seeded sample of at most 2,000,000 events), and a test
+asserts that scoring a time prefix gives the same scores as scoring the whole frame. The LANL
+results in `reports/lanl/` predate the change; the next run uses the fitted normalisation.
 M1 is also not row-local for an intended reason: R6 and R7 look backwards across the split.
 
 ## Labels

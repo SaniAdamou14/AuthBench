@@ -35,8 +35,9 @@ this summarizes.
    across the accounts and phases of one operation, not across intrusions.
 10. **Unequal access to labels.** M1's weights are calibrated on validation labels; no other
     model reads labels or the validation partition. See `methodology.md`, "Labels".
-11. **Transductive scores.** M1 (rank normalisation within the scored frame) and ECOD
-    (distributions recomputed from the scored matrix) depend on the test distribution.
+11. **Transductive scores.** ECOD (distributions recomputed from the scored matrix) depends
+    on the test distribution. So did M1 in the published LANL runs (rank normalisation over the
+    three test days); its normalisation is fitted on training data since 22 October 2026.
 12. **Novelty is relative to the window read.** `pair_is_new` and `pair_global_rarity`
     count earlier events of the partition plus its warm-up, not the whole history; and the
     rarity denominator grows within the window, so a pair with a fixed count of earlier

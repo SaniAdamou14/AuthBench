@@ -124,7 +124,7 @@ it is a finding.
 | M2b PCA reconstruction | 0.0040 [0.0007, 0.0135] | 0.783 | 0% | 0% | 0% | 75% | 114 |
 | M3a Isolation Forest | 0.0042 [0.0007, 0.0105] | 0.798 | 0% | 0% | 0% | 75% | 282 |
 | M3b ECOD | 0.0046 [0.0005, 0.0187] | 0.690 | 0% | 0% | 25% | 50% | 83 |
-| **M1 rules** | **0.3305 [0.0840, 0.6423]** | 0.911 | **100%** | **100%** | **100%** | **100%** | **1** |
+| **M1 rules** | **0.3765 [0.0840, 0.6493]** | 0.911 | **100%** | **100%** | **100%** | **100%** | **1** |
 
 *Italic brackets are the tie-break range: M0b scores every event 0 or 1, so at
 budget 500 some 7,899 equally-scored events compete for 1,350 places and the
