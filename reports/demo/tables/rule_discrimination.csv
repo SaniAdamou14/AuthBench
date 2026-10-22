@@ -1,9 +1,9 @@
 rule,mitre,description,mean_score_benign,mean_score_malicious,separation_ratio,calibrated_weight
-R7_lateral_chain,T1021,"A→B then B→C chain, same user, short window",0.005598407564,0.636363636364,113.668686868687,0.57876940956
-R6_new_auth_type,T1550,Auth type never used before by this user,0.197312764369,0.545454545455,2.764415911957,0.190480755532
-R8_new_source,T1021,First use of a source computer by this user,0.297213237124,1.0,3.364587693596,0.081626252169
-R3_fail_then_success,T1110,Failure burst on a destination followed by success,0.032595172929,0.0,0.0,0.051328145935
-R1_new_pair,T1078,"First-ever (user, destination) pair",0.394998755909,1.0,2.531653543307,0.046486331294
-R5_machine_account_anomaly,T1550,Machine account behaving atypically,1.757868870619,0.0,0.0,0.024240908602
-R2_host_burst,T1078,Distinct hosts in 1h beyond user's 99.9th percentile,0.012689723812,0.0,0.0,0.02400618724
-R4_offhours,T1078,Authentication outside the user's usual hours,0.723676432296,0.640573082045,0.885165045395,0.003062009669
+R8_new_source,T1021,First use of a source computer by this user,0.297213237124,1.0,3.364587693596,0.302902341415
+R7_lateral_chain,T1021,"A→B then B→C chain, same user, short window",0.005598407564,0.636363636364,113.668686868687,0.235296575437
+R1_new_pair,T1078,"First-ever (user, destination) pair",0.394998755909,1.0,2.531653543307,0.18255274311
+R6_new_auth_type,T1550,Auth type never used before by this user,0.197312764369,0.545454545455,2.764415911957,0.127486188685
+R2_host_burst,T1078,Distinct hosts in 1h beyond user's 99.9th percentile,0.012689723812,0.0,0.0,0.07246979864
+R5_machine_account_anomaly,T1550,Machine account behaving atypically,1.757868870619,0.0,0.0,0.046716826607
+R4_offhours,T1078,Authentication outside the user's usual hours,0.723676432296,0.640573082045,0.885165045395,0.027247085486
+R3_fail_then_success,T1110,Failure burst on a destination followed by success,0.032595172929,0.0,0.0,0.005328440621

@@ -22,9 +22,12 @@ from authbench.evaluate.budget import DEFAULT_BUDGETS
 from authbench.evaluate.ledger import campaign_users, write_ledger_outputs
 from authbench.evaluate.metrics import ROC_AUC_WARNING
 from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
-from authbench.evaluate.statistics import statistics_from_frame
+from authbench.evaluate.staffing import staffing_table
+from authbench.evaluate.statistics import alert_thresholds, statistics_from_frame
 from authbench.evaluate.stats_tests import (
     MIN_CAMPAIGNS_FOR_SIGNIFICANCE,
+    cluster_bootstrap,
+    cluster_bootstrap_record,
     paired_campaign_bootstrap,
     render_comparison_sentence,
 )
@@ -66,10 +69,11 @@ from authbench.label.redteam_join import (
 )
 from authbench.models.classical import ECODScorer, IsolationForestScorer
 from authbench.models.floors import AlwaysFailScorer, RandomScorer
-from authbench.models.rules import RulesScorer, rule_discrimination
+from authbench.models.rules import RulesScorer, UniformRulesScorer, rule_discrimination
 from authbench.models.stats import PairRarityScorer, PCAReconstructionScorer, SourceRarityScorer
 from authbench.parse.clean import clean_auth, clean_redteam, data_quality_report
 from authbench.pipeline.build_features import CONF_DIR
+from authbench.pipeline.tuning import fit_variance, tune_and_fit
 from authbench.split.temporal import (
     TemporalSplitConfig,
     get_test_split,
@@ -114,8 +118,10 @@ console = Console()
 # 1000 every comparison would come back non-significant by arithmetic while
 # reading exactly like a real null result. `demo_model_catalog` exists so the
 # same test can hold this number against the catalog it actually serves.
-DEMO_BOOTSTRAP_RESAMPLES = 2000
+DEMO_BOOTSTRAP_RESAMPLES = 10_000
 DEMO_FPR_TARGETS = [1.0e-4, 1.0e-3]
+# The same candidate budget as conf/eval/default.yaml:tuning.n_configs.
+DEMO_TUNING_CONFIGS = 20
 
 
 def demo_model_catalog() -> list[object]:
@@ -142,6 +148,7 @@ def demo_model_catalog() -> list[object]:
         IsolationForestScorer(MODEL_FEATURE_COLUMNS),
         ECODScorer(MODEL_FEATURE_COLUMNS),
         RulesScorer(),
+        UniformRulesScorer(),
     ]
 
 
@@ -568,39 +575,69 @@ def demo(
     val_feat = featurize(val).collect()
     test_feat = featurize(test).collect()
 
-    console.print("[bold]5/7[/] Fitting models (M0, M1, M2, M3)...")
-    models = demo_model_catalog()
+    console.print("[bold]5/7[/] Fitting and tuning models (M0, M1, M2, M3) on validation...")
+    models, tuning = tune_and_fit(
+        demo_model_catalog(),  # type: ignore[arg-type]
+        train_feat.lazy(),
+        val_feat.lazy(),
+        n_configs=DEMO_TUNING_CONFIGS,
+        seed=42,
+    )
+    (reports_dir / "tables" / "tuning.json").write_text(
+        json.dumps([r.to_dict() for r in tuning], indent=2)
+    )
+    variance = fit_variance(
+        models,
+        train_feat.lazy(),
+        test_feat.lazy(),
+        seeds=[42, 7, 13, 21, 99],
+        budgets=DEFAULT_BUDGETS,
+    )
+    (reports_dir / "tables" / "fit_variance.json").write_text(json.dumps(variance, indent=2))
 
     console.print("[bold]6/7[/] Scoring and evaluating on the test split...")
-    model_names: list[str] = [m.name for m in models]  # type: ignore[attr-defined]
+    model_names: list[str] = [m.name for m in models]
     scored = test_feat.select(EVAL_COLUMNS)
     for model in models:
-        model.fit(train_feat.lazy())  # type: ignore[attr-defined]
-        # M1 alone has a second, label-aware fitting step, and it must run
-        # after `fit` (which re-derives the per-user R2 thresholds the rule
-        # scores are built from) and against the validation split only.
-        if isinstance(model, RulesScorer):
-            model.calibrate_weights(val_feat.lazy(), val_feat["is_malicious"], n_trials=50)
-
-        scores = model.score(test_feat.lazy())  # type: ignore[attr-defined]
-        scored = scored.with_columns(pl.Series(score_column(model.name), scores))  # type: ignore[attr-defined]
-
-        if isinstance(model, RulesScorer):
+        scores = model.score(test_feat.lazy())
+        scored = scored.with_columns(pl.Series(score_column(model.name), scores))
+        if type(model) is RulesScorer:
             rule_discrimination(model, test_feat).write_csv(
                 reports_dir / "tables" / "rule_discrimination.csv"
             )
 
-    # One campaign-stratified resampling pass serves every model: the
+    # One block-bootstrap resampling pass serves every model: the
     # per-model CIs and the pairwise differences then come from the same
     # sampling distribution. Fewer resamples than the full pipeline's 1000 —
     # the demo is a smoke test under a five-minute CI ceiling (NFR-04).
+    # S6-25: thresholds giving each budget's daily volume on validation, applied unchanged to test.
+    val_scored = val_feat.select(EVAL_COLUMNS).with_columns(
+        pl.Series(score_column(m.name), m.score(val_feat.lazy())) for m in models
+    )
+    val_stats = statistics_from_frame(
+        val_scored,
+        {name: score_column(name) for name in model_names},
+        budgets=[1],
+        top_k=max(DEFAULT_BUDGETS) * val_feat["day"].n_unique(),
+    )
     stats = statistics_from_frame(
         scored,
         {name: score_column(name) for name in model_names},
         budgets=DEFAULT_BUDGETS,
         top_k=max(DEFAULT_BUDGETS),
+        alert_thresholds={
+            name: alert_thresholds(s, DEFAULT_BUDGETS) for name, s in val_stats.items()
+        },
+        cluster_column="src_user",
+        with_units=True,
     )
-    bootstrap = paired_campaign_bootstrap(stats, n_resamples=DEMO_BOOTSTRAP_RESAMPLES, seed=42)
+    users = campaign_users(test_feat)
+    bootstrap = paired_campaign_bootstrap(
+        stats,
+        n_resamples=DEMO_BOOTSTRAP_RESAMPLES,
+        seed=42,
+        block_of=dict(users.iter_rows()),
+    )
 
     # Two tables, because they are two different claims. The operational one
     # is what a SOC would live with; the literature-comparable one exists so
@@ -680,17 +717,26 @@ def demo(
         )
 
     comparisons = bootstrap.comparisons("auc_pr", alpha=0.05)
+    by_user = cluster_bootstrap(stats, n_resamples=DEMO_BOOTSTRAP_RESAMPLES, seed=42)
+    (reports_dir / "tables" / "bootstrap_user_clusters.json").write_text(
+        json.dumps(cluster_bootstrap_record(by_user, alpha=0.05), indent=2)
+    )
 
     console.print("[bold]7/7[/] Writing report artifacts...")
+    (reports_dir / "tables" / "staffing.json").write_text(
+        json.dumps(staffing_table(DEFAULT_BUDGETS), indent=2)
+    )
     write_ledger_outputs(
         stats,
-        campaign_users(test_feat),
+        users,
         reports_dir / "tables",
         k_max=500,
         n_resamples=DEMO_BOOTSTRAP_RESAMPLES,
         n_simulations=DEMO_BOOTSTRAP_RESAMPLES,
         confidence=0.95,
         seed=42,
+        gaps_hours=[1.0, 6.0, 24.0, 72.0],
+        budgets=DEFAULT_BUDGETS,
     )
     (reports_dir / "tables" / "demo_results.json").write_text(json.dumps(all_rows, indent=2))
     (reports_dir / "tables" / "pairwise_comparisons.json").write_text(
@@ -737,7 +783,7 @@ def demo(
         # only one of them is a result.
         console.print(
             f"  [yellow]Not that they are close: with {bootstrap.n_campaign_blocks} campaign(s) "
-            "in the test split a campaign-stratified bootstrap has no campaign-level variation "
+            "in the test split a block bootstrap has no block-level variation "
             "to resample, so significance is not estimable at all here. The AUC-PR point "
             "estimates and their intervals stand; the verdict is withheld.[/]"
         )

@@ -1,4 +1,4 @@
-day,events,positives
-11,2661,5
-12,2689,4
-13,2699,2
+day,events,positives,edge_hours,user_days
+11,2661,5,2364,350
+12,2689,4,2365,350
+13,2699,2,2386,350

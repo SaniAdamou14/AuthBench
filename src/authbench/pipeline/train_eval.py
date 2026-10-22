@@ -29,8 +29,18 @@ from omegaconf import DictConfig, OmegaConf
 from authbench.evaluate.ledger import campaign_users, write_ledger_outputs
 from authbench.evaluate.metrics import ROC_AUC_WARNING
 from authbench.evaluate.plots import CAMPAIGN_RECALL_FIGURE, plot_campaign_recall_vs_budget
-from authbench.evaluate.statistics import POSITIVE_KEYS, ModelStatistics, SplitAccumulator
-from authbench.evaluate.stats_tests import paired_campaign_bootstrap
+from authbench.evaluate.staffing import staffing_table
+from authbench.evaluate.statistics import (
+    POSITIVE_KEYS,
+    ModelStatistics,
+    SplitAccumulator,
+    alert_thresholds,
+)
+from authbench.evaluate.stats_tests import (
+    cluster_bootstrap,
+    cluster_bootstrap_record,
+    paired_campaign_bootstrap,
+)
 from authbench.evaluate.summary import (
     EVAL_COLUMNS,
     evaluate_model,
@@ -41,7 +51,7 @@ from authbench.features import MODEL_FEATURE_COLUMNS
 from authbench.models.base import DEFAULT_FIT_SAMPLE_SIZE, AnomalyScorer
 from authbench.models.classical import ECODScorer, HBOSScorer, IsolationForestScorer
 from authbench.models.floors import AlwaysFailScorer, RandomScorer
-from authbench.models.rules import RulesScorer
+from authbench.models.rules import RulesScorer, UniformRulesScorer
 from authbench.models.stats import (
     PairRarityScorer,
     PCAReconstructionScorer,
@@ -49,6 +59,7 @@ from authbench.models.stats import (
 )
 from authbench.pipeline.build_features import CONF_DIR, feature_store_version
 from authbench.pipeline.tracking import open_tracker
+from authbench.pipeline.tuning import TuningRecord, fit_variance, tune_and_fit
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +87,8 @@ def build_model_catalog(
     *,
     exclude: set[str] | None = None,
     deep_models: bool = False,
+    euler: bool = False,
+    cache_dir: str | None = None,
 ) -> list[AnomalyScorer]:
     """The catalog, *unfitted*. `main` is the single place that fits — an
     earlier version fitted M1 here and then refit every model in the loop,
@@ -101,9 +114,14 @@ def build_model_catalog(
         ECODScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size),
         HBOSScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size),
         RulesScorer(),
+        UniformRulesScorer(),
     ]
     if deep_models:
         catalog.extend(_deep_catalog(fit_sample_size))
+    if euler:
+        from authbench.models.euler import EulerScorer
+
+        catalog.append(EulerScorer(**_model_params("euler"), cache_dir=cache_dir))
     if exclude:
         catalog = [m for m in catalog if m.name not in exclude]
     return catalog
@@ -113,29 +131,53 @@ def _deep_catalog(fit_sample_size: int | None) -> list[AnomalyScorer]:
     """M4a and M4b, configured from `conf/model/ae.yaml` and `conf/model/vae.yaml`."""
     from authbench.models.deep import AutoencoderScorer, VAEScorer
 
-    def params(name: str) -> dict[str, Any]:
-        cfg = OmegaConf.to_container(OmegaConf.load(CONF_DIR / "model" / f"{name}.yaml"))
-        assert isinstance(cfg, dict)
-        return {str(k): v for k, v in cfg.items() if k not in _MODEL_CONFIG_METADATA}
-
     return [
-        AutoencoderScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size, **params("ae")),
-        VAEScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size, **params("vae")),
+        AutoencoderScorer(
+            MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size, **_model_params("ae")
+        ),
+        VAEScorer(MODEL_FEATURE_COLUMNS, fit_sample_size=fit_sample_size, **_model_params("vae")),
     ]
 
 
-def fit_models(models: list[AnomalyScorer], train: pl.LazyFrame, val: pl.LazyFrame | None) -> None:
-    """Fit every model on train; M1 then calibrates its rule weights on validation labels.
+def _model_params(name: str) -> dict[str, Any]:
+    """Constructor arguments from `conf/model/<name>.yaml`."""
+    cfg = OmegaConf.to_container(OmegaConf.load(CONF_DIR / "model" / f"{name}.yaml"))
+    assert isinstance(cfg, dict)
+    return {str(k): v for k, v in cfg.items() if k not in _MODEL_CONFIG_METADATA}
 
-    Without a validation partition M1 keeps uniform weights and no label is read.
+
+R1 = "r1_unsupervised"
+R2 = "r2_semi_supervised"
+
+
+def regime_train(train: pl.LazyFrame, regime: str) -> pl.LazyFrame:
+    """The training rows of a regime (spec section 6.2).
+
+    R1 keeps the red-team events inside the training window, as a defender who does not
+    know they are compromised would; R2 removes them, as most published work does
+    silently. Features are computed with them in either case: the history an event is
+    compared against cannot be cleaned by a defender who has not found the attack.
     """
-    for model in models:
-        logger.info("Fitting %s", model.name)
-        model.fit(train)
-        if isinstance(model, RulesScorer) and val is not None:
-            val_frame = val.collect()
-            model.calibrate_weights(val_frame.lazy(), val_frame["is_malicious"], n_trials=200)
-            del val_frame
+    if regime == R1:
+        return train
+    if regime == R2:
+        return train.filter(~pl.col("is_malicious"))
+    raise ValueError(f"Unknown regime {regime!r}; expected {R1!r} or {R2!r}.")
+
+
+def fit_models(
+    models: list[AnomalyScorer],
+    train: pl.LazyFrame,
+    val: pl.LazyFrame | None,
+    *,
+    n_configs: int = 20,
+    seed: int = 42,
+) -> tuple[list[AnomalyScorer], list[TuningRecord]]:
+    """Fit every model on train, each tunable one choosing among `n_configs` candidates on validation.
+
+    Without a validation partition nothing is tuned and no label is read (`pipeline.tuning`).
+    """
+    return tune_and_fit(models, train, val, n_configs=n_configs, seed=seed)
 
 
 def _score(model: AnomalyScorer, frame: pl.DataFrame, chunk_rows: int) -> np.ndarray:
@@ -153,6 +195,10 @@ def score_split(
     budgets: list[int],
     top_k: int,
     chunk_rows: int = DEFAULT_SCORING_CHUNK_ROWS,
+    names: list[str] | None = None,
+    alert_thresholds: dict[str, np.ndarray] | None = None,
+    cluster_column: str | None = None,
+    with_units: bool = False,
 ) -> tuple[dict[str, ModelStatistics], dict[str, str]]:
     """Score `test` one day at a time into each model's statistics; return them and the skipped models.
 
@@ -160,42 +206,53 @@ def score_split(
     of each day are counted against; each day then checks that it reproduces those
     scores bit for bit. A model that runs out of memory is excluded with its reason,
     and the report says so: a benchmark that silently drops a competitor is worse
-    than one that loses a run.
+    than one that loses a run. `names` labels the models when several share a class,
+    as tuning candidates do.
     """
-    not_row_local = [m.name for m in models if not getattr(m, "scores_row_locally", False)]
+    labels = names or [m.name for m in models]
+    not_row_local = [
+        label
+        for label, m in zip(labels, models, strict=True)
+        if not getattr(m, "scores_row_locally", False)
+    ]
     if not_row_local:
         raise ValueError(f"{not_row_local} are not row-local and cannot be scored by day.")
     skipped: dict[str, str] = {}
     positives = test.filter(pl.col("is_malicious")).collect()
-    positive_scores = positives.select(POSITIVE_KEYS)
-    for model in models:
+    positive_scores = positives.select(
+        *POSITIVE_KEYS, *([cluster_column] if cluster_column is not None else [])
+    )
+    for label, model in zip(labels, models, strict=True):
         try:
             positive_column = _score(model, positives, chunk_rows)
         except MemoryError as exc:
-            skipped[model.name] = f"{type(exc).__name__}: {exc}"
+            skipped[label] = f"{type(exc).__name__}: {exc}"
             continue
         positive_scores = positive_scores.with_columns(
-            pl.Series(score_column(model.name), positive_column)
+            pl.Series(score_column(label), positive_column)
         )
-    active = [m for m in models if m.name not in skipped]
+    active = {label: m for label, m in zip(labels, models, strict=True) if label not in skipped}
     accumulator = SplitAccumulator(
         positive_scores,
-        {m.name: score_column(m.name) for m in active},
+        {label: score_column(label) for label in active},
         budgets=budgets,
         top_k=top_k,
+        alert_thresholds=alert_thresholds,
+        cluster_column=cluster_column,
+        with_units=with_units,
     )
     days = test.select(pl.col("day").unique().sort()).collect().to_series().to_list()
     for day in days:
         frame = test.filter(pl.col("day") == day).collect()
         scores: dict[str, np.ndarray] = {}
-        for model in list(active):
+        for label, model in list(active.items()):
             try:
-                scores[model.name] = _score(model, frame, chunk_rows)
+                scores[label] = _score(model, frame, chunk_rows)
             except MemoryError as exc:
-                skipped[model.name] = f"{type(exc).__name__}: {exc}"
-                logger.error("%s failed on day %s and is EXCLUDED: %s", model.name, day, exc)
-                accumulator.drop(model.name)
-                active.remove(model)
+                skipped[label] = f"{type(exc).__name__}: {exc}"
+                logger.error("%s failed on day %s and is EXCLUDED: %s", label, day, exc)
+                accumulator.drop(label)
+                del active[label]
         accumulator.add_day(frame.select(EVAL_COLUMNS), scores)
         logger.info("Scored day %s: %d events, %d models.", day, frame.height, len(active))
         del frame
@@ -204,13 +261,26 @@ def score_split(
     return accumulator.finish(), skipped
 
 
+def calibrate_alert_thresholds(
+    models: list[AnomalyScorer], calibration: pl.LazyFrame, budgets: list[int]
+) -> dict[str, np.ndarray]:
+    """Per model, the thresholds giving each budget's alerts a day on `calibration` (S6-25).
+
+    Volume, not labels: the thresholds read no label, so the training partition serves when
+    there is no validation one.
+    """
+    n_days = int(calibration.select(pl.col("day").n_unique()).collect().item())
+    stats, _ = score_split(models, calibration, budgets=[1], top_k=max(budgets) * n_days)
+    return {name: alert_thresholds(s, budgets) for name, s in stats.items()}
+
+
 @hydra.main(version_base=None, config_path=str(CONF_DIR), config_name="config")
 def main(cfg: DictConfig) -> None:
-    stratify_by = str(cfg.eval.bootstrap.stratify_by)
-    if stratify_by != "campaign":
+    block = str(cfg.eval.bootstrap.block)
+    if block not in ("account", "campaign"):
         raise ValueError(
-            f"eval.bootstrap.stratify_by={stratify_by!r} is not supported. Only 'campaign' is: "
-            "events within a campaign are strongly dependent, and resampling them "
+            f"eval.bootstrap.block={block!r} is not supported; use 'account' or 'campaign'. "
+            "Events within a campaign are strongly dependent, and resampling them "
             "independently would understate every confidence interval in the report."
         )
 
@@ -233,14 +303,6 @@ def main(cfg: DictConfig) -> None:
         )
 
     tracker = open_tracker(str(cfg.mlflow.tracking_uri), str(cfg.mlflow.experiment_name))
-
-    tables_dir = Path(cfg.paths.tables_dir)
-    tables_dir.mkdir(parents=True, exist_ok=True)
-    figures_dir = Path(cfg.paths.figures_dir)
-    figures_dir.mkdir(parents=True, exist_ok=True)
-
-    budgets = list(cfg.eval.budgets)
-    fpr_targets = list(cfg.eval.fpr_targets)
     report_roc_auc = bool(cfg.eval.roc_auc.report)
     if report_roc_auc and bool(cfg.eval.roc_auc.warn):
         logger.warning("%s", str(cfg.eval.roc_auc.warning_message).strip() or ROC_AUC_WARNING)
@@ -255,13 +317,97 @@ def main(cfg: DictConfig) -> None:
         logger.warning(
             "Excluding from this run (AUTHBENCH_EXCLUDE_MODELS): %s", sorted(exclude_models)
         )
+    users = campaign_users(
+        test.filter(pl.col("is_malicious"))
+        .select("campaign_id", "src_user", "is_malicious")
+        .collect()
+    )
+    regimes = [str(r) for r in cfg.split.get("regimes", [R1])]
+    for index, regime in enumerate(regimes):
+        # The first regime is the reported one and keeps the paths DVC tracks; the others sit beside it.
+        suffix = Path() if index == 0 else Path(regime)
+        logger.info("Regime %s", regime)
+        evaluate_regime(
+            cfg,
+            regime,
+            regime_train(train, regime),
+            val,
+            test,
+            users,
+            # Temporal models observe every event up to the one they score, whatever they trained on.
+            timeline=[f for f in (train, val, test) if f is not None],
+            tables_dir=Path(cfg.paths.tables_dir) / suffix,
+            figures_dir=Path(cfg.paths.figures_dir) / suffix,
+            metrics_path=Path(cfg.paths.reports_dir) / suffix / "metrics_summary.json",
+            block_of=dict(users.iter_rows()) if block == "account" else None,
+            exclude_models=exclude_models,
+            tracker=tracker,
+            version=version,
+            # The fit variance of the reported regime only: each seed refits and rescores.
+            fit_variance_seeds=(
+                [int(x) for x in cfg.eval.get("fit_variance", {}).get("seeds", [])]
+                if index == 0
+                else None
+            ),
+        )
+
+
+def evaluate_regime(
+    cfg: DictConfig,
+    regime: str,
+    train: pl.LazyFrame,
+    val: pl.LazyFrame | None,
+    test: pl.LazyFrame,
+    users: pl.DataFrame,
+    *,
+    tables_dir: Path,
+    figures_dir: Path,
+    metrics_path: Path,
+    block_of: dict[int, str] | None,
+    exclude_models: set[str],
+    tracker: Any,
+    version: str,
+    fit_variance_seeds: list[int] | None = None,
+    timeline: list[pl.LazyFrame] | None = None,
+) -> None:
+    """Fit a fresh catalog on `train`, score `test` by day, and write every table and the figure."""
+    tables_dir.mkdir(parents=True, exist_ok=True)
+    figures_dir.mkdir(parents=True, exist_ok=True)
+    metrics_path.parent.mkdir(parents=True, exist_ok=True)
+    budgets = list(cfg.eval.budgets)
     models = build_model_catalog(
         fit_sample_size=int(cfg.runtime.fit_sample_size) or None,
         exclude=exclude_models,
         deep_models=bool(cfg.runtime.get("deep_models", False)),
+        euler=bool(cfg.runtime.get("euler", False)),
+        cache_dir=str(Path(cfg.paths.processed_dir) / "euler" / regime),
     )
-    fit_models(models, train, val)
-    statistics, skipped = score_split(models, test, budgets=budgets, top_k=max(budgets))
+    tuning_cfg = cfg.eval.get("tuning", {})
+    models, tuning = fit_models(
+        models,
+        train,
+        val,
+        n_configs=int(tuning_cfg.get("n_configs", 20)),
+        seed=int(tuning_cfg.get("seed", 42)),
+    )
+    (tables_dir / "tuning.json").write_text(json.dumps([r.to_dict() for r in tuning], indent=2))
+    for model in models:
+        prepare = getattr(model, "prepare", None)
+        if prepare is not None:
+            prepare(timeline or [train, test])
+    thresholds = calibrate_alert_thresholds(models, val if val is not None else train, budgets)
+    statistics, skipped = score_split(
+        models,
+        test,
+        budgets=budgets,
+        top_k=max(budgets),
+        alert_thresholds=thresholds,
+        cluster_column="src_user",
+        with_units=True,
+    )
+    if fit_variance_seeds:
+        variance = fit_variance(models, train, test, seeds=fit_variance_seeds, budgets=budgets)
+        (tables_dir / "fit_variance.json").write_text(json.dumps(variance, indent=2))
     model_names = list(statistics)
     if skipped:
         logger.error(
@@ -275,6 +421,19 @@ def main(cfg: DictConfig) -> None:
         n_resamples=int(cfg.eval.bootstrap.n_resamples),
         confidence=float(cfg.eval.bootstrap.confidence),
         seed=int(cfg.eval.bootstrap.seed),
+        block_of=block_of,
+    )
+
+    by_user = cluster_bootstrap(
+        statistics,
+        n_resamples=int(cfg.eval.bootstrap.n_resamples),
+        confidence=float(cfg.eval.bootstrap.confidence),
+        seed=int(cfg.eval.bootstrap.seed),
+    )
+    (tables_dir / "bootstrap_user_clusters.json").write_text(
+        json.dumps(
+            cluster_bootstrap_record(by_user, alpha=float(cfg.eval.pairwise_test.alpha)), indent=2
+        )
     )
 
     summary_rows = []
@@ -283,19 +442,19 @@ def main(cfg: DictConfig) -> None:
         evaluation = evaluate_model(
             statistics[name],
             budgets=budgets,
-            fpr_targets=fpr_targets,
-            report_roc_auc=report_roc_auc,
-            # The caveat is logged once above, from the config's own text —
-            # repeating it per model would bury it.
+            fpr_targets=list(cfg.eval.fpr_targets),
+            report_roc_auc=bool(cfg.eval.roc_auc.report),
+            # The caveat is logged once, from the config's own text; per model it would bury it.
             warn_roc_auc=False,
             auc_pr_ci=bootstrap.ci(name),
         )
         curves.append(evaluation.curve)
-        summary_rows.append(evaluation.to_dict())
+        summary_rows.append({"regime": regime, **evaluation.to_dict()})
 
-        with tracker.run(name):
+        with tracker.run(f"{regime}/{name}"):
             tracker.log_param("feature_store_version", version)
             tracker.log_param("seed", cfg.seed)
+            tracker.log_param("regime", regime)
             tracker.log_metric("auc_pr", evaluation.auc_pr)
             assert evaluation.auc_pr_ci is not None
             tracker.log_metric("auc_pr_ci_low", evaluation.auc_pr_ci.ci_low)
@@ -316,19 +475,17 @@ def main(cfg: DictConfig) -> None:
                     )
 
         logger.info(
-            "%s: AUC-PR=%.4f [%.4f, %.4f]",
+            "%s %s: AUC-PR=%.4f [%.4f, %.4f]",
+            regime,
             name,
             evaluation.auc_pr,
-            bootstrap.ci(name).ci_low,
-            bootstrap.ci(name).ci_high,
+            evaluation.auc_pr_ci.ci_low,
+            evaluation.auc_pr_ci.ci_high,
         )
 
     # Beside reports/tables/, not inside it: DVC will not accept a metric
     # nested in a tracked output directory.
-    Path(cfg.paths.reports_dir).mkdir(parents=True, exist_ok=True)
-    (Path(cfg.paths.reports_dir) / "metrics_summary.json").write_text(
-        json.dumps(summary_rows, indent=2)
-    )
+    metrics_path.write_text(json.dumps(summary_rows, indent=2))
 
     comparisons = pairwise_comparisons(
         bootstrap,
@@ -342,33 +499,31 @@ def main(cfg: DictConfig) -> None:
         for name in sorted(exclude_models)
     }
     (tables_dir / "skipped_models.json").write_text(json.dumps({**excluded, **skipped}, indent=2))
-
     (tables_dir / "pairwise_comparisons.json").write_text(
         json.dumps([c.to_dict() for c in comparisons], indent=2)
     )
-    n_significant = sum(1 for c in comparisons if c.significant)
     logger.info(
-        "%d/%d pairwise AUC-PR differences significant at alpha=%s after %s correction.",
-        n_significant,
+        "%s: %d/%d pairwise AUC-PR differences significant at alpha=%s after %s correction.",
+        regime,
+        sum(1 for c in comparisons if c.significant),
         len(comparisons),
         cfg.eval.pairwise_test.alpha,
         cfg.eval.pairwise_test.correction,
     )
 
+    (tables_dir / "staffing.json").write_text(json.dumps(staffing_table(budgets), indent=2))
     ledger_cfg = cfg.eval.ledger
     write_ledger_outputs(
         statistics,
-        campaign_users(
-            test.filter(pl.col("is_malicious"))
-            .select("campaign_id", "src_user", "is_malicious")
-            .collect()
-        ),
+        users,
         tables_dir,
         k_max=int(ledger_cfg.k_max),
         n_resamples=int(ledger_cfg.n_resamples),
         n_simulations=int(ledger_cfg.n_simulations),
         confidence=float(ledger_cfg.confidence),
         seed=int(ledger_cfg.seed),
+        gaps_hours=[float(g) for g in ledger_cfg.get("campaign_gap_hours", [])],
+        budgets=budgets,
     )
 
     reference = statistics[model_names[0]]
@@ -377,7 +532,8 @@ def main(cfg: DictConfig) -> None:
         curves,
         figures_dir / CAMPAIGN_RECALL_FIGURE,
         subtitle=(
-            f"{cfg.dataset.name} test split — {n_campaigns} campaigns, {reference.n_events:,} events."
+            f"{cfg.dataset.name} test split, {regime}: {n_campaigns} campaigns, "
+            f"{reference.n_events:,} events."
         ),
     )
     logger.info("Wrote headline figure to %s", figure_path)

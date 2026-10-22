@@ -74,7 +74,7 @@ _PARTITION_DAY_FRACTIONS: dict[str, tuple[float, float]] = {
 # How many campaigns land in each partition, and why the counts are not equal.
 #
 # **test gets the most, and never fewer than two.** The number of campaigns in
-# a partition *is* the sample size of the campaign-stratified bootstrap that
+# a partition *is* the sample size of the block bootstrap that
 # produces every confidence interval and every pairwise p-value. With one
 # campaign in the test split, resampling cannot vary the campaign composition
 # at all: no pairwise difference can change sign, every p-value collapses onto

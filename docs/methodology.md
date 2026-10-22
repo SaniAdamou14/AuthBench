@@ -107,14 +107,22 @@ caller remembering a keyword is not a protocol.
 
 ## Two training regimes (section 6.2)
 
-**Not implemented yet.** The key exists in `conf/split/*.yaml` and nothing reads it. When it
-lands:
+Implemented on 22 October 2026 (S6-10); the published LANL runs used R1 only.
+`split.regimes` lists the regimes `train_eval` runs, each with a fresh catalog:
 
-- **R1 (unsupervised)**: red-team events inside the training window are left in — the realistic
-  situation of a defender who doesn't know they're already compromised.
-- **R2 (semi-supervised)**: red-team events are removed from training.
+- **R1 (unsupervised)**: red-team events inside the training window are left in, the realistic
+  situation of a defender who does not know they are already compromised.
+- **R2 (semi-supervised)**: red-team events are removed from the rows the models are fitted
+  on. Features are still computed with them: the history an event is compared against cannot
+  be cleaned by a defender who has not found the attack. Validation, used only by M1's weight
+  calibration, is unchanged.
 
-Both are to be reported; most published work silently uses R2 only, which inflates results.
+The first regime listed is the reported one and writes to the paths DVC tracks; each further
+regime writes the same tables, figure and `metrics_summary.json` under a directory named after
+it. Both are reported; most published work silently uses R2 only, which inflates results. With
+the harmonised split (`conf/split/harmonised.yaml`) training ends at hour 41, before the first red-team
+event (t = 150,885 s, hour 41.9, the boundary Euler uses), so the two regimes coincide and only
+R1 is run.
 
 ## Evaluation (US-125 to US-128)
 
@@ -125,7 +133,7 @@ reporting different things. Metrics stay in two registers, kept under separate k
 
 **Operational** — what a SOC at this budget actually gets:
 
-- **AUC-PR**, the headline ranking metric, with a campaign-stratified CI.
+- **AUC-PR**, the headline ranking metric, with a block-bootstrap BCa interval.
 - **Recall at alert budget** (`evaluate.budget`) — top-k scored events **per day**, never
   top-k over the whole period. Reported per event and per campaign.
 - **Tie-break, stated rather than inherited.** "The top 10 events of the day" is not a
@@ -157,7 +165,7 @@ to rank models:
 - **Recall at fixed FPR**.
 
 The gap between the registers is the project's thesis, and both runs show it. On the demo
-sample M3a reaches ROC-AUC 0.798 and catches nothing at 10, 50 or 100 alerts/day. On the
+sample M3a reaches ROC-AUC 0.921 and catches nothing at 10 alerts/day (22 October 2026, tuned). On the
 LANL wider window no model detects a campaign at any budget up to 500, and the ordering by
 ROC-AUC does not track the ordering by budget for first detection (Spearman −0.10 over the
 five non-trivial models; AUC-PR: 0.70). The best ROC-AUC (M2a, 0.941) is third
@@ -166,14 +174,36 @@ descriptive: "decoupled", not "anti-correlated", is the claim the data support.
 
 ## Uncertainty and pairwise comparisons (US-128)
 
-`stats_tests.paired_campaign_bootstrap` runs **one** campaign-stratified resampling pass and
+`stats_tests.paired_campaign_bootstrap` runs **one** block-bootstrap resampling pass and
 evaluates every model on each resample. That single pass yields both the per-model CIs and
 every pairwise difference, which means the intervals and the comparisons come from the same
 sampling distribution, and each difference is paired: campaign-composition noise cancels
 between two models rather than being counted twice.
 
-`eval.bootstrap.stratify_by` accepts only `campaign`; any other value is rejected rather than
-silently ignored.
+**Blocks, interval and Monte Carlo error (S6-23, 22 October 2026).** The resampling is a block
+bootstrap over one pooled set of blocks, not a stratified one: the number of positive blocks in
+a resample varies, as the number of attacks in another sample would. Earlier text called it
+"campaign-stratified", which was inaccurate.
+
+- *Blocks.* `eval.bootstrap.block` is `account` (default) or `campaign`. Two campaigns of one
+  account are not independent, so the account is the unit; on the wider LANL test window 52
+  campaigns map to 50 accounts. Benign events are singleton blocks either way. Any other value
+  is rejected.
+- *Resamples.* `n_resamples: 10000`, which the sufficient-statistics bootstrap makes cheap
+  (0.7 s for nine models on a real LANL day).
+- *Per-model intervals: BCa* (Efron, 1987; Efron and Tibshirani, 1993, ch. 14). The bias
+  correction is the share of resamples below the estimate; the acceleration comes from the
+  exact jackknife over every resampling unit, positive blocks and benign events, the latter
+  grouped by benign bin because leaving one out depends only on its bin
+  (`stats_tests.jackknife`, tested equal to leaving out each event by hand). Where the
+  correction is undefined (every resample on one side, or a single positive block) the
+  percentile interval is reported and `auc_pr_ci_method` says so. `bca_interval` reproduces
+  `scipy.stats.bootstrap(method="BCa")` on the same resamples to 1e-9.
+- *Intervals of differences* stay percentile, so that an interval excludes zero exactly when
+  the percentile test rejects.
+- *Monte Carlo error.* Each interval endpoint carries the order statistics that cover it with
+  95% probability (`auc_pr_ci_monte_carlo`), and each raw p-value its standard error
+  `sqrt(p (1 - p) / R)` (`p_value_raw_mc_se`).
 
 Three artifacts of the method can manufacture a verdict that is indistinguishable from a real
 one — two of them a spurious "no difference", the third a spurious clean sweep. All are
@@ -182,8 +212,8 @@ handled explicitly:
 | Floor | Cause | Handling |
 |---|---|---|
 | Degenerate resamples | A ranking metric over zero positives is undefined, but scikit-learn returns 0.0, so every model ties — and ties count in both tails. With 1 campaign in the test split ~37% of resamples are degenerate, flooring p near 0.74. | Discarded and redrawn; `n_degenerate_discarded` reported. A frame with no positives at all raises. |
-| Bootstrap resolution vs. Holm | A percentile bootstrap cannot report p below `2/(R+1)`; Holm's strictest threshold is `alpha/n_pairs`. The 8-model catalog needs `R >= 1119`, so the original `n_resamples: 1000` could never yield a significant result. | `minimum_resamples_for_family` computes the bound; `comparisons()` warns when it is not met. `conf/eval/default.yaml` sets 2000. |
-| A single campaign | The sample size of a campaign-stratified bootstrap is the number of campaigns. With one, every resample re-weights the same attack: no pairwise difference changes sign, the tail count is 0, and every p-value lands on `2/(R+1)` — *below* Holm's threshold, so **every** comparison reads "outperforms". The demo produced 21/21 this way. | `MIN_CAMPAIGNS_FOR_SIGNIFICANCE = 2`. Below it `comparisons()` logs the reason and reports every pair as not significant. Point estimates and intervals are unchanged; only the verdict is withheld. |
+| Bootstrap resolution vs. Holm | A percentile bootstrap cannot report p below `2/(R+1)`; Holm's strictest threshold is `alpha/n_pairs`. The 8-model catalog needs `R >= 1119`, so the original `n_resamples: 1000` could never yield a significant result. | `minimum_resamples_for_family` computes the bound; `comparisons()` warns when it is not met. `conf/eval/default.yaml` sets 10,000 (2,000 in the published runs). |
+| A single campaign | The sample size of a block bootstrap is the number of positive blocks. With one, every resample re-weights the same attack: no pairwise difference changes sign, the tail count is 0, and every p-value lands on `2/(R+1)` — *below* Holm's threshold, so **every** comparison reads "outperforms". The demo produced 21/21 this way. | `MIN_CAMPAIGNS_FOR_SIGNIFICANCE = 2`. Below it `comparisons()` logs the reason and reports every pair as not significant. Point estimates and intervals are unchanged; only the verdict is withheld. |
 
 **How a resample is drawn (since 22 October 2026).** A resample draws `n_blocks` blocks
 with replacement from the campaigns and the benign singletons: how many land on campaigns is
@@ -241,6 +271,88 @@ last training day (`normalization_days`, seeded sample of at most 2,000,000 even
 R7 are stored features, so M1 is row-local. The LANL results in `reports/lanl/` predate the
 change; the next run uses the fitted normalisation.
 
+## Euler, reimplemented (S6-09)
+
+`models/euler.py` (M5c, `runtime.euler: true`) reimplements Euler (King and Huang, 2022), the
+most cited deep detector on LANL, because its code carries no licence. Taken from the paper
+(sections IV and VI): a directed, weighted graph from source to destination computers per
+30-minute snapshot, edge weight `sigmoid((C - mu) / sigma)` of the snapshot's standardised
+edge counts, node features a one-hot identifier with a one-hot node type, two 32-unit GCN
+layers, tanh, a 32-unit GRU and a projection to 16, the inner-product decoder, predictor mode
+(snapshot t scored from the embeddings of t - 1), binary cross-entropy against as many random
+non-edges, Adam, early stopping after 10 epochs without improvement on 5% of each snapshot's
+edges. Chosen here because the paper does not say: dropout 0.1 on edges and between GCN
+layers, a single linear projection, learning rate 0.01 (from its grid), at most 100 epochs,
+back-propagation truncated to one day, and one shared node for computers unseen in training.
+
+In AuthBench an event scores the negated log-odds of its edge under the previous snapshot's
+embeddings. The model trains on the regime's training rows but observes the whole timeline,
+since a deployed Euler sees every edge before scoring the next snapshot: `prepare` runs it once
+along train, validation and test and keeps every snapshot's embeddings on disk, so scoring is a
+lookup, causal and row-local (`tests/unit/test_euler.py` checks signal, causality, determinism
+and row-locality). `scripts/euler_fidelity.py` reruns it under the paper's own protocol, every
+authentication event, training before the first red-team event, edges scored per snapshot, and
+writes the edge-level AUC and AP beside the published 0.9906 and 0.0155 (table VI, GCN + GRU,
+link prediction). That check needs the whole dataset and is part of the rented run.
+
+## Alert units and what a budget costs (S6-29)
+
+**Units.** An analyst does not triage events one by one. Besides events, every run ranks two
+coarser units per day (`statistics.UNITS`, `operational.alert_units`): the **edge-hour**
+(source computer, destination computer, hour) and the **user-day** (source user). A unit scores
+its highest event; equal units go to the one whose first event came first, then to the smaller
+key, which reads no label. A campaign is detected at budget k in a unit when one of its units
+ranks in the top k of its day. The number of units per day is in `day_sizes.csv`, because a
+budget of k user-days can cover a large share of a small day's users. The unit ranks are tested
+against a brute-force ranking of units.
+
+**Staffing** (`evaluate/staffing.py`, `staffing.json`). Analysts needed per budget = budget x
+minutes per alert / triage minutes per analyst-day. Inputs, each with its weakness:
+
+- 2.7 hours of triage per analyst-day (Vectra, 2023: a vendor-commissioned survey of 2,000
+  analysts by Sapio Research, March-April 2023). The same survey reports 4,484 alerts a day per
+  SOC, 67% of which analysts could not deal with: about 1,480 handled a day across every tool,
+  the ceiling for any one detector.
+- 10 to 20 minutes per alert, 5 to 30 as the sensitivity range (Li et al., 2026, section 4.5:
+  half of 10 practitioners of one SOC, self-reported; a preprint). Industry figures run from
+  about 5 to 40 minutes depending on what "triage" covers.
+
+At 10 to 20 minutes, 10 alerts a day is 0.6 to 1.2 analysts, 100 is 6 to 12, and 500 is 31 to
+62, a third of everything a typical SOC handles in a day. The benchmark's budgets therefore
+span one analyst to a whole team; they are not a menu of equally plausible operating points.
+
+## Two variances the test bootstrap does not see (S6-24)
+
+**The fit.** A bootstrap over the test split holds the fitted models fixed. Isolation Forest grows
+a random forest, the vector-space models fit on a seeded sample of at most 5 million rows, and M1
+normalises its rules on a seeded sample: another seed is another model. `fit_variance.json`
+refits every seeded model (M1, PCA, Isolation Forest, ECOD, HBOS) with each of
+`eval.fit_variance.seeds` (five), its tuned configuration fixed, and reports AUC-PR, first
+detection and campaign recall per seed with their range. On the demo only the forest varies
+(no model there fits on a sample): AUC-PR 0.0046 to 0.0090 and first detection 49 to 166
+alerts across seeds, a spread as large as some gaps between models.
+
+**Benign correlation.** The main bootstrap draws benign events as independent singletons, but
+the events of one user are correlated. `bootstrap_user_clusters.json` repeats the analysis with
+source users as the resampling unit, every event of a user moving with it, drawn in chunks
+shared by every model so the comparisons stay paired; each resample's AUC-PR is computed from
+the benign events per (user, benign bin), accumulated by day and tested equal to scikit-learn's
+weighted average precision with per-event user weights. On the demo it changes the intervals
+little and the significance verdicts not at all (16 of 36 either way).
+
+## A fixed threshold instead of a daily top-k (S6-25)
+
+The alert budget ranks each day and keeps its top k, which no SOC tool does: a detector is
+deployed with a threshold, and the number of alerts it raises then varies from day to day.
+For each budget k, `statistics.alert_thresholds` takes the score at or above which the
+calibration partition had k alerts a day on average (validation, or training when there is
+no validation partition: the threshold reads volume, never a label), and the test split is
+then read at that threshold: mean and largest daily alert volume, campaign and event recall
+(`operational.fixed_threshold`). On the demo, a model with heavily tied scores overshoots: M2a
+calibrated for 10 alerts a day raises 218 on average and 654 on its worst test day, because the
+threshold falls inside a tie; continuous scores stay near the target (Isolation Forest, 15 on
+average, 39 at most). The daily top-k hides that overshoot by cutting ties in arrival order.
+
 ## Evaluation from sufficient statistics
 
 Every reported metric depends on the scores only through the positives
@@ -266,11 +378,21 @@ Three definitions changed with it, each for a reason a test now pins:
 
 ## Labels
 
-M1 is the only model that uses labels: its weights maximise AUC-PR on the validation
-partition (200 Dirichlet draws, seeded), and `RulesScorer.requires_labels` is `True`. Every
-other model is unsupervised, with default hyperparameters, and never reads the validation
-partition. This favours M1 and is stated as such in the report; an equal tuning budget for
-every model is planned.
+In the published runs M1 was the only model that used labels: its weights maximised AUC-PR
+on the validation partition (200 Dirichlet draws, seeded), while every other model kept its
+default hyperparameters. That favoured M1.
+
+**Equal budgets (S6-11, 22 October 2026).** `pipeline.tuning` gives every model with
+something to choose the same number of candidates, `eval.tuning.n_configs` (20), its default
+among them, and keeps the one with the highest validation AUC-PR, validation being scored by
+day like the test split: M1's rule weights (uniform plus Dirichlet draws), PCA's retained
+variance (0.5 to 0.99), Isolation Forest's forest size and sample (100 to 400 trees, 64 to 1024
+rows), HBOS's bins and tolerance. Models with no hyperparameter (M0, M2a, M2c, ECOD) are
+fitted once; the autoencoders are not tuned, and that is stated. `tuning.json` lists every
+candidate and its validation AUC-PR. **M1u** reports the same rules with uniform weights and
+no label, which separates what the rules detect from what choosing their weights adds. On the
+demo it reaches AUC-PR 0.0191 against M1's 0.4395. Without a validation partition (the
+harmonised split) nothing is tuned and no label is read.
 
 ## Scale
 

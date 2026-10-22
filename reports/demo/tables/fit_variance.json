@@ -1,0 +1,274 @@
+{
+  "M2b_pca_reconstruction": {
+    "runs": [
+      {
+        "seed": 42,
+        "auc_pr": 0.029352220908380938,
+        "budget_for_first_detection": 4,
+        "campaign_recall": {
+          "10": 0.25,
+          "50": 0.25,
+          "100": 0.5,
+          "500": 1.0
+        }
+      },
+      {
+        "seed": 7,
+        "auc_pr": 0.029352220908380938,
+        "budget_for_first_detection": 4,
+        "campaign_recall": {
+          "10": 0.25,
+          "50": 0.25,
+          "100": 0.5,
+          "500": 1.0
+        }
+      },
+      {
+        "seed": 13,
+        "auc_pr": 0.029352220908380938,
+        "budget_for_first_detection": 4,
+        "campaign_recall": {
+          "10": 0.25,
+          "50": 0.25,
+          "100": 0.5,
+          "500": 1.0
+        }
+      },
+      {
+        "seed": 21,
+        "auc_pr": 0.029352220908380938,
+        "budget_for_first_detection": 4,
+        "campaign_recall": {
+          "10": 0.25,
+          "50": 0.25,
+          "100": 0.5,
+          "500": 1.0
+        }
+      },
+      {
+        "seed": 99,
+        "auc_pr": 0.029352220908380938,
+        "budget_for_first_detection": 4,
+        "campaign_recall": {
+          "10": 0.25,
+          "50": 0.25,
+          "100": 0.5,
+          "500": 1.0
+        }
+      }
+    ],
+    "auc_pr": {
+      "min": 0.029352220908380938,
+      "max": 0.029352220908380938,
+      "sd": 0.0
+    },
+    "budget_for_first_detection": {
+      "min": 4.0,
+      "max": 4.0
+    }
+  },
+  "M3a_iforest": {
+    "runs": [
+      {
+        "seed": 42,
+        "auc_pr": 0.008969028022144884,
+        "budget_for_first_detection": 49,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.25,
+          "100": 0.5,
+          "500": 1.0
+        }
+      },
+      {
+        "seed": 7,
+        "auc_pr": 0.004634014631935905,
+        "budget_for_first_detection": 166,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.75
+        }
+      },
+      {
+        "seed": 13,
+        "auc_pr": 0.007220803326015488,
+        "budget_for_first_detection": 61,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.25,
+          "500": 0.75
+        }
+      },
+      {
+        "seed": 21,
+        "auc_pr": 0.005597636679854641,
+        "budget_for_first_detection": 96,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.25,
+          "500": 0.75
+        }
+      },
+      {
+        "seed": 99,
+        "auc_pr": 0.004837132782648544,
+        "budget_for_first_detection": 121,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.5
+        }
+      }
+    ],
+    "auc_pr": {
+      "min": 0.004634014631935905,
+      "max": 0.008969028022144884,
+      "sd": 0.0018281642447395409
+    },
+    "budget_for_first_detection": {
+      "min": 49.0,
+      "max": 166.0
+    }
+  },
+  "M3b_ecod": {
+    "runs": [
+      {
+        "seed": 42,
+        "auc_pr": 0.0026108529018302393,
+        "budget_for_first_detection": 232,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.5
+        }
+      },
+      {
+        "seed": 7,
+        "auc_pr": 0.0026108529018302393,
+        "budget_for_first_detection": 232,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.5
+        }
+      },
+      {
+        "seed": 13,
+        "auc_pr": 0.0026108529018302393,
+        "budget_for_first_detection": 232,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.5
+        }
+      },
+      {
+        "seed": 21,
+        "auc_pr": 0.0026108529018302393,
+        "budget_for_first_detection": 232,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.5
+        }
+      },
+      {
+        "seed": 99,
+        "auc_pr": 0.0026108529018302393,
+        "budget_for_first_detection": 232,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.5
+        }
+      }
+    ],
+    "auc_pr": {
+      "min": 0.0026108529018302393,
+      "max": 0.0026108529018302393,
+      "sd": 0.0
+    },
+    "budget_for_first_detection": {
+      "min": 232.0,
+      "max": 232.0
+    }
+  },
+  "M1_rules": {
+    "runs": [
+      {
+        "seed": 42,
+        "auc_pr": 0.43947153673082273,
+        "budget_for_first_detection": 1,
+        "campaign_recall": {
+          "10": 1.0,
+          "50": 1.0,
+          "100": 1.0,
+          "500": 1.0
+        }
+      },
+      {
+        "seed": 7,
+        "auc_pr": 0.43947153673082273,
+        "budget_for_first_detection": 1,
+        "campaign_recall": {
+          "10": 1.0,
+          "50": 1.0,
+          "100": 1.0,
+          "500": 1.0
+        }
+      },
+      {
+        "seed": 13,
+        "auc_pr": 0.43947153673082273,
+        "budget_for_first_detection": 1,
+        "campaign_recall": {
+          "10": 1.0,
+          "50": 1.0,
+          "100": 1.0,
+          "500": 1.0
+        }
+      },
+      {
+        "seed": 21,
+        "auc_pr": 0.43947153673082273,
+        "budget_for_first_detection": 1,
+        "campaign_recall": {
+          "10": 1.0,
+          "50": 1.0,
+          "100": 1.0,
+          "500": 1.0
+        }
+      },
+      {
+        "seed": 99,
+        "auc_pr": 0.43947153673082273,
+        "budget_for_first_detection": 1,
+        "campaign_recall": {
+          "10": 1.0,
+          "50": 1.0,
+          "100": 1.0,
+          "500": 1.0
+        }
+      }
+    ],
+    "auc_pr": {
+      "min": 0.43947153673082273,
+      "max": 0.43947153673082273,
+      "sd": 0.0
+    },
+    "budget_for_first_detection": {
+      "min": 1.0,
+      "max": 1.0
+    }
+  }
+}

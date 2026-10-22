@@ -39,9 +39,13 @@ The generator emits campaigns as chains (user authenticates A→B, then B→C) a
 M1's rule R7 tests for "previous destination equals current source within 30
 minutes" — the same predicate. Measured on the test split, R7 scores 113× higher
 on malicious events than benign ones, and M1's validation-fitted weights put
-0.579 of their mass on it. R8 (new source computer for the user) contributes at
-3.4× and R1 (new user→host pair) at 2.5×; R4 (off-hours) does not discriminate at
-all; R2, R3 and R5 never fire on a malicious event.
+0.579 of their mass on it in the first published configuration (50 weight draws).
+Since 22 October 2026 every tunable model gets 20 candidates on validation; M1's
+chosen weights put 0.235 on R7 and 0.303 on R8, and M1u, the same rules with
+uniform weights and no label, reaches AUC-PR 0.0191 against M1's
+0.4395. R8 (new source computer for the user) separates at 3.4× and R1
+(new user→host pair) at 2.5×; R4 (off-hours) does not discriminate at all; R2, R3
+and R5 never fire on a malicious event.
 
 So "M1 catches every campaign at 10 alerts/day" is, here, mostly one rule that
 was handed the generator's own definition of an attack. The

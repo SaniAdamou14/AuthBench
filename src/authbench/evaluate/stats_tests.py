@@ -1,18 +1,22 @@
-"""Statistical uncertainty: a paired campaign-block bootstrap with Holm-Bonferroni correction (US-128).
+"""Statistical uncertainty: a paired block bootstrap with Holm-Bonferroni correction (US-128).
 
 With 715 positives concentrated in a handful of campaigns, treating
 individual events as independent draws grossly underestimates variance.
-Every bootstrap resample here is drawn at the **campaign** level: each
-campaign's events move together as one block, and every benign event is its
-own singleton block.
+Every resample draws blocks with replacement: the positives of one account
+(or, optionally, of one campaign) move together as one block, and every
+benign event is its own singleton block. It is a block bootstrap over one
+pooled set of blocks, not a stratified one: the number of positive blocks in a
+resample varies, as the number of attacks in another sample would.
 """
 
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
+from scipy import sparse
+from scipy.stats import norm
 
 from authbench.evaluate.statistics import (
     ModelStatistics,
@@ -23,8 +27,8 @@ from authbench.evaluate.statistics import (
 
 logger = logging.getLogger(__name__)
 
-# The sample size of a campaign-stratified bootstrap is the number of
-# campaigns, not the number of events. With a single campaign every resample
+# The sample size of a block bootstrap is the number of positive blocks, not
+# the number of events. With a single block every resample
 # is a re-weighting of the same attack, so no pairwise difference can change
 # sign and every p-value lands on the resolution floor — significance is not
 # estimable, and `PairedBootstrap.comparisons` says so instead of reporting it.
@@ -50,11 +54,73 @@ class BootstrapResult:
     ci_low: float
     ci_high: float
     confidence: float
+    #: "bca", or "percentile" where the BCa correction is undefined (see `bca_interval`).
+    method: str = "percentile"
+    #: Order statistics bracketing each endpoint with 95% Monte Carlo coverage: how far
+    #: another run with a different seed could move it.
+    ci_low_mc: tuple[float, float] | None = None
+    ci_high_mc: tuple[float, float] | None = None
+
+
+def _quantile_mc_range(ordered: np.ndarray, q: float) -> tuple[float, float]:
+    """Order statistics around the q-quantile of `ordered` covering it with 95% probability."""
+    r = ordered.size
+    half = 1.96 * np.sqrt(r * q * (1 - q))
+    low = int(np.clip(np.floor(r * q - half), 0, r - 1))
+    high = int(np.clip(np.ceil(r * q + half), 0, r - 1))
+    return float(ordered[low]), float(ordered[high])
+
+
+def bca_interval(
+    resampled: np.ndarray,
+    point: float,
+    jackknife_values: np.ndarray,
+    jackknife_weights: np.ndarray,
+    confidence: float,
+) -> BootstrapResult:
+    """Bias-corrected and accelerated interval (Efron, 1987; Efron and Tibshirani, 1993, ch. 14).
+
+    The bias correction is the share of resamples below the point estimate (ties count
+    half); the acceleration is the skewness of the leave-one-unit-out values, each unit
+    weighted by how many units share its value. Falls back to the percentile interval,
+    and says so, when either is undefined: every resample on one side of the estimate,
+    or a unit whose removal leaves no positive.
+    """
+    alpha = 1 - confidence
+    levels = np.array([alpha / 2, 1 - alpha / 2])
+    method = "percentile"
+    share = (
+        np.count_nonzero(resampled < point) + 0.5 * np.count_nonzero(resampled == point)
+    ) / resampled.size
+    if 0 < share < 1 and jackknife_values.size and np.isfinite(jackknife_values).all():
+        centre = np.average(jackknife_values, weights=jackknife_weights)
+        spread = centre - jackknife_values
+        variance = float(np.sum(jackknife_weights * spread**2))
+        acceleration = (
+            float(np.sum(jackknife_weights * spread**3)) / (6 * variance**1.5)
+            if variance > 0
+            else 0.0
+        )
+        z0, z = norm.ppf(share), norm.ppf(levels)
+        denominator = 1 - acceleration * (z0 + z)
+        if (denominator > 0).all():
+            levels, method = norm.cdf(z0 + (z0 + z) / denominator), "bca"
+    low, high = np.quantile(resampled, levels)
+    ordered = np.sort(resampled)
+    return BootstrapResult(
+        point_estimate=point,
+        ci_low=float(low),
+        ci_high=float(high),
+        confidence=confidence,
+        method=method,
+        ci_low_mc=_quantile_mc_range(ordered, float(levels[0])),
+        ci_high_mc=_quantile_mc_range(ordered, float(levels[1])),
+    )
 
 
 @dataclass
 class PairedBootstrap:
-    """One campaign-stratified resampling pass, shared by every model.
+    """One block-bootstrap resampling pass, shared by every model.
 
     Drawing a separate set of resamples per model would make the per-model
     CIs and the pairwise comparisons answer subtly different questions, and
@@ -71,11 +137,13 @@ class PairedBootstrap:
     confidence: float
     n_resamples: int
     n_degenerate_discarded: int = 0
-    # How many campaigns the resampled split actually contained. This is the
-    # sample size of a campaign-stratified bootstrap — not the event count —
-    # and `comparisons` refuses to call anything significant below
+    # How many positive blocks (accounts or campaigns) the split contained. This
+    # is the sample size of the bootstrap — not the event count — and
+    # `comparisons` refuses to call anything significant below
     # `MIN_CAMPAIGNS_FOR_SIGNIFICANCE`.
     n_campaign_blocks: int = 0
+    #: Per model, the leave-one-unit-out values and their multiplicities, for BCa.
+    jackknife: dict[str, tuple[np.ndarray, np.ndarray]] = field(default_factory=dict)
 
     @property
     def minimum_resolvable_p_value(self) -> float:
@@ -83,13 +151,13 @@ class PairedBootstrap:
         return 2.0 / (self.n_resamples + 1)
 
     def ci(self, model_name: str) -> BootstrapResult:
-        alpha = 1 - self.confidence
-        lo, hi = np.quantile(self.resampled[model_name], [alpha / 2, 1 - alpha / 2])
-        return BootstrapResult(
-            point_estimate=self.point_estimates[model_name],
-            ci_low=float(lo),
-            ci_high=float(hi),
-            confidence=self.confidence,
+        values, weights = self.jackknife.get(model_name, (np.empty(0), np.empty(0)))
+        return bca_interval(
+            self.resampled[model_name],
+            self.point_estimates[model_name],
+            values,
+            weights,
+            self.confidence,
         )
 
     def comparisons(self, metric_name: str, *, alpha: float = 0.05) -> list[PairwiseComparison]:
@@ -104,6 +172,9 @@ class PairedBootstrap:
         Ties (Δ* exactly 0) count toward both tails, which is the
         conservative convention. That is only sound because degenerate
         resamples never reach here — see `paired_campaign_bootstrap`.
+
+        The interval of a difference is the percentile one, so that it excludes
+        zero exactly when the test rejects; the per-model intervals are BCa.
         """
         pairs = [(a, b) for i, a in enumerate(self.model_names) for b in self.model_names[i + 1 :]]
         ci_alpha = 1 - self.confidence
@@ -145,8 +216,8 @@ class PairedBootstrap:
         significances = holm_bonferroni(raw_p_values, alpha=alpha)
         adjusted_p_values = holm_adjusted_p_values(raw_p_values)
 
-        # A campaign-stratified bootstrap has as many independent observations
-        # as the split has campaigns. Below two, resampling cannot vary the
+        # A block bootstrap has as many independent observations as the split
+        # has positive blocks. Below two, resampling cannot vary the
         # campaign composition at all: every resample contains copies of the
         # same campaign, so each model's Δ* keeps one sign across the whole
         # pass, the tail count is 0, and *every* pair comes back at exactly
@@ -156,8 +227,8 @@ class PairedBootstrap:
         # precisely the claim this project exists to refuse to make.
         if self.n_campaign_blocks < MIN_CAMPAIGNS_FOR_SIGNIFICANCE:
             logger.warning(
-                "%d campaign(s) in the resampled split: a campaign-stratified bootstrap has "
-                "no campaign-level variation to draw on, so every pairwise p-value collapses "
+                "%d positive block(s) in the resampled split: a block bootstrap has "
+                "no block-level variation to draw on, so every pairwise p-value collapses "
                 "onto its own resolution floor (%.5f). All %d comparisons are reported as "
                 "not significant — the point estimates and intervals still stand, the "
                 "significance verdict does not.",
@@ -179,7 +250,8 @@ class PairedBootstrap:
                 at_resolution_floor=floored,
                 diff_ci_low=ci[0],
                 diff_ci_high=ci[1],
-                method="paired_campaign_bootstrap",
+                method="paired_block_bootstrap",
+                p_value_mc_se=float(np.sqrt(p * (1 - p) / self.n_resamples)),
             )
             for (a, b), diff, p, adjusted, sig, ci, floored in zip(
                 pairs,
@@ -223,7 +295,7 @@ def _shared_draws(
     if kept.size < n_resamples:
         raise ValueError(
             f"Only {kept.size}/{n_resamples} non-degenerate resamples in {drawn} attempts. "
-            "The test split has too few campaigns for a campaign-stratified bootstrap to say "
+            "The test split has too few positive blocks for a block bootstrap to say "
             "anything; report the point estimates without intervals rather than intervals "
             "nobody should trust."
         )
@@ -244,6 +316,36 @@ def benign_bins(stats: ModelStatistics) -> np.ndarray:
     return bins
 
 
+def jackknife(
+    stats: ModelStatistics, positive_block: np.ndarray, n_blocks: int
+) -> tuple[np.ndarray, np.ndarray]:
+    """AUC-PR with each resampling unit left out, and how many units give each value.
+
+    The units are the positive blocks and the benign events. Leaving out a benign event
+    lowers the benign count at every threshold at or below it, which depends only on its
+    bin, so each non-empty bin gives one value, weighted by its size: exact, at the cost
+    of a few hundred evaluations rather than one per benign event.
+    """
+    at_or_above = (stats.benign_above + stats.benign_level).astype(np.float64)
+    m = at_or_above.size
+    without_block = 1.0 - (positive_block[None, :] == np.arange(n_blocks)[:, None])
+    block_values = weighted_average_precision(
+        positive_weight_by_group(stats, without_block), np.broadcast_to(at_or_above, (n_blocks, m))
+    )
+    bins = benign_bins(stats)
+    occupied = np.flatnonzero(bins)
+    # Bin b (gap j at 2j, level j at 2j + 1) is counted at threshold j when b <= 2j + 1.
+    counted = occupied[:, None] <= 2 * np.arange(m)[None, :] + 1
+    all_positives = positive_weight_by_group(stats, np.ones(stats.positives.height))
+    bin_values = weighted_average_precision(
+        np.broadcast_to(all_positives, (occupied.size, m)), at_or_above[None, :] - counted
+    )
+    return (
+        np.concatenate([block_values, bin_values]),
+        np.concatenate([np.ones(n_blocks), bins[occupied].astype(np.float64)]),
+    )
+
+
 def paired_campaign_bootstrap(
     statistics: dict[str, ModelStatistics],
     *,
@@ -251,8 +353,13 @@ def paired_campaign_bootstrap(
     confidence: float = 0.95,
     seed: int = 42,
     max_attempts_factor: int = 20,
+    block_of: dict[int, str] | None = None,
 ) -> PairedBootstrap:
-    """AUC-PR of every model on `n_resamples` campaign-block resamples of the split.
+    """AUC-PR of every model on `n_resamples` block resamples of the split.
+
+    `block_of` maps each campaign to its block, its account in the reported runs:
+    two campaigns of one account are not independent. Without it each campaign is a
+    block.
 
     Drawing every benign singleton's multiplicity costs the size of the split per
     resample, about 4e8 draws on LANL. AUC-PR depends on the benign weights only
@@ -289,13 +396,13 @@ def paired_campaign_bootstrap(
         ):
             raise ValueError(f"{name} was not evaluated on the same split as {names[0]}.")
 
-    campaigns, campaign_index = np.unique(
-        reference.positives["campaign_id"].to_numpy(), return_inverse=True
-    )
+    campaign = reference.positives["campaign_id"].to_list()
+    keys = [str(block_of[c]) if block_of is not None else str(c) for c in campaign]
+    blocks, positive_block = np.unique(np.array(keys), return_inverse=True)
     multiplicity, benign_draws, n_degenerate = _shared_draws(
-        campaigns.size, reference.n_benign, n_resamples, seed, n_resamples * max_attempts_factor
+        blocks.size, reference.n_benign, n_resamples, seed, n_resamples * max_attempts_factor
     )
-    positive_weight = multiplicity[:, campaign_index]
+    positive_weight = multiplicity[:, positive_block]
 
     resampled = {}
     for name in names:
@@ -312,10 +419,10 @@ def paired_campaign_bootstrap(
             positive_weight_by_group(stats, positive_weight), at_or_above
         )
     logger.info(
-        "Bootstrap: %d resamples x %d models over %d campaigns, %d degenerate draws redrawn.",
+        "Bootstrap: %d resamples x %d models over %d positive blocks, %d degenerate draws redrawn.",
         n_resamples,
         len(names),
-        campaigns.size,
+        blocks.size,
         n_degenerate,
     )
     return PairedBootstrap(
@@ -325,7 +432,10 @@ def paired_campaign_bootstrap(
         confidence=confidence,
         n_resamples=n_resamples,
         n_degenerate_discarded=n_degenerate,
-        n_campaign_blocks=int(campaigns.size),
+        n_campaign_blocks=int(blocks.size),
+        jackknife={
+            name: jackknife(statistics[name], positive_block, int(blocks.size)) for name in names
+        },
     )
 
 
@@ -403,7 +513,9 @@ class PairwiseComparison:
     at_resolution_floor: bool = False
     diff_ci_low: float | None = None
     diff_ci_high: float | None = None
-    method: str = "paired_campaign_bootstrap"
+    method: str = "paired_block_bootstrap"
+    #: Monte Carlo standard error of `p_value_raw`: sqrt(p (1 - p) / R).
+    p_value_mc_se: float | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -414,6 +526,7 @@ class PairwiseComparison:
             "diff_ci_low": self.diff_ci_low,
             "diff_ci_high": self.diff_ci_high,
             "p_value_raw": self.p_value_raw,
+            "p_value_raw_mc_se": self.p_value_mc_se,
             "p_value_holm_adjusted": self.p_value_holm_adjusted,
             "at_resolution_floor": self.at_resolution_floor,
             "significant": self.significant,
@@ -476,3 +589,90 @@ def render_comparison_sentence(comparison: PairwiseComparison) -> str:
         f"{comparison.model_a} and {comparison.model_b} are not significantly different "
         f"on {comparison.metric_name} (Δ={comparison.diff:.4f}{interval}, {p_value})."
     )
+
+
+def cluster_average_precision(stats: ModelStatistics, multiplicity: np.ndarray) -> np.ndarray:
+    """AUC-PR when every event of cluster u counts `multiplicity[r, u]` times, one value per row r."""
+    assert stats.benign_cluster_bins is not None
+    cluster, bins, counts = stats.benign_cluster_bins
+    by_cluster = sparse.csr_matrix(
+        (counts.astype(np.float64), (cluster, bins)),
+        shape=(stats.n_clusters, 2 * stats.thresholds.size + 1),
+    )
+    benign = np.asarray((by_cluster.T @ multiplicity.T.astype(np.float64)).T)
+    at_or_above = np.cumsum(benign, axis=1)[:, 1:-1:2]
+    weights = multiplicity[:, stats.positive_cluster]
+    return weighted_average_precision(positive_weight_by_group(stats, weights), at_or_above)
+
+
+def cluster_bootstrap(
+    statistics: dict[str, ModelStatistics],
+    *,
+    n_resamples: int = 1000,
+    confidence: float = 0.95,
+    seed: int = 42,
+    chunk: int = 256,
+    max_attempts_factor: int = 20,
+) -> PairedBootstrap:
+    """Sensitivity analysis: resample source users, every event of a user moving with it (S6-24).
+
+    Benign events of one user are correlated, which the singleton benign blocks of
+    `paired_campaign_bootstrap` ignore. Here the units are the users of the split; a
+    resample draws as many users as there are, uniformly with replacement, and is redrawn
+    if it holds no user with a positive. Drawn in chunks shared by every model, so the
+    comparisons are paired; the intervals are percentile.
+    """
+    names = list(statistics)
+    reference = statistics[names[0]]
+    if reference.benign_cluster_bins is None:
+        raise ValueError("cluster_bootstrap needs statistics accumulated with a cluster column.")
+    n = reference.n_clusters
+    has_positive = np.zeros(n, dtype=bool)
+    has_positive[reference.positive_cluster] = True
+    rng = np.random.default_rng(seed)
+    resampled: dict[str, list[np.ndarray]] = {name: [] for name in names}
+    kept = degenerate = drawn = 0
+    while kept < n_resamples and drawn < n_resamples * max_attempts_factor:
+        multiplicity = rng.multinomial(n, np.full(n, 1.0 / n), size=chunk)
+        drawn += chunk
+        usable = np.flatnonzero((multiplicity[:, has_positive] > 0).any(axis=1))
+        take = usable[: n_resamples - kept]
+        last = int(take[-1]) + 1 if take.size else chunk
+        degenerate += last - take.size
+        kept += take.size
+        for name in names:
+            resampled[name].append(cluster_average_precision(statistics[name], multiplicity[take]))
+    if kept < n_resamples:
+        raise ValueError(f"Only {kept}/{n_resamples} resamples held a user with a positive.")
+    return PairedBootstrap(
+        model_names=names,
+        point_estimates={name: average_precision(statistics[name]) for name in names},
+        resampled={name: np.concatenate(parts) for name, parts in resampled.items()},
+        confidence=confidence,
+        n_resamples=n_resamples,
+        n_degenerate_discarded=degenerate,
+        n_campaign_blocks=int(has_positive.sum()),
+    )
+
+
+def cluster_bootstrap_record(bootstrap: PairedBootstrap, *, alpha: float) -> dict[str, object]:
+    """The user-cluster sensitivity analysis as written to `bootstrap_user_clusters.json`."""
+    models = {}
+    for name in bootstrap.model_names:
+        ci = bootstrap.ci(name)
+        models[name] = {
+            "auc_pr": ci.point_estimate,
+            "ci_low": ci.ci_low,
+            "ci_high": ci.ci_high,
+            "method": ci.method,
+        }
+    comparisons = bootstrap.comparisons("auc_pr", alpha=alpha)
+    return {
+        "unit": "source user",
+        "n_users_with_positives": bootstrap.n_campaign_blocks,
+        "n_resamples": bootstrap.n_resamples,
+        "n_degenerate_discarded": bootstrap.n_degenerate_discarded,
+        "n_significant": sum(c.significant for c in comparisons),
+        "models": models,
+        "comparisons": [c.to_dict() for c in comparisons],
+    }

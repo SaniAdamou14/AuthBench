@@ -47,12 +47,15 @@ features:
 eval:
   budgets: [10, 50, 100, 500]
   fpr_targets: [1.0e-4, 1.0e-5]
-  bootstrap_resamples: 2000
+  bootstrap_resamples: 10000
   bootstrap_confidence: 0.95
   pairwise_alpha: 0.05
   ledger_k_max: 10000
   ledger_resamples: 10000
   ledger_simulations: 10000
+  ledger_campaign_gap_hours: [1, 6, 24, 72]
+  tuning_configs: 20
+  fit_variance_seeds: [42, 7, 13, 21, 99]
 
 # conf/config.yaml (runtime)
 runtime:

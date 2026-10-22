@@ -51,6 +51,8 @@ class IsolationForestScorer(_PyODScorer):
     ) -> None:
         super().__init__(feature_cols, fit_sample_size)
         self.seed = seed
+        self.n_estimators = n_estimators
+        self.max_samples = max_samples
         from pyod.models.iforest import IForest
 
         self._model = IForest(n_estimators=n_estimators, max_samples=max_samples, random_state=seed)
@@ -112,22 +114,32 @@ class ECODScorer(BaseAnomalyScorer):
 
 
 class HBOSScorer(_PyODScorer):
-    """M3b (alternate) — HBOS, the histogram-based hyperparameter-free sibling of ECOD.
+    """M3b (alternate) — HBOS, the histogram-based sibling of ECOD.
 
-    Unlike ECOD it *is* row-local: the histograms are built at `fit` time and
-    only looked up at scoring, so a matrix split in two scores identically to
-    the whole. Verified, not assumed — see `test_chunked_scoring.py`.
+    The histograms are built at `fit` time and only looked up at scoring, so a matrix
+    split in two scores identically to the whole (`tests/unit/test_row_locality.py`).
+    `n_bins` and `tol` are its two hyperparameters (`pipeline.tuning`).
     """
 
     name = "M3b_hbos"
     requires_labels = False
     scores_row_locally = True
 
-    def __init__(self, feature_cols: list[str], fit_sample_size: int | None = None) -> None:
+    def __init__(
+        self,
+        feature_cols: list[str],
+        fit_sample_size: int | None = None,
+        n_bins: int = 10,
+        tol: float = 0.5,
+        seed: int = 42,
+    ) -> None:
         super().__init__(feature_cols, fit_sample_size)
         from pyod.models.hbos import HBOS
 
-        self._model = HBOS()
+        self.seed = seed
+        self.n_bins = n_bins
+        self.tol = tol
+        self._model = HBOS(n_bins=n_bins, tol=tol)
 
 
 class LOFScorer(_PyODScorer):

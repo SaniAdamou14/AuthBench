@@ -11,14 +11,26 @@ bootstrap:
   # read exactly like a real null result. See
   # `stats_tests.minimum_resamples_for_family`, which warns if this is ever
   # set too low for the number of models actually in the catalog.
-  n_resamples: 2000
-  # The only supported value. Events inside a campaign are anything but
-  # independent, so an event-level resample would understate variance by a
-  # wide margin; `stats_tests.paired_campaign_bootstrap` moves each campaign
-  # as one block. Anything else here is rejected rather than silently ignored.
-  stratify_by: campaign
+  n_resamples: 10000
+  # The resampling block of the positives: `account` (every campaign of one
+  # account moves together; two campaigns of one account are not independent)
+  # or `campaign`. Benign events are singleton blocks either way. Events inside
+  # a campaign are anything but independent, so an event-level resample would
+  # understate variance; anything else here is rejected rather than ignored.
+  block: account
   confidence: 0.95
   seed: 42
+
+# Every tunable model (M1's rule weights, PCA, Isolation Forest, HBOS) gets the same
+# number of candidates, its default among them, chosen on validation AUC-PR (S6-11).
+tuning:
+  n_configs: 20
+  seed: 42
+
+# Seeded models (M1, PCA, Isolation Forest, ECOD, HBOS) refitted with each seed, their tuned
+# configuration fixed, to measure the variance the fit adds (S6-24). Reported regime only.
+fit_variance:
+  seeds: [42, 7, 13, 21, 99]
 
 pairwise_test:
   # The only method: the comparisons reuse the bootstrap pass above, so the
@@ -42,5 +54,7 @@ ledger:
   k_max: 10000           # upper end of the log-budget area
   n_resamples: 10000     # bootstrap over accounts
   n_simulations: 10000   # random-ranking null
+  # Campaigns regrouped at each gap from the ledger (S6-07); 24 is the dataset's own.
+  campaign_gap_hours: [1, 6, 24, 72]
   confidence: 0.95
   seed: 42

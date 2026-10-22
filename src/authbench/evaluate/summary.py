@@ -32,14 +32,23 @@ from authbench.evaluate.stats_tests import BootstrapResult, PairedBootstrap, Pai
 logger = logging.getLogger(__name__)
 
 # The only columns evaluation reads from a scored day (NFR-01).
-EVAL_COLUMNS = ["event_id", "time", "day", "is_malicious", "campaign_id"]
+EVAL_COLUMNS = [
+    "event_id",
+    "time",
+    "day",
+    "is_malicious",
+    "campaign_id",
+    "src_user",
+    "src_computer",
+    "dst_computer",
+]
 
 
 def score_column(model_name: str) -> str:
     """Where a model's scores live on the shared evaluation frame.
 
     Every model's scores sit on one frame, under its own column, so a single
-    campaign-stratified resampling pass can serve all of them at once —
+    block-bootstrap resampling pass can serve all of them at once —
     which is also what makes the pairwise differences paired.
     """
     return f"_score__{model_name}"
@@ -116,6 +125,10 @@ class ModelEvaluation:
     recall_at_fixed_fpr: dict[float, float] = field(default_factory=dict)
     score_resolution: ScoreResolution | None = None
     auc_pr_campaign_weighted: float | None = None
+    #: The same budgets as thresholds fixed on the calibration partition (S6-25).
+    fixed_threshold: list[dict[str, object]] = field(default_factory=list)
+    #: The budgets counted in edge-hours and user-days rather than events (S6-29).
+    alert_units: dict[str, dict[str, object]] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, object]:
         record: dict[str, object] = {
@@ -146,6 +159,10 @@ class ModelEvaluation:
                 # all. `None` means no budget reaches a campaign.
                 "budget_for_first_detection": self.curve.budget_for_first_detection,
                 "time_to_detection": [ttd.__dict__ for ttd in self.time_to_detection],
+                # A SOC sets a threshold, not a daily top-k: the volume it then gets varies by day.
+                "fixed_threshold": self.fixed_threshold,
+                # An analyst triages a connection in an hour, or a user in a day, once.
+                "alert_units": self.alert_units,
             },
             "literature_comparable": {
                 "roc_auc": self.roc_auc,
@@ -164,6 +181,12 @@ class ModelEvaluation:
             record["auc_pr_ci_low"] = self.auc_pr_ci.ci_low
             record["auc_pr_ci_high"] = self.auc_pr_ci.ci_high
             record["auc_pr_ci_confidence"] = self.auc_pr_ci.confidence
+            record["auc_pr_ci_method"] = self.auc_pr_ci.method
+            # How far each endpoint could move with another seed (95% Monte Carlo range).
+            record["auc_pr_ci_monte_carlo"] = {
+                "low": self.auc_pr_ci.ci_low_mc,
+                "high": self.auc_pr_ci.ci_high_mc,
+            }
         return record
 
 
@@ -201,6 +224,10 @@ def evaluate_model(
             if both_classes_present
             else None
         ),
+        fixed_threshold=(
+            statistics.fixed_threshold(stats, budgets) if stats.alert_thresholds.size else []
+        ),
+        alert_units=statistics.unit_curves(stats, budgets),
     )
 
 
