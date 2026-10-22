@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import sys
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -87,6 +88,22 @@ def select_events(auth: pl.LazyFrame, variant: str) -> pl.LazyFrame:
     return auth.select("time", "src_computer", "dst_computer")
 
 
+def events(auth_dir: Path, variant: str, scratch: Path) -> pl.LazyFrame:
+    """A variant's events. `ntlm` is filtered a day at a time into `scratch` first: as one lazy
+    query over the whole dataset, its search of ten text columns was OOM-killed at a 24 GB cap."""
+    if variant == "all":
+        return select_events(pl.scan_parquet(auth_dir / "**" / "*.parquet"), variant)
+    for day in sorted(auth_dir.glob("day=*")):
+        (scratch / day.name).mkdir(parents=True)
+        (
+            select_events(pl.scan_parquet(day / "*.parquet"), variant)
+            .with_columns(pl.col("src_computer", "dst_computer").cast(pl.Utf8))
+            .collect()
+            .write_parquet(scratch / day.name / "part.parquet")
+        )
+    return pl.scan_parquet(scratch / "*" / "*.parquet")
+
+
 def edge_level(auth: pl.LazyFrame, redteam: pl.LazyFrame, snapshot: int) -> pl.DataFrame:
     """One row per (snapshot, source, destination), labelled by the red-team events it holds.
 
@@ -135,19 +152,23 @@ def score_edges(model: EulerScorer, edges: pl.DataFrame) -> tuple[np.ndarray, np
 def run(
     auth_dir: Path, redteam_path: Path, out_dir: Path, model: EulerScorer, variant: str = "all"
 ) -> dict[str, object]:
-    auth = select_events(pl.scan_parquet(auth_dir / "**" / "*.parquet"), variant)
     redteam, _ = clean_redteam(
         pl.scan_csv(redteam_path, has_header=False, new_columns=RAW_REDTEAM_COLUMNS)
     )
     first_attack = int(redteam.select(pl.col("time").min()).collect().item())
-    log(f"variant {variant}; first red-team event at t={first_attack}; fitting")
-    model.fit(auth.filter(pl.col("time") < first_attack))
-    log(f"fitted in {len(model.history)} epochs; preparing the timeline")
-    model.prepare([auth])
-    log("prepared; building the test edges")
-    # Every event from the first red-team one on, as the authors' loader reads the test range:
-    # the snapshot holding it is kept, without its earlier events.
-    edges = edge_level(auth.filter(pl.col("time") >= first_attack), redteam, model.snapshot_seconds)
+    with tempfile.TemporaryDirectory(prefix="euler_fidelity_") as scratch:
+        auth = events(auth_dir, variant, Path(scratch))
+        n_events = int(auth.select(pl.len()).collect().item())
+        log(f"variant {variant}: {n_events} events; first red-team event at t={first_attack}")
+        model.fit(auth.filter(pl.col("time") < first_attack))
+        log(f"fitted in {len(model.history)} epochs; preparing the timeline")
+        model.prepare([auth])
+        log("prepared; building the test edges")
+        # Every event from the first red-team one on, as the authors' loader reads the test
+        # range: the snapshot holding it is kept, without its earlier events.
+        edges = edge_level(
+            auth.filter(pl.col("time") >= first_attack), redteam, model.snapshot_seconds
+        )
     log(f"{edges.height} test edges, {int(edges['is_malicious'].sum())} anomalous; scoring")
     scores, labels = score_edges(model, edges)
     n_edges = edges.height
@@ -158,6 +179,7 @@ def run(
         "training before the first red-team event",
         "variant": variant,
         "events": VARIANTS[variant],
+        "events_kept": n_events,
         "first_red_team_event": first_attack,
         "test_edges": n_edges,
         "anomalous_edges": int(labels.sum()),
