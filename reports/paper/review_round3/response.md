@@ -59,7 +59,7 @@ the reason).
 | M3 Abstract and conclusion overclaim | Addressed: rewritten around the robust results; the conclusion answers three stated research questions | Abstract, Sections 1, 14 |
 | M4 Seeds for the detectors behind the headlines | Phase B; within-PCA contrast added (its two fits with the lowest AUC-PR give its two earliest detections, checked by the generator) | Section 7.8 |
 | M5 Catalogue lacks the state of the art | Phase B; README tagline no longer claims "published performance" | README, Section 11 |
-| M6 Euler diagnosis | Partly: test replaced (R2 M5), R+R and CyberGFM discussed. Float32 and alignment measurements, contact with the authors: Phase B (the contact is the author's action) | Section 9 |
+| M6 Euler diagnosis | Partly: test replaced (R2 M5), R+R and CyberGFM discussed. Authors contacted on 23 October 2026 (configuration of Table VI, hidden sizes raised in their issue #7, permission for the path edits and logs); their answer pending. Float32 and alignment measurements: Phase B | Section 9, ethics statement |
 | M7 Not confirmatory | Addressed in the text (exploratory, endpoints for the next dataset) | Section 11 |
 | minor: title "Temporally Leak-Free" | Declined for now: the row-locality test is what neither close work does, and the title is that of the archived software release | |
 | minor: M2a fixed-threshold recall | Addressed (table note) | Table 8 |
@@ -107,4 +107,5 @@ the reason).
    unit tie brackets and host-stratified unit results can be computed.
 5. Intervals for every budget summary and unit; cost per detected campaign.
 6. A detector registry; one command for the whole run; per-day content hashes of all 58 days.
-7. Contact with Euler's authors before the next version.
+7. Euler's authors were written to on 23 October 2026: report their answer, rerun their code
+   with any configuration they give, and withdraw the path edits if they object.
