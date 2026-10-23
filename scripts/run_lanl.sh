@@ -57,7 +57,7 @@ else
     : "${AUTHBENCH_LANL_EMAIL:?set AUTHBENCH_LANL_EMAIL to the address the LANL data-use form requires}"
     step download uv run authbench data download --dataset lanl
 fi
-step convert uv run authbench data to-parquet data/raw/auth.txt.gz --out-dir data/interim/auth --dataset lanl
+step convert uv run authbench data to-parquet data/raw/auth.txt.gz --out-dir data/interim/auth --dataset lanl --overwrite
 
 protocol() {
     local split="$1"

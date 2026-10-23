@@ -12,6 +12,13 @@ bounded here, so the blocking is done explicitly and the guarantee is ours
 Each block is parsed, cleaned (`parse.clean.clean_auth`) and written to
 `out_dir/day=<D>/part-<NNNNNN>.parquet` immediately, so the raw file is read
 exactly once and never held in full.
+
+Part files are named by block index, so a conversion into a directory that
+already holds partitions would overwrite only the parts it happens to rewrite
+and leave the others in place: a different `block_bytes` or source would mix
+two conversions in one dataset, with duplicated rows. The conversion therefore
+refuses a directory with existing `day=*` partitions unless told to replace
+them.
 """
 
 from __future__ import annotations
@@ -19,6 +26,7 @@ from __future__ import annotations
 import gzip
 import logging
 import os
+import shutil
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -146,6 +154,15 @@ def _parse_block(block: bytes) -> pl.DataFrame:
     return frame.select(RAW_AUTH_COLUMNS).with_columns(pl.col("time").cast(pl.Int64, strict=False))
 
 
+class ExistingOutputError(FileExistsError):
+    """Raised when `out_dir` already holds day partitions and replacing them
+    was not asked for."""
+
+
+def _existing_partitions(out_dir: Path) -> list[Path]:
+    return sorted(path for path in out_dir.glob("day=*") if path.is_dir())
+
+
 def estimate_parquet_bytes(
     src_path: Path, *, days: tuple[int, int] | None = None, total_days: int = 58
 ) -> int:
@@ -172,6 +189,7 @@ def to_parquet_partitioned(
     compression: Literal["lz4", "uncompressed", "snappy", "gzip", "brotli", "zstd"] = "zstd",
     check_disk_space: bool = True,
     days: tuple[int, int] | None = None,
+    overwrite: bool = False,
 ) -> ConversionReport:
     """Convert `src_path` (plain or gzipped CSV, no header) to a Parquet
     dataset partitioned by `day=<D>` under `out_dir`.
@@ -185,11 +203,28 @@ def to_parquet_partitioned(
     about a quarter of the reading. Rows outside the window are counted in
     `n_rows_out_of_range`, never in `drop_counts` — they are excluded, not
     rejected, and conflating the two would corrupt US-102's reconciliation.
+
+    `overwrite=True` deletes the `day=*` partitions already in `out_dir` before
+    writing; without it an `out_dir` holding any is refused (see the module
+    docstring). Nothing else in `out_dir` is touched.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if days is not None and days[0] > days[1]:
         raise ValueError(f"days must be (first, last) with first <= last, got {days}.")
+
+    existing = _existing_partitions(out_dir)
+    if existing and not overwrite:
+        raise ExistingOutputError(
+            f"{out_dir} already holds {len(existing)} day partitions. Converting into it would "
+            "leave every part this run does not rewrite in place, mixed with the new ones. "
+            "Pass overwrite=True (--overwrite) to replace them, or choose an empty directory."
+        )
+    # Before the disk check: the partitions being replaced free their space.
+    for partition in existing:
+        shutil.rmtree(partition)
+    if existing:
+        logger.info("Removed %d existing day partitions from %s.", len(existing), out_dir)
 
     if check_disk_space:
         # Warn-then-check: the estimate is coarse, so it is reported either

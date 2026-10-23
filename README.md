@@ -335,6 +335,12 @@ that would. Label every number a partial run produces with the window it came
 from: `to-parquet` refuses to reconcile a day window against the published
 full-dataset row count rather than failing a check nobody could pass.
 
+`to-parquet` also refuses an output directory that already holds `day=*`
+partitions: parts are named by block, so converting again with another block
+size or day window would leave the earlier parts beside the new ones as
+duplicated rows. `--overwrite` deletes those partitions first (`dvc repro`
+empties the directory itself).
+
 The expected row count comes from `conf/dataset/lanl.yaml`, not from the
 command line: it is a published figure (1,051,430,459) and repeating it in
 `dvc.yaml`, in this README and in a shell history is how it eventually
@@ -516,6 +522,12 @@ Being explicit about this is part of the point of the benchmark.
   [`reports/lanl/wider_window_results/`](reports/lanl/wider_window_results/RUN.md).
 - **The single-day LANL run** (superseded, kept): one day per partition, no
   warm-up, 39 test campaigns. [`reports/lanl/RUN.md`](reports/lanl/RUN.md).
+- **The full LANL run of 22 October 2026**: all 58 days, the `temporal` split
+  above in both regimes and Larroche's `harmonised` protocol, with the
+  autoencoders and Euler, Euler's fidelity check and the authors' own Euler
+  code on the same machine. Whether it replaces the wider-window run as the
+  primary result is decided with the report's next version.
+  [`reports/runs/20261022T102638Z/`](reports/runs/20261022T102638Z/RUN.md).
 
 **Runs end to end today**
 
@@ -526,6 +538,11 @@ Being explicit about this is part of the point of the benchmark.
   pair-rarity, M2c source rarity, M2b PCA reconstruction, M3a Isolation Forest,
   M3b ECOD/HBOS. Every tunable model gets the same budget of 20 candidates on
   validation (`pipeline.tuning`).
+- M4a autoencoder and M4b VAE (`runtime.deep_models: true`, the `deep`
+  extra) and M5c Euler, reimplemented (`runtime.euler: true`); run on LANL on
+  22 October 2026. The autoencoders are not tuned.
+- The R1 (unsupervised) and R2 (semi-supervised) training regimes
+  (`split.regimes`).
 - Evaluation, in two registers the report keeps separate:
   - *operational*: event and campaign recall at daily alert budgets,
     time-to-detection per campaign, AUC-PR with block-bootstrap BCa CIs;
@@ -537,9 +554,6 @@ Being explicit about this is part of the point of the benchmark.
 
 **Implemented and unit-tested, not yet run on LANL**
 
-- M4a autoencoder and M4b VAE: in the `train_eval` catalog when
-  `runtime.deep_models: true` (needs the `deep` extra). Bounded, seeded,
-  early-stopped fitting; deterministic, row-local scoring.
 - F6 sequences on a train-fitted vocabulary, and M4c next-destination LSTM;
   F5 graph features (bipartite clustering, PageRank, Louvain, node2vec) and
   M5a. Neither family is in the feature store yet: F6 needs a streaming
@@ -552,8 +566,6 @@ in commit `c0099e9`.
 
 **Not implemented**
 
-- The R1 (unsupervised) / R2 (semi-supervised) training regimes. The key
-  exists in `conf/split/*.yaml`; nothing reads it yet.
 - M5b GNN link prediction: raises `NotImplementedError` on purpose rather
   than shipping a decorative implementation.
 

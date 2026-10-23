@@ -309,6 +309,12 @@ def data_to_parquet(
         help="Convert only this inclusive window of days, as FIRST:LAST (e.g. 0:13). "
         "The whole point of running a real dataset on a machine that cannot hold all of it.",
     ),
+    overwrite: bool = typer.Option(
+        False,
+        "--overwrite",
+        help="Delete the day=* partitions already in OUT_DIR first. Without it a directory "
+        "holding any is refused: leftover parts would mix two conversions.",
+    ),
 ) -> None:
     """US-102: stream raw text into day-partitioned, ZSTD-compressed Parquet.
 
@@ -338,7 +344,7 @@ def data_to_parquet(
             "label it that way in anything you report.[/]"
         )
 
-    kwargs: dict[str, object] = {"days": day_window}
+    kwargs: dict[str, object] = {"days": day_window, "overwrite": overwrite}
     if block_bytes is not None:
         kwargs["block_bytes"] = block_bytes
     report = to_parquet_partitioned(src, out_dir, **kwargs)  # type: ignore[arg-type]

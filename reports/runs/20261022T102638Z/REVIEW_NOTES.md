@@ -143,15 +143,20 @@ implementation is a further 3 points of AUC and about half the AP below their co
 
 Kernel OOM kills (`machine/kernel_oom.log`): five, matching the attempts above (50.8 GB global,
 two at the 24 GB cap, the authors' code at 16 GB, then the global OOM at 17:42 that killed the
-authors' process, not an evaluation). The server was deleted on 23 October 2026 after
+authors' process, not an evaluation). Correction, 23 October 2026: only the authors' code ran with `oom_score_adj` 1000 (shown in
+its kill line); the fidelity reruns were at 0 and confined by their cgroup caps. The server
+was deleted on 23 October 2026 after
 everything was copied back and pushed; `run.json` was written by hand. The LANL form e-mail is
 redacted from `machine/console_logs/download.log`.
 
 ## Still to do
 
-- RUN.md from these notes, then PR and merge.
+- Done 23 October 2026: `RUN.md`; the stale-parts fix in `ingest/to_parquet.py` (refuses an
+  output directory holding partitions, `--overwrite` replaces them). The fix does not concern
+  this run: its conversion rewrote, with the same file and block size (547 blocks), every part
+  of an identical earlier conversion (`machine/console_logs/convert.log`), and the fidelity
+  check read exactly 1,051,430,459 events from the result.
 - The archive: the run folder is in git, a tar.gz would only duplicate it.
-- Fix `ingest/to_parquet.py` stale parts (latent duplication on reconversion).
 - Euler gap to the authors' code: their undocumented choices (10 negatives per edge, early
   stopping on AUC + AP, dropout, DropEdge) are the leads; no machine is needed to read them, one
   is needed to test them.

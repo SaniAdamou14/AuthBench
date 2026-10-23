@@ -21,6 +21,8 @@ stages:
           persist: true
           cache: false
 
+  # No --overwrite: DVC deletes this stage's non-persistent output before running it, so the
+  # directory is empty, and adding the flag would change the command dvc.lock records.
   to_parquet:
     cmd: >-
       authbench data to-parquet data/raw/auth.txt.gz
