@@ -40,7 +40,7 @@ Status: **addressed**, **partly**, **Phase B** (needs a run), **declined** (with
 | F2 Headline rests on the first detection | Addressed: correlation family (first detection, 10/25/50% quantiles, log-area) with Holm and leave-one-out; abstract rewritten ("tracks the bulk of the curve, not its leading edge"); power stated | Section 7.4, Table 6, appendix C |
 | M1 "Unrelated" is absence of evidence | Addressed | Abstract, Section 7.4 |
 | M2 Tuning under-reported; "same budget of 20" false | Addressed: 6, 9, 12, 20 candidates; the four label-tuned temporal detectors flagged; harmonised named as the label-free evidence. Tuning the autoencoders and Euler: Phase B | Section 5, Table 4 note, Section 12 |
-| M3 Post-hoc design (data snooping) | Addressed: design-history paragraph and limitation 19; "leak-free" defined as temporally leak-free. The title is kept by the author's choice. Confirmation on unseen data: Phase B | Section 4.2 |
+| M3 Post-hoc design (data snooping) | Addressed: design-history paragraph and limitation 19; "leak-free" defined as temporally leak-free, and the title now says so ("AuthBench: Temporally Leak-Free, Alert-Budget Evaluation of Authentication Anomaly Detectors, with a LANL Case Study"). Confirmation on unseen data: Phase B | Section 4.2 |
 | M4 Units: cost, no null, M0b omitted | Partly: exact user-day null (agrees with R2's), M0b added, cost caveat. Unit tie brackets, workload-priced recall, a source-host-day unit, edge-hour null: Phase B (positive edge-hours are not in the outputs) | Section 7.5, Table 7 |
 | M5 Inference only on AUC-PR; campaign-weighted AP unreported | Partly: campaign-weighted AP in the correlation family; budget quantiles reported. A paired bootstrap of budget summaries: Phase B | Appendix C, D |
 | M6 Fitting variance only for cheap detectors; PCA's fit atypical; 5M sample | Partly: seed medians and per-seed null probabilities reported, the reported PCA fit called second best of five. Seeds for the autoencoders and Euler, fitting on all training rows: Phase B | Section 7.8, Table 10 |
@@ -60,7 +60,7 @@ Status: **addressed**, **partly**, **Phase B** (needs a run), **declined** (with
 | m11 Hopper as the low-end anchor | Addressed | Section 6.1 |
 | m12 Tuning on a budget metric | Phase B | |
 | m13 First-detection interval | Addressed: no longer reported as an interval | Section 6.3, limitations 13 |
-| Presentation: abstract density | Addressed: fewer numbers, three findings and Euler | Abstract |
+| Presentation: abstract density | Addressed: rewritten around the harness, three levels of reading (event, intrusion, user-day) and the Euler reproduction, with about six numbers; Euler's p-value added (R4 minor 10) | Abstract |
 | Presentation: seed bars in Figure 1 | Phase B (needs seeds for every detector) | |
 
 ## R2 (statistics)
