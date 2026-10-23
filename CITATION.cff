@@ -1,24 +1,40 @@
 cff-version: 1.2.0
-message: "If you use this software or its results, please cite both the software and the paper below."
+message: "If you use this software or its results, please cite both the software and the report below."
 title: AuthBench
+abstract: >-
+  An open harness that evaluates authentication anomaly detectors under a temporally
+  leak-free protocol and daily alert budgets: it ranks events, edge-hours and user-days
+  within each day, gives every red-team campaign the daily budget at which it is first
+  detected, and places each result against its exact distribution under a random ranking.
 type: software
-version: 1.0.0
-date-released: 2026-10-06
+version: 2.0.0
+date-released: 2026-10-23
 url: https://github.com/SaniAdamou14/AuthBench
 repository-code: https://github.com/SaniAdamou14/AuthBench
 license: Apache-2.0
+keywords:
+  - anomaly detection
+  - authentication logs
+  - lateral movement
+  - alert budget
+  - evaluation
+  - reproducibility
+  - LANL dataset
 identifiers:
   - type: doi
+    value: "10.5281/zenodo.23183807"
+    description: "Software archive, all versions (resolves to the latest)"
+  - type: doi
     value: "10.5281/zenodo.23183808"
-    description: "Software archive for v1.0.0, this exact release"
+    description: "Software archive for v1.0.0"
 authors:
   - family-names: Adamou Mahamane
     given-names: Mahamane Sani
     orcid: "https://orcid.org/0009-0001-5561-753X"
     affiliation: University of the People
 preferred-citation:
-  type: preprint
-  title: "Aggregate Ranking Metrics Can Invert Operational Order: An Alert-Budget-Constrained Benchmark for Authentication Anomaly Detection"
+  type: report
+  title: "AuthBench: Temporally Leak-Free, Alert-Budget Evaluation of Authentication Anomaly Detectors, with a LANL Case Study"
   authors:
     - family-names: Adamou Mahamane
       given-names: Mahamane Sani
@@ -26,5 +42,8 @@ preferred-citation:
       affiliation: University of the People
   year: 2026
   month: 10
-  doi: "10.5281/zenodo.23159768"
-  url: "https://doi.org/10.5281/zenodo.23159768"
+  publisher:
+    name: Zenodo
+  notes: "Preprint, version 2. Version 1: https://doi.org/10.5281/zenodo.23159768"
+  doi: "10.5281/zenodo.23588166"
+  url: "https://doi.org/10.5281/zenodo.23588166"
