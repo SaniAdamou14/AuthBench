@@ -57,9 +57,10 @@ this summarizes.
 13. **The first-detection interval is one-sided.** `budget_summary.json` bootstraps accounts
     and takes the percentile interval of each summary. For `first_detection`, a minimum over
     campaigns, a resample can only keep or lose the best campaign, never beat it, so `ci_low`
-    equals the point value by construction (22 October 2026 LANL run, `temporal`: all 13
-    models in both regimes). Read it as an upper bound on how many alerts a day the first detection could
-    need, not as a two-sided interval; the percentile bootstrap of an extreme is not
+    equals the point value by construction (22 October 2026 LANL run: all 13 models in both
+    regimes of `temporal` and in the single regime of `harmonised`). Read it as an upper bound
+    on how many alerts a day the first detection could need, not as a two-sided interval; the
+    percentile bootstrap of an extreme is not
     consistent. The quantile budgets and the log-area are not affected in this way.
 
 ## Metrics deliberately not used as primary

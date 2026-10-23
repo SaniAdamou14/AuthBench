@@ -78,10 +78,80 @@ Run on the same machine, outside this repository, edited only where its README a
   property of the percentile bootstrap of a minimum, now limitation 13 in
   `docs/limitations.md`.
 
+## Added 23 October 2026, after the run
+
+### Code provenance of the evaluations
+
+Both evaluations started at commit bd833eb (`machine.txt`; its two "dirty" paths are the demo
+figure rewritten by the smoke run and the untracked `reports/runs/`, `machine/smoke`). The
+Euler fidelity commits 90ab443 to 6c12582 were pulled on the machine while they ran, and the
+only source file they change is `src/authbench/models/euler.py`. Each evaluation imported that
+module when it built its first catalog (temporal about 11:02 UTC, harmonised about 11:08 UTC,
+`evaluate_*.log`), before 90ab443 existed (committed 11:39:45 UTC); Python does not reload an
+imported module and the pipeline starts no subprocess. Every number in `temporal/` and
+`harmonised/` is therefore from bd833eb.
+
+### harmonised protocol (finished 21:57 UTC, 38,951 s)
+
+- R1 only, by design (`conf/split/harmonised.yaml`: no validation partition). No model skipped.
+- 702 malicious test events in 162 campaigns over 98 accounts (`tables/positives_ledger.csv`,
+  `tables/budget_summary.json`).
+- At 10 alerts a day no model detects a campaign. First detection: PCA 20 alerts a day
+  (random ranking as good: 0.003), VAE 27 (0.003), autoencoder 59 (0.007), Euler 203 (0.022),
+  pair rarity 405 (0.040); these are per-model values, not adjusted for 13 comparisons. At 500
+  a day the VAE reaches 4.3 % of campaigns (7 of 162) and PCA 2.5 %.
+- Euler has the best AUC-PR (0.00072, ROC-AUC 0.9615). M1 and M1u are identical, as expected
+  without validation labels, at ROC-AUC 0.2435.
+- M1u: the same reading as on temporal (`diagnostics/m1u_rules_harmonised.txt`, 702 malicious
+  and a 1-in-25 benign sample): R3 0.15, R5 0.17, R4 0.38 rank the red team below benign
+  traffic, R1 0.70 carries the signal, machine accounts are 66.8 % of benign events and 0 % of
+  malicious ones.
+- `first_detection` `ci_low` equals the point for all 13 models here too; limitation 13 now
+  says so.
+
+### The authors' code, five repetitions (`euler_original/`)
+
+Run alone after the evaluations, 21:57 to 23:49 UTC, exit 0 (`results.txt`,
+`run_gcn_gru_pred.log`). Highest sample of its cgroup's `memory.current` (page cache
+included, every 15 s): 36,715 MiB, about 35.9 GiB (`memory.log`).
+
+| | AUC | AP |
+|---|---|---|
+| Authors' code on this machine, mean +- sd over 5 | 0.9879 +- 0.0022 | 0.0058 +- 0.0018 |
+| Published (table VI) | 0.9906 | 0.0155 |
+| AuthBench `ntlm`, 5 seeds | 0.9570 +- 0.0028 | 0.0027 +- 0.0011 |
+
+`results.txt` gives the standard error; the sd above is it times the square root of 5. The
+authors' own code does not reach its published AP (0.0040 to 0.0080 over the five runs). Our
+implementation is a further 3 points of AUC and about half the AP below their code.
+
+### Test set reconciliation (`euler_original/authors_test_*`, `redteam_matches.*`)
+
+- Red-team events: 715 distinct rows, 701 with an authentication event at the same second and
+  computers (all of them NTLM), 14 without any, which no pipeline can label.
+- In AuthBench's snapshot alignment (multiples of 1,800 s), the authors' prepared files give
+  14,400,984 test edges and 524 anomalous, 525 with the first red-team line they skip: exactly
+  AuthBench's `ntlm` test set. Both pipelines read the same data.
+- Their loader aligns snapshots on the test start (t=150885): 14,416,149 edges, of which 1,374
+  in the last, partial snapshot that it drops, leaving 14,414,775; 517 anomalous, 518 with the
+  skipped first line, which is the paper's table V figure.
+- Their predictor never scores the first test snapshot (`decode_all` starts at 1 on the head
+  worker), which holds 3 anomalous edges: 517 - 3 = 514 evaluated, what TP/TPR gives in every
+  repetition.
+
+### Machine
+
+Kernel OOM kills (`machine/kernel_oom.log`): five, matching the attempts above (50.8 GB global,
+two at the 24 GB cap, the authors' code at 16 GB, then the global OOM at 17:42 that killed the
+authors' process, not an evaluation). The server was deleted on 23 October 2026 after
+everything was copied back and pushed; `run.json` was written by hand. The LANL form e-mail is
+redacted from `machine/console_logs/download.log`.
+
 ## Still to do
 
-- harmonised: finish, then the same review.
-- run.json (duration and cost) and the archive, by hand.
-- Authors' Euler code: five repetitions alone on the machine, then compare.
+- RUN.md from these notes, then PR and merge.
+- The archive: the run folder is in git, a tar.gz would only duplicate it.
 - Fix `ingest/to_parquet.py` stale parts (latent duplication on reconversion).
-- Delete the server once everything is copied back.
+- Euler gap to the authors' code: their undocumented choices (10 negatives per edge, early
+  stopping on AUC + AP, dropout, DropEdge) are the leads; no machine is needed to read them, one
+  is needed to test them.
