@@ -1,0 +1,2550 @@
+[
+  {
+    "regime": "r1_unsupervised",
+    "model": "M0a_random",
+    "auc_pr": 5.1705168631130185e-06,
+    "auc_pr_campaign_weighted": 9.666727188537748e-07,
+    "operational": {
+      "budgets": [
+        10,
+        50,
+        100,
+        500
+      ],
+      "event_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall_tie_bracket": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ],
+      "tie_exposure": [
+        {
+          "budget": 10,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 50,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 100,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 500,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        }
+      ],
+      "budget_for_first_detection": 48891,
+      "time_to_detection": [
+        {
+          "budget": 10,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 50,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 100,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 500,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 0.999999,
+          "alerts_per_day_mean": 11.666666666666666,
+          "alerts_per_day_max": 18,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 0.999998,
+          "alerts_per_day_mean": 44.666666666666664,
+          "alerts_per_day_max": 57,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 100,
+          "threshold": 0.999994,
+          "alerts_per_day_mean": 97.0,
+          "alerts_per_day_max": 115,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 500,
+          "threshold": 0.999971,
+          "alerts_per_day_mean": 526.3333333333334,
+          "alerts_per_day_max": 592,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        }
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "budget_for_first_detection": 25913
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.0,
+            0.019230769230769232,
+            0.019230769230769232,
+            0.057692307692307696
+          ],
+          "budget_for_first_detection": 12
+        }
+      }
+    },
+    "literature_comparable": {
+      "roc_auc": 0.4999060132533643,
+      "precision_at_k_global": {
+        "10": 0.0,
+        "50": 0.0,
+        "100": 0.0,
+        "500": 0.0
+      },
+      "recall_at_fixed_fpr": {
+        "0.0001": 0.0,
+        "1e-05": 0.0
+      }
+    },
+    "score_resolution": {
+      "n_events": 54690768,
+      "tied_pair_fraction": 0.0,
+      "min_distinct_scores_in_a_day": 14012543,
+      "largest_tie_fraction_in_a_day": 7.13646338141478e-08
+    },
+    "auc_pr_ci_low": 3.0223010401563303e-06,
+    "auc_pr_ci_high": 1.0746491552118902e-05,
+    "auc_pr_ci_confidence": 0.95,
+    "auc_pr_ci_method": "bca",
+    "auc_pr_ci_monte_carlo": {
+      "low": [
+        2.9888812754861633e-06,
+        3.0630679440204594e-06
+      ],
+      "high": [
+        1.0500229262483504e-05,
+        1.1161441136859899e-05
+      ]
+    }
+  },
+  {
+    "regime": "r1_unsupervised",
+    "model": "M0b_always_fail",
+    "auc_pr": 5.156263302062242e-06,
+    "auc_pr_campaign_weighted": 9.508043237753483e-07,
+    "operational": {
+      "budgets": [
+        10,
+        50,
+        100,
+        500
+      ],
+      "event_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall_tie_bracket": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ],
+      "tie_exposure": [
+        {
+          "budget": 10,
+          "n_contested_slots": 30,
+          "n_contenders": 413567,
+          "n_contested_days": 3
+        },
+        {
+          "budget": 50,
+          "n_contested_slots": 150,
+          "n_contenders": 413567,
+          "n_contested_days": 3
+        },
+        {
+          "budget": 100,
+          "n_contested_slots": 300,
+          "n_contenders": 413567,
+          "n_contested_days": 3
+        },
+        {
+          "budget": 500,
+          "n_contested_slots": 1500,
+          "n_contenders": 413567,
+          "n_contested_days": 3
+        }
+      ],
+      "budget_for_first_detection": 5505419,
+      "time_to_detection": [
+        {
+          "budget": 10,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 50,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 100,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 500,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 1.0,
+          "alerts_per_day_mean": 137855.66666666666,
+          "alerts_per_day_max": 169603,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 1.0,
+          "alerts_per_day_mean": 137855.66666666666,
+          "alerts_per_day_max": 169603,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 100,
+          "threshold": 1.0,
+          "alerts_per_day_mean": 137855.66666666666,
+          "alerts_per_day_max": 169603,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 500,
+          "threshold": 1.0,
+          "alerts_per_day_mean": 137855.66666666666,
+          "alerts_per_day_max": 169603,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        }
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "budget_for_first_detection": 6447
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.0,
+            0.057692307692307696,
+            0.15384615384615385,
+            0.17307692307692307
+          ],
+          "budget_for_first_detection": 31
+        }
+      }
+    },
+    "literature_comparable": {
+      "roc_auc": 0.4962190224456956,
+      "precision_at_k_global": {
+        "10": 0.0,
+        "50": 0.0,
+        "100": 0.0,
+        "500": 0.0
+      },
+      "recall_at_fixed_fpr": {
+        "0.0001": 0.0,
+        "1e-05": 0.0
+      }
+    },
+    "score_resolution": {
+      "n_events": 54690768,
+      "tied_pair_fraction": 0.9924380448913912,
+      "min_distinct_scores_in_a_day": 2,
+      "largest_tie_fraction_in_a_day": 0.9936396983759479
+    },
+    "auc_pr_ci_low": 3.035253610952351e-06,
+    "auc_pr_ci_high": 1.1698210160850952e-05,
+    "auc_pr_ci_confidence": 0.95,
+    "auc_pr_ci_method": "bca",
+    "auc_pr_ci_monte_carlo": {
+      "low": [
+        2.998684144485013e-06,
+        3.071822501319238e-06
+      ],
+      "high": [
+        1.139125137997788e-05,
+        1.2232327107712698e-05
+      ]
+    }
+  },
+  {
+    "regime": "r1_unsupervised",
+    "model": "M2a_pair_rarity",
+    "auc_pr": 0.0006301835274456198,
+    "auc_pr_campaign_weighted": 0.00010361377293082079,
+    "operational": {
+      "budgets": [
+        10,
+        50,
+        100,
+        500
+      ],
+      "event_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall_tie_bracket": [
+        [
+          0.0,
+          0.3269230769230769
+        ],
+        [
+          0.0,
+          0.6730769230769231
+        ],
+        [
+          0.0,
+          0.6730769230769231
+        ],
+        [
+          0.0,
+          0.6730769230769231
+        ]
+      ],
+      "tie_exposure": [
+        {
+          "budget": 10,
+          "n_contested_slots": 30,
+          "n_contenders": 118535,
+          "n_contested_days": 3
+        },
+        {
+          "budget": 50,
+          "n_contested_slots": 150,
+          "n_contenders": 118535,
+          "n_contested_days": 3
+        },
+        {
+          "budget": 100,
+          "n_contested_slots": 300,
+          "n_contenders": 118535,
+          "n_contested_days": 3
+        },
+        {
+          "budget": 500,
+          "n_contested_slots": 1500,
+          "n_contenders": 118535,
+          "n_contested_days": 3
+        }
+      ],
+      "budget_for_first_detection": 7436,
+      "time_to_detection": [
+        {
+          "budget": 10,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 50,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 100,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 500,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 18.1501,
+          "alerts_per_day_mean": 0.0,
+          "alerts_per_day_max": 0,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 18.1501,
+          "alerts_per_day_mean": 0.0,
+          "alerts_per_day_max": 0,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 100,
+          "threshold": 18.1501,
+          "alerts_per_day_mean": 0.0,
+          "alerts_per_day_max": 0,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 500,
+          "threshold": 18.1501,
+          "alerts_per_day_mean": 0.0,
+          "alerts_per_day_max": 0,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        }
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "budget_for_first_detection": 5679
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.0,
+            0.019230769230769232,
+            0.057692307692307696,
+            0.17307692307692307
+          ],
+          "budget_for_first_detection": 45
+        }
+      }
+    },
+    "literature_comparable": {
+      "roc_auc": 0.9401184603603788,
+      "precision_at_k_global": {
+        "10": 0.0,
+        "50": 0.0,
+        "100": 0.0,
+        "500": 0.0
+      },
+      "recall_at_fixed_fpr": {
+        "0.0001": 0.0,
+        "1e-05": 0.0
+      }
+    },
+    "score_resolution": {
+      "n_events": 54690768,
+      "tied_pair_fraction": 0.0009791817452840864,
+      "min_distinct_scores_in_a_day": 564594,
+      "largest_tie_fraction_in_a_day": 0.0038344614180532205
+    },
+    "auc_pr_ci_low": 0.0002626625396856985,
+    "auc_pr_ci_high": 0.0021246072038924677,
+    "auc_pr_ci_confidence": 0.95,
+    "auc_pr_ci_method": "bca",
+    "auc_pr_ci_monte_carlo": {
+      "low": [
+        0.00025698610585709415,
+        0.00026770349767569346
+      ],
+      "high": [
+        0.0019723698820324634,
+        0.002352765990963691
+      ]
+    }
+  },
+  {
+    "regime": "r1_unsupervised",
+    "model": "M2c_source_rarity",
+    "auc_pr": 9.090548618308302e-05,
+    "auc_pr_campaign_weighted": 1.1006911160465025e-05,
+    "operational": {
+      "budgets": [
+        10,
+        50,
+        100,
+        500
+      ],
+      "event_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall_tie_bracket": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ],
+      "tie_exposure": [
+        {
+          "budget": 10,
+          "n_contested_slots": 30,
+          "n_contenders": 3032,
+          "n_contested_days": 3
+        },
+        {
+          "budget": 50,
+          "n_contested_slots": 150,
+          "n_contenders": 3032,
+          "n_contested_days": 3
+        },
+        {
+          "budget": 100,
+          "n_contested_slots": 300,
+          "n_contenders": 3032,
+          "n_contested_days": 3
+        },
+        {
+          "budget": 500,
+          "n_contested_slots": 1093,
+          "n_contenders": 2997,
+          "n_contested_days": 3
+        }
+      ],
+      "budget_for_first_detection": 5010,
+      "time_to_detection": [
+        {
+          "budget": 10,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 50,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 100,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 500,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 14.8351,
+          "alerts_per_day_mean": 0.0,
+          "alerts_per_day_max": 0,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 14.5728,
+          "alerts_per_day_mean": 246.66666666666666,
+          "alerts_per_day_max": 740,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 100,
+          "threshold": 14.5728,
+          "alerts_per_day_mean": 246.66666666666666,
+          "alerts_per_day_max": 740,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 500,
+          "threshold": 14.142,
+          "alerts_per_day_mean": 961.0,
+          "alerts_per_day_max": 2143,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        }
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "budget_for_first_detection": 2026
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.019230769230769232,
+            0.09615384615384616,
+            0.11538461538461539,
+            0.21153846153846154
+          ],
+          "budget_for_first_detection": 2
+        }
+      }
+    },
+    "literature_comparable": {
+      "roc_auc": 0.9247151617587752,
+      "precision_at_k_global": {
+        "10": 0.0,
+        "50": 0.0,
+        "100": 0.0,
+        "500": 0.0
+      },
+      "recall_at_fixed_fpr": {
+        "0.0001": 0.0,
+        "1e-05": 0.0
+      }
+    },
+    "score_resolution": {
+      "n_events": 54690768,
+      "tied_pair_fraction": 1.073695377031676e-05,
+      "min_distinct_scores_in_a_day": 5482511,
+      "largest_tie_fraction_in_a_day": 0.0017584050766227995
+    },
+    "auc_pr_ci_low": 3.285182997856564e-05,
+    "auc_pr_ci_high": 0.00046710077549553126,
+    "auc_pr_ci_confidence": 0.95,
+    "auc_pr_ci_method": "bca",
+    "auc_pr_ci_monte_carlo": {
+      "low": [
+        3.2465129151729406e-05,
+        3.318493643237923e-05
+      ],
+      "high": [
+        0.00043061247445022594,
+        0.0005209078524218892
+      ]
+    }
+  },
+  {
+    "regime": "r1_unsupervised",
+    "model": "M2b_pca_reconstruction",
+    "auc_pr": 0.0016358229854245413,
+    "auc_pr_campaign_weighted": 0.0002125907399013994,
+    "operational": {
+      "budgets": [
+        10,
+        50,
+        100,
+        500
+      ],
+      "event_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.01773049645390071
+      ],
+      "campaign_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.09615384615384616
+      ],
+      "campaign_recall_tie_bracket": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.09615384615384616,
+          0.09615384615384616
+        ]
+      ],
+      "tie_exposure": [
+        {
+          "budget": 10,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 50,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 100,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 500,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        }
+      ],
+      "budget_for_first_detection": 246,
+      "time_to_detection": [
+        {
+          "budget": 10,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 50,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 100,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 500,
+          "n_total_campaigns": 52,
+          "n_detected": 5,
+          "n_never_detected": 47,
+          "median_delay_seconds": 0.0,
+          "mean_delay_seconds": 0.0,
+          "max_delay_seconds": 0.0
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 59.3101,
+          "alerts_per_day_mean": 26.333333333333332,
+          "alerts_per_day_max": 57,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 54.9237,
+          "alerts_per_day_mean": 133.66666666666666,
+          "alerts_per_day_max": 282,
+          "campaign_recall": 0.07692307692307693,
+          "event_recall": 0.014184397163120567
+        },
+        {
+          "budget": 100,
+          "threshold": 54.4599,
+          "alerts_per_day_mean": 337.3333333333333,
+          "alerts_per_day_max": 763,
+          "campaign_recall": 0.09615384615384616,
+          "event_recall": 0.01773049645390071
+        },
+        {
+          "budget": 500,
+          "threshold": 41.8107,
+          "alerts_per_day_mean": 2109.6666666666665,
+          "alerts_per_day_max": 4893,
+          "campaign_recall": 0.09615384615384616,
+          "event_recall": 0.01773049645390071
+        }
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.23076923076923078
+          ],
+          "budget_for_first_detection": 246
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.0,
+            0.019230769230769232,
+            0.07692307692307693,
+            0.2692307692307692
+          ],
+          "budget_for_first_detection": 24
+        }
+      }
+    },
+    "literature_comparable": {
+      "roc_auc": 0.9545097359541443,
+      "precision_at_k_global": {
+        "10": 0.0,
+        "50": 0.0,
+        "100": 0.0,
+        "500": 0.01
+      },
+      "recall_at_fixed_fpr": {
+        "0.0001": 0.01773049645390071,
+        "1e-05": 0.01773049645390071
+      }
+    },
+    "score_resolution": {
+      "n_events": 54690768,
+      "tied_pair_fraction": 0.0,
+      "min_distinct_scores_in_a_day": 14012543,
+      "largest_tie_fraction_in_a_day": 1.0064995716337824e-07
+    },
+    "auc_pr_ci_low": 0.0006138769986901412,
+    "auc_pr_ci_high": 0.0062284869790054575,
+    "auc_pr_ci_confidence": 0.95,
+    "auc_pr_ci_method": "bca",
+    "auc_pr_ci_monte_carlo": {
+      "low": [
+        0.0006024337980590576,
+        0.0006235953866017854
+      ],
+      "high": [
+        0.006055941365021873,
+        0.007132265314012244
+      ]
+    }
+  },
+  {
+    "regime": "r1_unsupervised",
+    "model": "M3a_iforest",
+    "auc_pr": 5.459617013121373e-05,
+    "auc_pr_campaign_weighted": 9.588300832983762e-06,
+    "operational": {
+      "budgets": [
+        10,
+        50,
+        100,
+        500
+      ],
+      "event_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall_tie_bracket": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ],
+      "tie_exposure": [
+        {
+          "budget": 10,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 50,
+          "n_contested_slots": 3,
+          "n_contenders": 4,
+          "n_contested_days": 1
+        },
+        {
+          "budget": 100,
+          "n_contested_slots": 5,
+          "n_contenders": 16,
+          "n_contested_days": 2
+        },
+        {
+          "budget": 500,
+          "n_contested_slots": 6,
+          "n_contenders": 12,
+          "n_contested_days": 2
+        }
+      ],
+      "budget_for_first_detection": 98938,
+      "time_to_detection": [
+        {
+          "budget": 10,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 50,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 100,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 500,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 0.262882,
+          "alerts_per_day_mean": 0.6666666666666666,
+          "alerts_per_day_max": 1,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 0.251357,
+          "alerts_per_day_mean": 43.0,
+          "alerts_per_day_max": 95,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 100,
+          "threshold": 0.246793,
+          "alerts_per_day_mean": 75.33333333333333,
+          "alerts_per_day_max": 132,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 500,
+          "threshold": 0.21411,
+          "alerts_per_day_mean": 584.6666666666666,
+          "alerts_per_day_max": 961,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        }
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "budget_for_first_detection": 1125
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.09615384615384616
+          ],
+          "budget_for_first_detection": 106
+        }
+      }
+    },
+    "literature_comparable": {
+      "roc_auc": 0.9373023766992726,
+      "precision_at_k_global": {
+        "10": 0.0,
+        "50": 0.0,
+        "100": 0.0,
+        "500": 0.0
+      },
+      "recall_at_fixed_fpr": {
+        "0.0001": 0.0,
+        "1e-05": 0.0
+      }
+    },
+    "score_resolution": {
+      "n_events": 54690768,
+      "tied_pair_fraction": 7.780730178437562e-10,
+      "min_distinct_scores_in_a_day": 4058646,
+      "largest_tie_fraction_in_a_day": 0.00020139099662352508
+    },
+    "auc_pr_ci_low": 2.4603366681727745e-05,
+    "auc_pr_ci_high": 0.0002092376684544069,
+    "auc_pr_ci_confidence": 0.95,
+    "auc_pr_ci_method": "bca",
+    "auc_pr_ci_monte_carlo": {
+      "low": [
+        2.43736381776268e-05,
+        2.4908424580823407e-05
+      ],
+      "high": [
+        0.0001858872791174672,
+        0.00022424725221833255
+      ]
+    }
+  },
+  {
+    "regime": "r1_unsupervised",
+    "model": "M3b_ecod",
+    "auc_pr": 0.0002524794258971528,
+    "auc_pr_campaign_weighted": 4.042223483094011e-05,
+    "operational": {
+      "budgets": [
+        10,
+        50,
+        100,
+        500
+      ],
+      "event_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall_tie_bracket": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ],
+      "tie_exposure": [
+        {
+          "budget": 10,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 50,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 100,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 500,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        }
+      ],
+      "budget_for_first_detection": 5123,
+      "time_to_detection": [
+        {
+          "budget": 10,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 50,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 100,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 500,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 77.8944,
+          "alerts_per_day_mean": 23.666666666666668,
+          "alerts_per_day_max": 50,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 72.7053,
+          "alerts_per_day_mean": 105.66666666666667,
+          "alerts_per_day_max": 220,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 100,
+          "threshold": 70.1248,
+          "alerts_per_day_mean": 172.66666666666666,
+          "alerts_per_day_max": 339,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 500,
+          "threshold": 64.3432,
+          "alerts_per_day_mean": 907.0,
+          "alerts_per_day_max": 1847,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        }
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "budget_for_first_detection": 2676
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.038461538461538464
+          ],
+          "budget_for_first_detection": 239
+        }
+      }
+    },
+    "literature_comparable": {
+      "roc_auc": 0.9659498132378757,
+      "precision_at_k_global": {
+        "10": 0.0,
+        "50": 0.0,
+        "100": 0.0,
+        "500": 0.0
+      },
+      "recall_at_fixed_fpr": {
+        "0.0001": 0.0,
+        "1e-05": 0.0
+      }
+    },
+    "score_resolution": {
+      "n_events": 54690768,
+      "tied_pair_fraction": 0.0,
+      "min_distinct_scores_in_a_day": 14012543,
+      "largest_tie_fraction_in_a_day": 1.0064995716337824e-07
+    },
+    "auc_pr_ci_low": 8.267740915492647e-05,
+    "auc_pr_ci_high": 0.0012561014140012802,
+    "auc_pr_ci_confidence": 0.95,
+    "auc_pr_ci_method": "bca",
+    "auc_pr_ci_monte_carlo": {
+      "low": [
+        8.153761294198657e-05,
+        8.355219944176592e-05
+      ],
+      "high": [
+        0.001125073615536647,
+        0.0013802993078318353
+      ]
+    }
+  },
+  {
+    "regime": "r1_unsupervised",
+    "model": "M3b_hbos",
+    "auc_pr": 6.155348221168098e-05,
+    "auc_pr_campaign_weighted": 1.3926365154052491e-05,
+    "operational": {
+      "budgets": [
+        10,
+        50,
+        100,
+        500
+      ],
+      "event_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall_tie_bracket": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ],
+      "tie_exposure": [
+        {
+          "budget": 10,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 50,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 100,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 500,
+          "n_contested_slots": 3,
+          "n_contenders": 4,
+          "n_contested_days": 1
+        }
+      ],
+      "budget_for_first_detection": 8572,
+      "time_to_detection": [
+        {
+          "budget": 10,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 50,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 100,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 500,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": -6.28236,
+          "alerts_per_day_mean": 22.666666666666668,
+          "alerts_per_day_max": 30,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": -9.59426,
+          "alerts_per_day_mean": 104.33333333333333,
+          "alerts_per_day_max": 201,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 100,
+          "threshold": -10.3713,
+          "alerts_per_day_mean": 163.33333333333334,
+          "alerts_per_day_max": 329,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 500,
+          "threshold": -17.9126,
+          "alerts_per_day_mean": 1027.0,
+          "alerts_per_day_max": 1849,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        }
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "budget_for_first_detection": 795
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.0,
+            0.019230769230769232,
+            0.07692307692307693,
+            0.09615384615384616
+          ],
+          "budget_for_first_detection": 13
+        }
+      }
+    },
+    "literature_comparable": {
+      "roc_auc": 0.9299580305559768,
+      "precision_at_k_global": {
+        "10": 0.0,
+        "50": 0.0,
+        "100": 0.0,
+        "500": 0.0
+      },
+      "recall_at_fixed_fpr": {
+        "0.0001": 0.0,
+        "1e-05": 0.0
+      }
+    },
+    "score_resolution": {
+      "n_events": 54690768,
+      "tied_pair_fraction": 2.6584161442995005e-09,
+      "min_distinct_scores_in_a_day": 2264997,
+      "largest_tie_fraction_in_a_day": 9.876865319878055e-05
+    },
+    "auc_pr_ci_low": 3.436990098145755e-05,
+    "auc_pr_ci_high": 0.00013342410910322365,
+    "auc_pr_ci_confidence": 0.95,
+    "auc_pr_ci_method": "bca",
+    "auc_pr_ci_monte_carlo": {
+      "low": [
+        3.3724484652378794e-05,
+        3.4887838822816796e-05
+      ],
+      "high": [
+        0.0001301086074178117,
+        0.0001377147024219243
+      ]
+    }
+  },
+  {
+    "regime": "r1_unsupervised",
+    "model": "M1_rules",
+    "auc_pr": 0.00021264636203547783,
+    "auc_pr_campaign_weighted": 0.0004788465031023318,
+    "operational": {
+      "budgets": [
+        10,
+        50,
+        100,
+        500
+      ],
+      "event_recall": [
+        0.0,
+        0.0035460992907801418,
+        0.0070921985815602835,
+        0.010638297872340425
+      ],
+      "campaign_recall": [
+        0.0,
+        0.019230769230769232,
+        0.038461538461538464,
+        0.057692307692307696
+      ],
+      "campaign_recall_tie_bracket": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.019230769230769232,
+          0.019230769230769232
+        ],
+        [
+          0.038461538461538464,
+          0.038461538461538464
+        ],
+        [
+          0.057692307692307696,
+          0.057692307692307696
+        ]
+      ],
+      "tie_exposure": [
+        {
+          "budget": 10,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 50,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 100,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 500,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        }
+      ],
+      "budget_for_first_detection": 42,
+      "time_to_detection": [
+        {
+          "budget": 10,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 50,
+          "n_total_campaigns": 52,
+          "n_detected": 1,
+          "n_never_detected": 51,
+          "median_delay_seconds": 0.0,
+          "mean_delay_seconds": 0.0,
+          "max_delay_seconds": 0.0
+        },
+        {
+          "budget": 100,
+          "n_total_campaigns": 52,
+          "n_detected": 2,
+          "n_never_detected": 50,
+          "median_delay_seconds": 0.0,
+          "mean_delay_seconds": 0.0,
+          "max_delay_seconds": 0.0
+        },
+        {
+          "budget": 500,
+          "n_total_campaigns": 52,
+          "n_detected": 3,
+          "n_never_detected": 49,
+          "median_delay_seconds": 0.0,
+          "mean_delay_seconds": 0.0,
+          "max_delay_seconds": 0.0
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 0.856314,
+          "alerts_per_day_mean": 13.666666666666666,
+          "alerts_per_day_max": 24,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 0.806521,
+          "alerts_per_day_mean": 41.666666666666664,
+          "alerts_per_day_max": 78,
+          "campaign_recall": 0.038461538461538464,
+          "event_recall": 0.0070921985815602835
+        },
+        {
+          "budget": 100,
+          "threshold": 0.788037,
+          "alerts_per_day_mean": 115.33333333333333,
+          "alerts_per_day_max": 170,
+          "campaign_recall": 0.057692307692307696,
+          "event_recall": 0.010638297872340425
+        },
+        {
+          "budget": 500,
+          "threshold": 0.755805,
+          "alerts_per_day_mean": 660.0,
+          "alerts_per_day_max": 768,
+          "campaign_recall": 0.057692307692307696,
+          "event_recall": 0.010638297872340425
+        }
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.019230769230769232,
+            0.07692307692307693,
+            0.1346153846153846,
+            0.25
+          ],
+          "budget_for_first_detection": 1
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.019230769230769232,
+            0.038461538461538464,
+            0.07692307692307693,
+            0.11538461538461539
+          ],
+          "budget_for_first_detection": 2
+        }
+      }
+    },
+    "literature_comparable": {
+      "roc_auc": 0.4959930088004833,
+      "precision_at_k_global": {
+        "10": 0.0,
+        "50": 0.0,
+        "100": 0.02,
+        "500": 0.006
+      },
+      "recall_at_fixed_fpr": {
+        "0.0001": 0.01773049645390071,
+        "1e-05": 0.010638297872340425
+      }
+    },
+    "score_resolution": {
+      "n_events": 54690768,
+      "tied_pair_fraction": 1.7830839992252747e-08,
+      "min_distinct_scores_in_a_day": 13163531,
+      "largest_tie_fraction_in_a_day": 6.985107027138449e-05
+    },
+    "auc_pr_ci_low": 1.8358838329951464e-05,
+    "auc_pr_ci_high": 0.0013489755385041838,
+    "auc_pr_ci_confidence": 0.95,
+    "auc_pr_ci_method": "bca",
+    "auc_pr_ci_monte_carlo": {
+      "low": [
+        1.723919258172869e-05,
+        1.971248526712517e-05
+      ],
+      "high": [
+        0.0013044773580123705,
+        0.001407466479426461
+      ]
+    }
+  },
+  {
+    "regime": "r1_unsupervised",
+    "model": "M1u_rules_uniform",
+    "auc_pr": 3.075876217474436e-06,
+    "auc_pr_campaign_weighted": 6.388653785840273e-07,
+    "operational": {
+      "budgets": [
+        10,
+        50,
+        100,
+        500
+      ],
+      "event_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall_tie_bracket": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ],
+      "tie_exposure": [
+        {
+          "budget": 10,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 50,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 100,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 500,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        }
+      ],
+      "budget_for_first_detection": 529646,
+      "time_to_detection": [
+        {
+          "budget": 10,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 50,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 100,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 500,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 0.767999,
+          "alerts_per_day_mean": 17.333333333333332,
+          "alerts_per_day_max": 26,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 0.753306,
+          "alerts_per_day_mean": 120.33333333333333,
+          "alerts_per_day_max": 177,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 100,
+          "threshold": 0.745564,
+          "alerts_per_day_mean": 206.0,
+          "alerts_per_day_max": 308,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 500,
+          "threshold": 0.724147,
+          "alerts_per_day_mean": 899.0,
+          "alerts_per_day_max": 1346,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        }
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.019230769230769232,
+            0.019230769230769232,
+            0.019230769230769232,
+            0.019230769230769232
+          ],
+          "budget_for_first_detection": 2
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.019230769230769232
+          ],
+          "budget_for_first_detection": 376
+        }
+      }
+    },
+    "literature_comparable": {
+      "roc_auc": 0.2441431099205515,
+      "precision_at_k_global": {
+        "10": 0.0,
+        "50": 0.0,
+        "100": 0.0,
+        "500": 0.0
+      },
+      "recall_at_fixed_fpr": {
+        "0.0001": 0.0,
+        "1e-05": 0.0
+      }
+    },
+    "score_resolution": {
+      "n_events": 54690768,
+      "tied_pair_fraction": 1.1405253653226394e-07,
+      "min_distinct_scores_in_a_day": 7421912,
+      "largest_tie_fraction_in_a_day": 7.020334512145632e-05
+    },
+    "auc_pr_ci_low": 1.8363525614231373e-06,
+    "auc_pr_ci_high": 6.905768855953102e-06,
+    "auc_pr_ci_confidence": 0.95,
+    "auc_pr_ci_method": "bca",
+    "auc_pr_ci_monte_carlo": {
+      "low": [
+        1.8154812761761082e-06,
+        1.8543480437273263e-06
+      ],
+      "high": [
+        6.744796976311118e-06,
+        7.1763364258176076e-06
+      ]
+    }
+  },
+  {
+    "regime": "r1_unsupervised",
+    "model": "M4a_autoencoder",
+    "auc_pr": 0.0021685995028446186,
+    "auc_pr_campaign_weighted": 0.0006631697009544216,
+    "operational": {
+      "budgets": [
+        10,
+        50,
+        100,
+        500
+      ],
+      "event_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0035460992907801418
+      ],
+      "campaign_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.019230769230769232
+      ],
+      "campaign_recall_tie_bracket": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.019230769230769232,
+          0.019230769230769232
+        ]
+      ],
+      "tie_exposure": [
+        {
+          "budget": 10,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 50,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 100,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 500,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        }
+      ],
+      "budget_for_first_detection": 494,
+      "time_to_detection": [
+        {
+          "budget": 10,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 50,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 100,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 500,
+          "n_total_campaigns": 52,
+          "n_detected": 1,
+          "n_never_detected": 51,
+          "median_delay_seconds": 0.0,
+          "mean_delay_seconds": 0.0,
+          "max_delay_seconds": 0.0
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 1.12817,
+          "alerts_per_day_mean": 14.666666666666666,
+          "alerts_per_day_max": 36,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 0.767158,
+          "alerts_per_day_mean": 48.0,
+          "alerts_per_day_max": 96,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 100,
+          "threshold": 0.688632,
+          "alerts_per_day_mean": 74.33333333333333,
+          "alerts_per_day_max": 139,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 500,
+          "threshold": 0.482008,
+          "alerts_per_day_mean": 444.0,
+          "alerts_per_day_max": 849,
+          "campaign_recall": 0.057692307692307696,
+          "event_recall": 0.014184397163120567
+        }
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.019230769230769232
+          ],
+          "budget_for_first_detection": 491
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.019230769230769232,
+            0.057692307692307696,
+            0.057692307692307696,
+            0.17307692307692307
+          ],
+          "budget_for_first_detection": 1
+        }
+      }
+    },
+    "literature_comparable": {
+      "roc_auc": 0.9879879895756776,
+      "precision_at_k_global": {
+        "10": 0.0,
+        "50": 0.0,
+        "100": 0.0,
+        "500": 0.0
+      },
+      "recall_at_fixed_fpr": {
+        "0.0001": 0.04964539007092199,
+        "1e-05": 0.0
+      }
+    },
+    "score_resolution": {
+      "n_events": 54690768,
+      "tied_pair_fraction": 0.0,
+      "min_distinct_scores_in_a_day": 14012543,
+      "largest_tie_fraction_in_a_day": 1.0064995716337824e-07
+    },
+    "auc_pr_ci_low": 0.0012661788058408957,
+    "auc_pr_ci_high": 0.0036520895891489495,
+    "auc_pr_ci_confidence": 0.95,
+    "auc_pr_ci_method": "bca",
+    "auc_pr_ci_monte_carlo": {
+      "low": [
+        0.0012429856625560346,
+        0.0012863474068746461
+      ],
+      "high": [
+        0.0036056340450507625,
+        0.0037180284372023936
+      ]
+    }
+  },
+  {
+    "regime": "r1_unsupervised",
+    "model": "M4b_vae",
+    "auc_pr": 0.0007801196466644327,
+    "auc_pr_campaign_weighted": 0.00014662913505664011,
+    "operational": {
+      "budgets": [
+        10,
+        50,
+        100,
+        500
+      ],
+      "event_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall_tie_bracket": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ],
+      "tie_exposure": [
+        {
+          "budget": 10,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 50,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 100,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        },
+        {
+          "budget": 500,
+          "n_contested_slots": 0,
+          "n_contenders": 0,
+          "n_contested_days": 0
+        }
+      ],
+      "budget_for_first_detection": 5845,
+      "time_to_detection": [
+        {
+          "budget": 10,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 50,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 100,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 500,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 215.393,
+          "alerts_per_day_mean": 14.333333333333334,
+          "alerts_per_day_max": 29,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 161.295,
+          "alerts_per_day_mean": 148.33333333333334,
+          "alerts_per_day_max": 369,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 100,
+          "threshold": 148.09,
+          "alerts_per_day_mean": 238.33333333333334,
+          "alerts_per_day_max": 524,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 500,
+          "threshold": 84.6056,
+          "alerts_per_day_mean": 929.6666666666666,
+          "alerts_per_day_max": 1802,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        }
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.019230769230769232
+          ],
+          "budget_for_first_detection": 341
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.0,
+            0.019230769230769232,
+            0.019230769230769232,
+            0.23076923076923078
+          ],
+          "budget_for_first_detection": 39
+        }
+      }
+    },
+    "literature_comparable": {
+      "roc_auc": 0.9724533314352086,
+      "precision_at_k_global": {
+        "10": 0.0,
+        "50": 0.0,
+        "100": 0.0,
+        "500": 0.0
+      },
+      "recall_at_fixed_fpr": {
+        "0.0001": 0.0,
+        "1e-05": 0.0
+      }
+    },
+    "score_resolution": {
+      "n_events": 54690768,
+      "tied_pair_fraction": 0.0,
+      "min_distinct_scores_in_a_day": 14012543,
+      "largest_tie_fraction_in_a_day": 1.0064995716337824e-07
+    },
+    "auc_pr_ci_low": 0.000349320257415655,
+    "auc_pr_ci_high": 0.002649984471274072,
+    "auc_pr_ci_confidence": 0.95,
+    "auc_pr_ci_method": "bca",
+    "auc_pr_ci_monte_carlo": {
+      "low": [
+        0.0003441934994543146,
+        0.00035431139603430925
+      ],
+      "high": [
+        0.002508332479677603,
+        0.0029997005761507193
+      ]
+    }
+  },
+  {
+    "regime": "r1_unsupervised",
+    "model": "M5c_euler",
+    "auc_pr": 0.0008117935291297163,
+    "auc_pr_campaign_weighted": 0.00014424220985161302,
+    "operational": {
+      "budgets": [
+        10,
+        50,
+        100,
+        500
+      ],
+      "event_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "campaign_recall_tie_bracket": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ],
+      "tie_exposure": [
+        {
+          "budget": 10,
+          "n_contested_slots": 10,
+          "n_contenders": 16,
+          "n_contested_days": 2
+        },
+        {
+          "budget": 50,
+          "n_contested_slots": 15,
+          "n_contenders": 25,
+          "n_contested_days": 2
+        },
+        {
+          "budget": 100,
+          "n_contested_slots": 7,
+          "n_contenders": 10,
+          "n_contested_days": 3
+        },
+        {
+          "budget": 500,
+          "n_contested_slots": 7,
+          "n_contenders": 15,
+          "n_contested_days": 3
+        }
+      ],
+      "budget_for_first_detection": 15945,
+      "time_to_detection": [
+        {
+          "budget": 10,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 50,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 100,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        },
+        {
+          "budget": 500,
+          "n_total_campaigns": 52,
+          "n_detected": 0,
+          "n_never_detected": 52,
+          "median_delay_seconds": null,
+          "mean_delay_seconds": null,
+          "max_delay_seconds": null
+        }
+      ],
+      "fixed_threshold": [
+        {
+          "budget": 10,
+          "threshold": 20.1589,
+          "alerts_per_day_mean": 7.666666666666667,
+          "alerts_per_day_max": 14,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 50,
+          "threshold": 20.1056,
+          "alerts_per_day_mean": 11.666666666666666,
+          "alerts_per_day_max": 14,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 100,
+          "threshold": 20.0842,
+          "alerts_per_day_mean": 17.666666666666668,
+          "alerts_per_day_max": 30,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        },
+        {
+          "budget": 500,
+          "threshold": 15.0166,
+          "alerts_per_day_mean": 742.6666666666666,
+          "alerts_per_day_max": 1300,
+          "campaign_recall": 0.0,
+          "event_recall": 0.0
+        }
+      ],
+      "alert_units": {
+        "edge_hour": {
+          "campaign_recall": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "budget_for_first_detection": 2277
+        },
+        "user_day": {
+          "campaign_recall": [
+            0.0,
+            0.019230769230769232,
+            0.038461538461538464,
+            0.2692307692307692
+          ],
+          "budget_for_first_detection": 43
+        }
+      }
+    },
+    "literature_comparable": {
+      "roc_auc": 0.985087023789354,
+      "precision_at_k_global": {
+        "10": 0.0,
+        "50": 0.0,
+        "100": 0.0,
+        "500": 0.0
+      },
+      "recall_at_fixed_fpr": {
+        "0.0001": 0.0,
+        "1e-05": 0.0
+      }
+    },
+    "score_resolution": {
+      "n_events": 54690768,
+      "tied_pair_fraction": 1.3648697521342558e-07,
+      "min_distinct_scores_in_a_day": 1356438,
+      "largest_tie_fraction_in_a_day": 0.0014102365288013747
+    },
+    "auc_pr_ci_low": 0.00048101313449358865,
+    "auc_pr_ci_high": 0.0017090986781038767,
+    "auc_pr_ci_confidence": 0.95,
+    "auc_pr_ci_method": "bca",
+    "auc_pr_ci_monte_carlo": {
+      "low": [
+        0.000475376727212902,
+        0.00048731615412876526
+      ],
+      "high": [
+        0.0016674806122430282,
+        0.0017610454449839938
+      ]
+    }
+  }
+]

@@ -14,7 +14,12 @@ import polars as pl
 import pytest
 
 from authbench.ingest.download import InsufficientDiskSpaceError
-from authbench.ingest.to_parquet import iter_line_blocks, to_parquet_partitioned, verify_row_count
+from authbench.ingest.to_parquet import (
+    ExistingOutputError,
+    iter_line_blocks,
+    to_parquet_partitioned,
+    verify_row_count,
+)
 
 ROWS = [
     "1,U1@DOM1,U1@DOM1,C1,C2,Negotiate,Batch,LogOn,Success",
@@ -111,3 +116,40 @@ def test_conversion_refuses_to_start_without_disk_space(
 
     with pytest.raises(InsufficientDiskSpaceError, match="GB"):
         to_parquet_partitioned(src, tmp_path / "out", block_bytes=512)
+
+
+def test_a_directory_with_partitions_is_refused_without_overwrite(tmp_path: Path) -> None:
+    src = _write(tmp_path / "src", ROWS * 50)
+    out = tmp_path / "out"
+    to_parquet_partitioned(src, out, block_bytes=512)
+
+    with pytest.raises(ExistingOutputError, match="--overwrite"):
+        to_parquet_partitioned(src, out, block_bytes=4096)
+
+
+def test_overwrite_replaces_every_part_of_an_earlier_conversion(tmp_path: Path) -> None:
+    """The defect it guards against: parts are named by block index, so a second
+    conversion with larger blocks wrote fewer parts and the first one's extra
+    parts stayed in the dataset as duplicated rows."""
+    src = _write(tmp_path / "src", ROWS * 50)
+    out = tmp_path / "out"
+    first = to_parquet_partitioned(src, out, block_bytes=512)
+    (out / "notes.txt").write_text("not a partition")
+
+    second = to_parquet_partitioned(src, out, block_bytes=4096, overwrite=True)
+
+    frame = pl.read_parquet(out / "**" / "*.parquet")
+    assert first.n_batches > second.n_batches
+    assert frame.height == second.n_rows_out == len(ROWS) * 50
+    assert frame["event_id"].n_unique() == frame.height
+    assert (out / "notes.txt").read_text() == "not a partition"
+
+
+def test_overwrite_with_a_day_window_leaves_no_day_outside_it(tmp_path: Path) -> None:
+    src = _write(tmp_path / "src", ROWS * 50)
+    out = tmp_path / "out"
+    to_parquet_partitioned(src, out, block_bytes=512)
+
+    to_parquet_partitioned(src, out, block_bytes=512, days=(0, 0), overwrite=True)
+
+    assert sorted(path.name for path in out.glob("day=*")) == ["day=0"]

@@ -1,0 +1,18 @@
+{
+  "run_id": "20261022T102638Z",
+  "commit": "bd833ebf35f149426b2928033b6ca574624de4d5",
+  "seconds": 41465,
+  "hours": 11.52,
+  "hourly_eur": 0.52,
+  "cost_eur": 5.99,
+  "written_by_hand": "run_lanl.sh exited 1 (its first Euler fidelity step was OOM-killed) before writing run.json; seconds, hours and cost_eur follow its definition, from the start (2026-10-22T10:26:38Z) to the last protocol step (done evaluate_harmonised, 2026-10-22T21:57:43Z) in run.log",
+  "machine": {
+    "type": "Hetzner CCX43, 16 vCPU, 61 GB RAM, Ubuntu 24.04",
+    "booted_utc": "about 2026-10-22T08:42Z",
+    "last_command_utc": "about 2026-10-23T01:45Z",
+    "deleted": "2026-10-23, after the last command; unreachable over SSH and ping when checked",
+    "billed_hours_estimate": 17.1,
+    "billed_eur_estimate": 8.9,
+    "note": "The machine also downloaded and converted the data before the run, and ran the Euler fidelity configurations, the authors' Euler code and the post-run checks; the Hetzner invoice is authoritative for the billed amount"
+  }
+}

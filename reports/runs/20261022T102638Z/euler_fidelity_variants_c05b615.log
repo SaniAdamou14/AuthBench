@@ -1,0 +1,44 @@
+[2026-10-22T12:51:59Z] variant ntlm: 44748939 events; first red-team event at t=150885 (peak RSS 1.3 GB)
+[2026-10-22T12:53:45Z] fitted in 46 epochs; preparing the timeline (peak RSS 1.8 GB)
+[2026-10-22T12:54:39Z] prepared; building the test edges (peak RSS 4.1 GB)
+[2026-10-22T12:54:44Z] 14400984 test edges, 525 anomalous; scoring (peak RSS 5.7 GB)
+[2026-10-22T12:54:51Z] scored; computing AUC and AP (peak RSS 5.8 GB)
+[2026-10-22T12:55:00Z] wrote reports/runs/20261022T102638Z/euler_fidelity_ntlm.json (peak RSS 5.8 GB)
+{
+  "protocol": "King and Huang (2022): link prediction, edges per 30-minute snapshot, training before the first red-team event",
+  "variant": "ntlm",
+  "events": "NTLM authentications only, self-loops dropped (the authors' loader)",
+  "events_kept": 44748939,
+  "first_red_team_event": 150885,
+  "test_edges": 14400984,
+  "anomalous_edges": 525,
+  "auc": 0.9553580773924999,
+  "ap": 0.0019685647017304384,
+  "published": {
+    "auc": 0.9906,
+    "ap": 0.0155
+  },
+  "training_epochs": 46
+}
+[2026-10-22T12:55:00Z] variant all: 1051430459 events; first red-team event at t=150885 (peak RSS 5.8 GB)
+[2026-10-22T12:56:51Z] fitted in 28 epochs; preparing the timeline (peak RSS 5.8 GB)
+[2026-10-22T13:00:20Z] prepared; building the test edges (peak RSS 16.3 GB)
+[2026-10-22T13:01:41Z] 99430341 test edges, 525 anomalous; scoring (peak RSS 19.5 GB)
+[2026-10-22T13:03:17Z] scored; computing AUC and AP (peak RSS 19.5 GB)
+[2026-10-22T13:04:20Z] wrote reports/runs/20261022T102638Z/euler_fidelity_all.json (peak RSS 19.5 GB)
+{
+  "protocol": "King and Huang (2022): link prediction, edges per 30-minute snapshot, training before the first red-team event",
+  "variant": "all",
+  "events": "every authentication event, self-loops included (AuthBench's graph)",
+  "events_kept": 1051430459,
+  "first_red_team_event": 150885,
+  "test_edges": 99430341,
+  "anomalous_edges": 525,
+  "auc": 0.9297562466239166,
+  "ap": 9.944055407832608e-05,
+  "published": {
+    "auc": 0.9906,
+    "ap": 0.0155
+  },
+  "training_epochs": 28
+}

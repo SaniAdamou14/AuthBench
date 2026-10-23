@@ -1,0 +1,19 @@
+[2026-10-22T11:50:47Z] first red-team event at t=150885; fitting (peak RSS 0.4 GB)
+[2026-10-22T11:52:10Z] fitted in 28 epochs; preparing the timeline (peak RSS 3.3 GB)
+[2026-10-22T11:54:22Z] prepared; building the test edges (peak RSS 16.5 GB)
+[2026-10-22T11:55:20Z] 99420487 test edges, 523 anomalous; scoring (peak RSS 18.9 GB)
+[2026-10-22T11:56:39Z] scored; computing AUC and AP (peak RSS 18.9 GB)
+[2026-10-22T11:57:38Z] wrote reports/runs/20261022T102638Z/euler_fidelity.json (peak RSS 18.9 GB)
+{
+  "protocol": "King and Huang (2022): link prediction, edges per 30-minute snapshot, training before the first red-team event",
+  "first_red_team_event": 150885,
+  "test_edges": 99420487,
+  "anomalous_edges": 523,
+  "auc": 0.9295530892393004,
+  "ap": 9.893786768628569e-05,
+  "published": {
+    "auc": 0.9906,
+    "ap": 0.0155
+  },
+  "training_epochs": 28
+}

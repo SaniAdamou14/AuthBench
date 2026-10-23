@@ -1,0 +1,28 @@
+                  Budget for lanl — 1,051,430,459 auth events                   
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Stage                    ┃ Disk added ┃ Peak RAM ┃ Note                      ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ download (auth.txt.gz +  │     7.7 GB │   0.1 GB │ whole file: LANL serves   │
+│ redteam.txt.gz)          │            │          │ no day ranges             │
+│ to_parquet               │    10.2 GB │   2.1 GB │ bounded by --block-bytes, │
+│ (data/interim/auth)      │            │          │ not by file size          │
+│ label_split_features     │    37.4 GB │  15.7 GB │ one day at a time;        │
+│ (data/processed/feature… │            │          │ largest day about 22.0M   │
+│                          │            │          │ events                    │
+│ train_eval (design       │     0.1 GB │   2.5 GB │ fit on a bounded sample,  │
+│ matrix in RAM)           │            │          │ score in fixed-size       │
+│                          │            │          │ chunks                    │
+│ train_eval (score and    │     0.0 GB │  19.2 GB │ sufficient statistics per │
+│ evaluate by day)         │            │          │ day; the bootstrap is     │
+│                          │            │          │ small                     │
+├──────────────────────────┼────────────┼──────────┼───────────────────────────┤
+│ TOTAL                    │    55.3 GB │  19.2 GB │ disk is cumulative, RAM   │
+│                          │            │          │ is the largest single     │
+│                          │            │          │ stage                     │
+└──────────────────────────┴────────────┴──────────┴───────────────────────────┘
+
+This machine: 325.8 GB free under /root/AuthBench/data, 65.8 GB RAM installed 
+(64.6 GB free right now). 1,051,430,459 events over 58 days; the largest day is 
+about 22,043,783.
+
+Budget fits.

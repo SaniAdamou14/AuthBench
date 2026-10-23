@@ -1,0 +1,73 @@
+{
+  "train": {
+    "events": 5765908,
+    "positives": 0,
+    "campaigns": 0,
+    "first_day": 0,
+    "last_day": 0,
+    "positive_rate": 0.0,
+    "n_source_hosts": 0,
+    "top_source_host_share": null,
+    "source_hosts": [],
+    "days": [
+      {
+        "day": 0,
+        "events": 5765908,
+        "positives": 0
+      }
+    ]
+  },
+  "val": {
+    "events": 6593218,
+    "positives": 10,
+    "campaigns": 4,
+    "first_day": 1,
+    "last_day": 1,
+    "positive_rate": 1.5167100496297863e-06,
+    "n_source_hosts": 1,
+    "top_source_host_share": 1.0,
+    "source_hosts": [
+      {
+        "src_computer": "C17693",
+        "positives": 10,
+        "campaigns": 4
+      }
+    ],
+    "days": [
+      {
+        "day": 1,
+        "events": 6593218,
+        "positives": 10
+      }
+    ]
+  },
+  "test": {
+    "events": 5778955,
+    "positives": 15,
+    "campaigns": 2,
+    "first_day": 2,
+    "last_day": 2,
+    "positive_rate": 2.59562498756263e-06,
+    "n_source_hosts": 2,
+    "top_source_host_share": 0.8,
+    "source_hosts": [
+      {
+        "src_computer": "C17693",
+        "positives": 12,
+        "campaigns": 2
+      },
+      {
+        "src_computer": "C18025",
+        "positives": 3,
+        "campaigns": 1
+      }
+    ],
+    "days": [
+      {
+        "day": 2,
+        "events": 5778955,
+        "positives": 15
+      }
+    ]
+  }
+}

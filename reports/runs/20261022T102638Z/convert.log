@@ -1,0 +1,16 @@
+Source auth.txt.gz: 7.63 GB on disk. Estimated Parquet output ~16.8 GB, 325.8 GB
+free on the destination volume.
+2026-10-22 10:26:46,314 INFO authbench.ingest.to_parquet: Estimated Parquet output: ~16.8 GB (325.8 GB free on the destination volume).
+2026-10-22 10:27:50,577 INFO authbench.ingest.to_parquet: 50 blocks, 99188334 rows converted, peak RSS 2.15 GB
+2026-10-22 10:28:54,874 INFO authbench.ingest.to_parquet: 100 blocks, 197737514 rows converted, peak RSS 2.16 GB
+2026-10-22 10:29:59,211 INFO authbench.ingest.to_parquet: 150 blocks, 294922218 rows converted, peak RSS 2.16 GB
+2026-10-22 10:31:03,755 INFO authbench.ingest.to_parquet: 200 blocks, 392091127 rows converted, peak RSS 2.16 GB
+2026-10-22 10:32:08,468 INFO authbench.ingest.to_parquet: 250 blocks, 489181119 rows converted, peak RSS 2.17 GB
+2026-10-22 10:33:13,009 INFO authbench.ingest.to_parquet: 300 blocks, 585966580 rows converted, peak RSS 2.17 GB
+2026-10-22 10:34:16,178 INFO authbench.ingest.to_parquet: 350 blocks, 679674281 rows converted, peak RSS 2.17 GB
+2026-10-22 10:35:20,024 INFO authbench.ingest.to_parquet: 400 blocks, 774302827 rows converted, peak RSS 2.17 GB
+2026-10-22 10:36:23,902 INFO authbench.ingest.to_parquet: 450 blocks, 868789408 rows converted, peak RSS 2.17 GB
+2026-10-22 10:37:27,498 INFO authbench.ingest.to_parquet: 500 blocks, 962879260 rows converted, peak RSS 2.17 GB
+Converted 1,051,430,459/1,051,430,459 rows read in 547 blocks, peak RSS 2.17 GB 
+(dropped 0: 0 null time, 0 malformed user@domain).
+Row count verified against 1,051,430,459.

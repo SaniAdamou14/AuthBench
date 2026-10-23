@@ -1,0 +1,5 @@
+all: 99430341 edges, 525 anomalous, base rate 5.280e-06
+no_self_loop: 84438158 edges, 525 anomalous, base rate 6.218e-06
+ntlm: 14567239 edges, 525 anomalous, base rate 3.604e-05
+ntlm_no_self_loop: 14400984 edges, 525 anomalous, base rate 3.646e-05
+columns used for the NTLM match: ['day', 'src_user', 'src_domain', 'dst_user', 'dst_domain', 'src_computer', 'dst_computer', 'auth_type', 'auth_type_is_null', 'logon_type', 'logon_type_is_null', 'auth_orientation', 'success', 'src_user_is_machine', 'dst_user_is_machine', 'event_id'] seconds 403

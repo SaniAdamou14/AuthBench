@@ -1,0 +1,16 @@
+{
+  "protocol": "King and Huang (2022): link prediction, edges per 30-minute snapshot, training before the first red-team event",
+  "variant": "all",
+  "events": "every authentication event, self-loops included (AuthBench's graph)",
+  "events_kept": 1051430459,
+  "first_red_team_event": 150885,
+  "test_edges": 99430341,
+  "anomalous_edges": 525,
+  "auc": 0.9297562466239166,
+  "ap": 9.944055407832608e-05,
+  "published": {
+    "auc": 0.9906,
+    "ap": 0.0155
+  },
+  "training_epochs": 28
+}

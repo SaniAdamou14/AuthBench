@@ -1,0 +1,535 @@
+{
+  "M0a_random": {
+    "n_campaigns": 162,
+    "n_accounts": 98,
+    "k_max": 10000,
+    "tie_range_first_detection": [
+      16718,
+      16718
+    ],
+    "statistics": {
+      "first_detection": {
+        "value": 16718.0,
+        "ci_low": 16718.0,
+        "ci_high": 28048.0,
+        "random_ranking_at_least_as_good": 0.8166
+      },
+      "budget_q10": {
+        "value": 211448.0,
+        "ci_low": 99122.0,
+        "ci_high": 424577.0,
+        "random_ranking_at_least_as_good": 0.603
+      },
+      "budget_q25": {
+        "value": 758870.0,
+        "ci_low": 531263.0,
+        "ci_high": 1010881.0,
+        "random_ranking_at_least_as_good": 0.9259
+      },
+      "budget_q50": {
+        "value": 1644802.0,
+        "ci_low": 1411176.0,
+        "ci_high": 2147703.0,
+        "random_ranking_at_least_as_good": 0.4858
+      },
+      "log_area": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "random_ranking_at_least_as_good": 1.0
+      }
+    }
+  },
+  "M0b_always_fail": {
+    "n_campaigns": 162,
+    "n_accounts": 98,
+    "k_max": 10000,
+    "tie_range_first_detection": [
+      1,
+      36261
+    ],
+    "statistics": {
+      "first_detection": {
+        "value": 20636.0,
+        "ci_low": 20636.0,
+        "ci_high": 336462.0,
+        "random_ranking_at_least_as_good": 0.8765
+      },
+      "budget_q10": {
+        "value": 2296709.0,
+        "ci_low": 2034564.0,
+        "ci_high": 2535275.0,
+        "random_ranking_at_least_as_good": 1.0
+      },
+      "budget_q25": {
+        "value": 2821438.0,
+        "ci_low": 2538988.0,
+        "ci_high": 3058229.0,
+        "random_ranking_at_least_as_good": 1.0
+      },
+      "budget_q50": {
+        "value": 3935325.0,
+        "ci_low": 3389879.0,
+        "ci_high": 4311876.0,
+        "random_ranking_at_least_as_good": 1.0
+      },
+      "log_area": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "random_ranking_at_least_as_good": 1.0
+      }
+    }
+  },
+  "M2a_pair_rarity": {
+    "n_campaigns": 162,
+    "n_accounts": 98,
+    "k_max": 10000,
+    "tie_range_first_detection": [
+      1,
+      2001
+    ],
+    "statistics": {
+      "first_detection": {
+        "value": 405.0,
+        "ci_low": 405.0,
+        "ci_high": 584.0,
+        "random_ranking_at_least_as_good": 0.0401
+      },
+      "budget_q10": {
+        "value": 2417.0,
+        "ci_low": 1845.0,
+        "ci_high": 2835.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q25": {
+        "value": 3953.0,
+        "ci_low": 3017.0,
+        "ci_high": 4535.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q50": {
+        "value": 5607.0,
+        "ci_low": 5218.0,
+        "ci_high": 6151.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "log_area": {
+        "value": 0.072870370548,
+        "ci_low": 0.060845656079375005,
+        "ci_high": 0.08620413236912498,
+        "random_ranking_at_least_as_good": 0.0
+      }
+    }
+  },
+  "M2c_source_rarity": {
+    "n_campaigns": 162,
+    "n_accounts": 98,
+    "k_max": 10000,
+    "tie_range_first_detection": [
+      3737,
+      3737
+    ],
+    "statistics": {
+      "first_detection": {
+        "value": 3737.0,
+        "ci_low": 3737.0,
+        "ci_high": 20561.0,
+        "random_ranking_at_least_as_good": 0.3089
+      },
+      "budget_q10": {
+        "value": 186695.0,
+        "ci_low": 84431.0,
+        "ci_high": 222655.0,
+        "random_ranking_at_least_as_good": 0.401
+      },
+      "budget_q25": {
+        "value": 292187.0,
+        "ci_low": 237225.0,
+        "ci_high": 372806.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q50": {
+        "value": 418495.0,
+        "ci_low": 384620.0,
+        "ci_high": 428644.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "log_area": {
+        "value": 0.000659686577,
+        "ci_low": 0.0,
+        "ci_high": 0.002123229646,
+        "random_ranking_at_least_as_good": 0.3458
+      }
+    }
+  },
+  "M2b_pca_reconstruction": {
+    "n_campaigns": 162,
+    "n_accounts": 98,
+    "k_max": 10000,
+    "tie_range_first_detection": [
+      20,
+      20
+    ],
+    "statistics": {
+      "first_detection": {
+        "value": 20.0,
+        "ci_low": 20.0,
+        "ci_high": 403.0,
+        "random_ranking_at_least_as_good": 0.0025
+      },
+      "budget_q10": {
+        "value": 18412.0,
+        "ci_low": 6782.0,
+        "ci_high": 22461.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q25": {
+        "value": 25794.0,
+        "ci_low": 23374.0,
+        "ci_high": 31380.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q50": {
+        "value": 441669.0,
+        "ci_low": 176660.0,
+        "ci_high": 534771.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "log_area": {
+        "value": 0.01513594578,
+        "ci_low": 0.005263913139000001,
+        "ci_high": 0.02841117739749999,
+        "random_ranking_at_least_as_good": 0.0
+      }
+    }
+  },
+  "M3a_iforest": {
+    "n_campaigns": 162,
+    "n_accounts": 98,
+    "k_max": 10000,
+    "tie_range_first_detection": [
+      718,
+      718
+    ],
+    "statistics": {
+      "first_detection": {
+        "value": 718.0,
+        "ci_low": 718.0,
+        "ci_high": 1177.0,
+        "random_ranking_at_least_as_good": 0.0717
+      },
+      "budget_q10": {
+        "value": 3286.0,
+        "ci_low": 1963.0,
+        "ci_high": 4846.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q25": {
+        "value": 7331.0,
+        "ci_low": 5854.0,
+        "ci_high": 8934.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q50": {
+        "value": 129617.0,
+        "ci_low": 35996.0,
+        "ci_high": 281185.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "log_area": {
+        "value": 0.030767926489,
+        "ci_low": 0.022249609453375,
+        "ci_high": 0.0396344832428,
+        "random_ranking_at_least_as_good": 0.0
+      }
+    }
+  },
+  "M3b_ecod": {
+    "n_campaigns": 162,
+    "n_accounts": 98,
+    "k_max": 10000,
+    "tie_range_first_detection": [
+      1691,
+      1691
+    ],
+    "statistics": {
+      "first_detection": {
+        "value": 1691.0,
+        "ci_low": 1691.0,
+        "ci_high": 2160.0,
+        "random_ranking_at_least_as_good": 0.1571
+      },
+      "budget_q10": {
+        "value": 4303.0,
+        "ci_low": 3018.0,
+        "ci_high": 5912.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q25": {
+        "value": 7550.0,
+        "ci_low": 6330.0,
+        "ci_high": 10960.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q50": {
+        "value": 21524.0,
+        "ci_low": 16862.0,
+        "ci_high": 30307.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "log_area": {
+        "value": 0.023150811647,
+        "ci_low": 0.0165635979553,
+        "ci_high": 0.030747332566449997,
+        "random_ranking_at_least_as_good": 0.0
+      }
+    }
+  },
+  "M3b_hbos": {
+    "n_campaigns": 162,
+    "n_accounts": 98,
+    "k_max": 10000,
+    "tie_range_first_detection": [
+      1262,
+      1262
+    ],
+    "statistics": {
+      "first_detection": {
+        "value": 1262.0,
+        "ci_low": 1262.0,
+        "ci_high": 3764.0,
+        "random_ranking_at_least_as_good": 0.1202
+      },
+      "budget_q10": {
+        "value": 6618.0,
+        "ci_low": 6292.0,
+        "ci_high": 8465.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q25": {
+        "value": 22309.0,
+        "ci_low": 9423.0,
+        "ci_high": 40726.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q50": {
+        "value": 57093.0,
+        "ci_low": 55941.0,
+        "ci_high": 61137.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "log_area": {
+        "value": 0.010418025358,
+        "ci_low": 0.006506964575375,
+        "ci_high": 0.015096826787099995,
+        "random_ranking_at_least_as_good": 0.0
+      }
+    }
+  },
+  "M1_rules": {
+    "n_campaigns": 162,
+    "n_accounts": 98,
+    "k_max": 10000,
+    "tie_range_first_detection": [
+      41065,
+      41065
+    ],
+    "statistics": {
+      "first_detection": {
+        "value": 41065.0,
+        "ci_low": 41065.0,
+        "ci_high": 298235.0,
+        "random_ranking_at_least_as_good": 0.9848
+      },
+      "budget_q10": {
+        "value": 1518897.0,
+        "ci_low": 1112809.0,
+        "ci_high": 2319595.0,
+        "random_ranking_at_least_as_good": 1.0
+      },
+      "budget_q25": {
+        "value": 3024922.0,
+        "ci_low": 2631898.0,
+        "ci_high": 3331890.0,
+        "random_ranking_at_least_as_good": 1.0
+      },
+      "budget_q50": {
+        "value": 4650963.0,
+        "ci_low": 3984687.0,
+        "ci_high": 5073411.0,
+        "random_ranking_at_least_as_good": 1.0
+      },
+      "log_area": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "random_ranking_at_least_as_good": 1.0
+      }
+    }
+  },
+  "M1u_rules_uniform": {
+    "n_campaigns": 162,
+    "n_accounts": 98,
+    "k_max": 10000,
+    "tie_range_first_detection": [
+      41065,
+      41065
+    ],
+    "statistics": {
+      "first_detection": {
+        "value": 41065.0,
+        "ci_low": 41065.0,
+        "ci_high": 298235.0,
+        "random_ranking_at_least_as_good": 0.9848
+      },
+      "budget_q10": {
+        "value": 1518897.0,
+        "ci_low": 1112809.0,
+        "ci_high": 2319595.0,
+        "random_ranking_at_least_as_good": 1.0
+      },
+      "budget_q25": {
+        "value": 3024922.0,
+        "ci_low": 2631898.0,
+        "ci_high": 3331890.0,
+        "random_ranking_at_least_as_good": 1.0
+      },
+      "budget_q50": {
+        "value": 4650963.0,
+        "ci_low": 3984687.0,
+        "ci_high": 5073411.0,
+        "random_ranking_at_least_as_good": 1.0
+      },
+      "log_area": {
+        "value": 0.0,
+        "ci_low": 0.0,
+        "ci_high": 0.0,
+        "random_ranking_at_least_as_good": 1.0
+      }
+    }
+  },
+  "M4a_autoencoder": {
+    "n_campaigns": 162,
+    "n_accounts": 98,
+    "k_max": 10000,
+    "tie_range_first_detection": [
+      59,
+      59
+    ],
+    "statistics": {
+      "first_detection": {
+        "value": 59.0,
+        "ci_low": 59.0,
+        "ci_high": 528.0,
+        "random_ranking_at_least_as_good": 0.0073
+      },
+      "budget_q10": {
+        "value": 850.0,
+        "ci_low": 676.0,
+        "ci_high": 1160.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q25": {
+        "value": 2281.0,
+        "ci_low": 1722.0,
+        "ci_high": 2650.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q50": {
+        "value": 8845.0,
+        "ci_low": 6043.0,
+        "ci_high": 27509.34999998767,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "log_area": {
+        "value": 0.088104535383,
+        "ci_low": 0.073729545442775,
+        "ci_high": 0.10334527541499999,
+        "random_ranking_at_least_as_good": 0.0
+      }
+    }
+  },
+  "M4b_vae": {
+    "n_campaigns": 162,
+    "n_accounts": 98,
+    "k_max": 10000,
+    "tie_range_first_detection": [
+      27,
+      27
+    ],
+    "statistics": {
+      "first_detection": {
+        "value": 27.0,
+        "ci_low": 27.0,
+        "ci_high": 229.0,
+        "random_ranking_at_least_as_good": 0.0032
+      },
+      "budget_q10": {
+        "value": 2105.0,
+        "ci_low": 551.0,
+        "ci_high": 3872.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q25": {
+        "value": 5409.0,
+        "ci_low": 4284.0,
+        "ci_high": 5997.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q50": {
+        "value": 15914.0,
+        "ci_low": 7458.0,
+        "ci_high": 33704.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "log_area": {
+        "value": 0.060574279254,
+        "ci_low": 0.0445819658149,
+        "ci_high": 0.07889644671559998,
+        "random_ranking_at_least_as_good": 0.0
+      }
+    }
+  },
+  "M5c_euler": {
+    "n_campaigns": 162,
+    "n_accounts": 98,
+    "k_max": 10000,
+    "tie_range_first_detection": [
+      203,
+      203
+    ],
+    "statistics": {
+      "first_detection": {
+        "value": 203.0,
+        "ci_low": 203.0,
+        "ci_high": 679.0,
+        "random_ranking_at_least_as_good": 0.0221
+      },
+      "budget_q10": {
+        "value": 863.0,
+        "ci_low": 772.0,
+        "ci_high": 1136.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q25": {
+        "value": 1627.0,
+        "ci_low": 1283.0,
+        "ci_high": 2070.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "budget_q50": {
+        "value": 3592.0,
+        "ci_low": 2652.0,
+        "ci_high": 5845.0,
+        "random_ranking_at_least_as_good": 0.0
+      },
+      "log_area": {
+        "value": 0.11299036802,
+        "ci_low": 0.0966139956745,
+        "ci_high": 0.130119337478375,
+        "random_ranking_at_least_as_good": 0.0
+      }
+    }
+  }
+}

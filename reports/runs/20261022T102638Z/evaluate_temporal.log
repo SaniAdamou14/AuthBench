@@ -1,0 +1,166 @@
+2026/10/22 11:02:47 INFO mlflow.store.db.utils: Creating initial MLflow database tables...
+2026/10/22 11:02:47 INFO mlflow.store.db.utils: Updating database tables
+2026/10/22 11:02:49 INFO mlflow.tracking.fluent: Experiment with name 'authbench' does not exist. Creating a new experiment.
+[2026-10-22 11:02:49,383][authbench.pipeline.tracking][INFO] - MLflow tracking to sqlite:///reports/runs/20261022T102638Z/temporal/mlruns.db (experiment 'authbench').
+[2026-10-22 11:02:49,383][__main__][WARNING] - ROC-AUC is reported for literature comparability only. At a positive rate near 1e-7, ROC-AUC stays high even for operationally useless models — see docs/limitations.md. Do not use it to rank models.
+[2026-10-22 11:02:49,481][__main__][INFO] - Regime r1_unsupervised
+[2026-10-22 11:02:52,417][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 11:03:01,109][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 11:03:08,540][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 11:03:15,203][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 11:03:22,594][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 11:03:30,344][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 11:08:04,798][authbench.pipeline.train_eval][INFO] - Scored day 8: 19374688 events, 6 models.
+[2026-10-22 11:11:52,765][authbench.pipeline.train_eval][INFO] - Scored day 9: 18141723 events, 6 models.
+[2026-10-22 11:15:02,016][authbench.pipeline.train_eval][INFO] - Scored day 10: 14170694 events, 6 models.
+[2026-10-22 11:15:02,034][authbench.pipeline.tuning][INFO] - Tuned M2b_pca_reconstruction on validation: candidate 1 of 6, AUC-PR 0.0055 (default 0.0001).
+[2026-10-22 11:15:02,040][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 11:16:28,476][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 11:17:05,286][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 11:17:45,659][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 11:18:30,908][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 11:19:33,988][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 11:20:57,711][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 11:22:53,999][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 11:25:11,668][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 11:45:41,575][authbench.pipeline.train_eval][INFO] - Scored day 8: 19374688 events, 9 models.
+[2026-10-22 12:02:13,566][authbench.pipeline.train_eval][INFO] - Scored day 9: 18141723 events, 9 models.
+[2026-10-22 12:14:34,966][authbench.pipeline.train_eval][INFO] - Scored day 10: 14170694 events, 9 models.
+[2026-10-22 12:14:34,991][authbench.pipeline.tuning][INFO] - Tuned M3a_iforest on validation: candidate 3 of 9, AUC-PR 0.0001 (default 0.0000).
+[2026-10-22 12:14:34,998][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 12:14:45,482][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 12:14:57,296][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 12:15:06,673][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 12:15:16,321][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 12:15:25,874][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 12:15:35,574][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 12:15:45,122][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 12:15:54,729][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 12:16:04,351][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 12:16:14,021][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 12:16:24,346][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 12:16:34,466][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 12:19:37,337][authbench.pipeline.train_eval][INFO] - Scored day 8: 19374688 events, 12 models.
+[2026-10-22 12:22:27,934][authbench.pipeline.train_eval][INFO] - Scored day 9: 18141723 events, 12 models.
+[2026-10-22 12:24:38,070][authbench.pipeline.train_eval][INFO] - Scored day 10: 14170694 events, 12 models.
+[2026-10-22 12:24:38,102][authbench.pipeline.tuning][INFO] - Tuned M3b_hbos on validation: candidate 9 of 12, AUC-PR 0.0001 (default 0.0001).
+[2026-10-22 12:32:33,000][authbench.pipeline.train_eval][INFO] - Scored day 8: 19374688 events, 20 models.
+[2026-10-22 12:39:53,651][authbench.pipeline.train_eval][INFO] - Scored day 9: 18141723 events, 20 models.
+[2026-10-22 12:45:54,779][authbench.pipeline.train_eval][INFO] - Scored day 10: 14170694 events, 20 models.
+[2026-10-22 12:45:54,815][authbench.pipeline.tuning][INFO] - Tuned M1_rules on validation: candidate 12 of 20, AUC-PR 0.0004 (default 0.0000).
+[2026-10-22 12:46:00,719][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 12:51:40,985][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 13:23:14,229][__main__][INFO] - Scored day 8: 19374688 events, 13 models.
+[2026-10-22 13:37:07,903][__main__][INFO] - Scored day 9: 18141723 events, 13 models.
+[2026-10-22 13:47:29,146][__main__][INFO] - Scored day 10: 14170694 events, 13 models.
+[2026-10-22 13:58:59,125][__main__][INFO] - Scored day 11: 14012543 events, 13 models.
+[2026-10-22 14:15:42,722][__main__][INFO] - Scored day 12: 19870848 events, 13 models.
+[2026-10-22 14:32:26,927][__main__][INFO] - Scored day 13: 20807377 events, 13 models.
+[2026-10-22 14:32:28,457][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:32:39,685][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:32:50,667][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:33:00,793][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:33:10,983][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:33:20,928][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:34:09,347][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:34:55,563][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:35:38,963][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:36:24,932][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:37:06,120][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:37:17,347][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:37:29,333][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:37:41,058][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:37:51,934][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:38:03,198][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:38:13,114][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:38:25,383][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:38:39,698][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:38:53,608][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093586 training rows.
+[2026-10-22 14:53:51,598][authbench.pipeline.train_eval][INFO] - Scored day 11: 14012543 events, 25 models.
+[2026-10-22 15:13:38,846][authbench.pipeline.train_eval][INFO] - Scored day 12: 19870848 events, 25 models.
+[2026-10-22 15:34:14,610][authbench.pipeline.train_eval][INFO] - Scored day 13: 20807377 events, 25 models.
+[2026-10-22 15:34:18,357][authbench.evaluate.stats_tests][INFO] - Bootstrap: 10000 resamples x 13 models over 48 positive blocks, 0 degenerate draws redrawn.
+[2026-10-22 15:35:17,847][__main__][INFO] - r1_unsupervised M0a_random: AUC-PR=0.0000 [0.0000, 0.0000]
+[2026-10-22 15:35:18,049][__main__][INFO] - r1_unsupervised M0b_always_fail: AUC-PR=0.0000 [0.0000, 0.0000]
+[2026-10-22 15:35:18,242][__main__][INFO] - r1_unsupervised M2a_pair_rarity: AUC-PR=0.0006 [0.0003, 0.0021]
+[2026-10-22 15:35:18,431][__main__][INFO] - r1_unsupervised M2c_source_rarity: AUC-PR=0.0001 [0.0000, 0.0005]
+[2026-10-22 15:35:18,625][__main__][INFO] - r1_unsupervised M2b_pca_reconstruction: AUC-PR=0.0016 [0.0006, 0.0062]
+[2026-10-22 15:35:18,807][__main__][INFO] - r1_unsupervised M3a_iforest: AUC-PR=0.0001 [0.0000, 0.0002]
+[2026-10-22 15:35:18,987][__main__][INFO] - r1_unsupervised M3b_ecod: AUC-PR=0.0003 [0.0001, 0.0013]
+[2026-10-22 15:35:19,167][__main__][INFO] - r1_unsupervised M3b_hbos: AUC-PR=0.0001 [0.0000, 0.0001]
+[2026-10-22 15:35:19,383][__main__][INFO] - r1_unsupervised M1_rules: AUC-PR=0.0002 [0.0000, 0.0013]
+[2026-10-22 15:35:19,563][__main__][INFO] - r1_unsupervised M1u_rules_uniform: AUC-PR=0.0000 [0.0000, 0.0000]
+[2026-10-22 15:35:19,755][__main__][INFO] - r1_unsupervised M4a_autoencoder: AUC-PR=0.0022 [0.0013, 0.0037]
+[2026-10-22 15:35:19,957][__main__][INFO] - r1_unsupervised M4b_vae: AUC-PR=0.0008 [0.0003, 0.0026]
+[2026-10-22 15:35:20,141][__main__][INFO] - r1_unsupervised M5c_euler: AUC-PR=0.0008 [0.0005, 0.0017]
+[2026-10-22 15:35:20,172][__main__][INFO] - r1_unsupervised: 60/78 pairwise AUC-PR differences significant at alpha=0.05 after holm_bonferroni correction.
+[2026-10-22 15:35:29,410][__main__][INFO] - Wrote headline figure to reports/runs/20261022T102638Z/temporal/figures/campaign_recall_vs_budget.png
+[2026-10-22 15:35:29,488][__main__][INFO] - Regime r2_semi_supervised
+[2026-10-22 15:35:29,541][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 15:35:35,469][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 15:35:41,275][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 15:35:47,105][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 15:35:53,080][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 15:35:59,063][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 15:40:02,422][authbench.pipeline.train_eval][INFO] - Scored day 8: 19374688 events, 6 models.
+[2026-10-22 15:43:46,237][authbench.pipeline.train_eval][INFO] - Scored day 9: 18141723 events, 6 models.
+[2026-10-22 15:46:36,358][authbench.pipeline.train_eval][INFO] - Scored day 10: 14170694 events, 6 models.
+[2026-10-22 15:46:36,368][authbench.pipeline.tuning][INFO] - Tuned M2b_pca_reconstruction on validation: candidate 1 of 6, AUC-PR 0.0055 (default 0.0001).
+[2026-10-22 15:46:36,385][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 15:47:39,810][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 15:48:09,378][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 15:48:45,089][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 15:49:25,407][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 15:50:17,661][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 15:51:32,146][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 15:53:10,958][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 15:55:11,247][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 16:15:17,695][authbench.pipeline.train_eval][INFO] - Scored day 8: 19374688 events, 9 models.
+[2026-10-22 16:31:28,771][authbench.pipeline.train_eval][INFO] - Scored day 9: 18141723 events, 9 models.
+[2026-10-22 16:43:50,152][authbench.pipeline.train_eval][INFO] - Scored day 10: 14170694 events, 9 models.
+[2026-10-22 16:43:50,183][authbench.pipeline.tuning][INFO] - Tuned M3a_iforest on validation: candidate 3 of 9, AUC-PR 0.0001 (default 0.0000).
+[2026-10-22 16:43:50,202][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 16:44:01,628][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 16:44:11,093][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 16:44:19,990][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 16:44:29,025][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 16:44:37,657][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 16:44:46,686][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 16:44:55,480][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 16:45:04,459][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 16:45:13,407][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 16:45:22,414][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 16:45:31,680][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 16:45:40,863][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 16:48:44,049][authbench.pipeline.train_eval][INFO] - Scored day 8: 19374688 events, 12 models.
+[2026-10-22 16:51:27,635][authbench.pipeline.train_eval][INFO] - Scored day 9: 18141723 events, 12 models.
+[2026-10-22 16:53:31,169][authbench.pipeline.train_eval][INFO] - Scored day 10: 14170694 events, 12 models.
+[2026-10-22 16:53:31,203][authbench.pipeline.tuning][INFO] - Tuned M3b_hbos on validation: candidate 10 of 12, AUC-PR 0.0001 (default 0.0001).
+[2026-10-22 17:00:47,296][authbench.pipeline.train_eval][INFO] - Scored day 8: 19374688 events, 20 models.
+[2026-10-22 17:08:04,063][authbench.pipeline.train_eval][INFO] - Scored day 9: 18141723 events, 20 models.
+[2026-10-22 17:13:46,530][authbench.pipeline.train_eval][INFO] - Scored day 10: 14170694 events, 20 models.
+[2026-10-22 17:13:46,557][authbench.pipeline.tuning][INFO] - Tuned M1_rules on validation: candidate 12 of 20, AUC-PR 0.0004 (default 0.0000).
+[2026-10-22 17:13:50,316][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 17:16:31,952][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/133093536 training rows.
+[2026-10-22 17:56:36,081][__main__][INFO] - Scored day 8: 19374688 events, 13 models.
+[2026-10-22 18:08:27,255][__main__][INFO] - Scored day 9: 18141723 events, 13 models.
+[2026-10-22 18:17:46,915][__main__][INFO] - Scored day 10: 14170694 events, 13 models.
+[2026-10-22 18:27:51,583][__main__][INFO] - Scored day 11: 14012543 events, 13 models.
+[2026-10-22 18:42:15,675][__main__][INFO] - Scored day 12: 19870848 events, 13 models.
+[2026-10-22 18:57:31,212][__main__][INFO] - Scored day 13: 20807377 events, 13 models.
+[2026-10-22 18:57:36,068][authbench.evaluate.stats_tests][INFO] - Bootstrap: 10000 resamples x 13 models over 48 positive blocks, 0 degenerate draws redrawn.
+[2026-10-22 18:58:35,202][__main__][INFO] - r2_semi_supervised M0a_random: AUC-PR=0.0000 [0.0000, 0.0000]
+[2026-10-22 18:58:35,372][__main__][INFO] - r2_semi_supervised M0b_always_fail: AUC-PR=0.0000 [0.0000, 0.0000]
+[2026-10-22 18:58:35,561][__main__][INFO] - r2_semi_supervised M2a_pair_rarity: AUC-PR=0.0006 [0.0003, 0.0021]
+[2026-10-22 18:58:35,753][__main__][INFO] - r2_semi_supervised M2c_source_rarity: AUC-PR=0.0001 [0.0000, 0.0005]
+[2026-10-22 18:58:35,957][__main__][INFO] - r2_semi_supervised M2b_pca_reconstruction: AUC-PR=0.0016 [0.0006, 0.0063]
+[2026-10-22 18:58:36,139][__main__][INFO] - r2_semi_supervised M3a_iforest: AUC-PR=0.0000 [0.0000, 0.0002]
+[2026-10-22 18:58:36,327][__main__][INFO] - r2_semi_supervised M3b_ecod: AUC-PR=0.0003 [0.0001, 0.0013]
+[2026-10-22 18:58:36,504][__main__][INFO] - r2_semi_supervised M3b_hbos: AUC-PR=0.0001 [0.0000, 0.0001]
+[2026-10-22 18:58:36,704][__main__][INFO] - r2_semi_supervised M1_rules: AUC-PR=0.0002 [0.0000, 0.0014]
+[2026-10-22 18:58:36,891][__main__][INFO] - r2_semi_supervised M1u_rules_uniform: AUC-PR=0.0000 [0.0000, 0.0000]
+[2026-10-22 18:58:37,066][__main__][INFO] - r2_semi_supervised M4a_autoencoder: AUC-PR=0.0017 [0.0010, 0.0031]
+[2026-10-22 18:58:37,248][__main__][INFO] - r2_semi_supervised M4b_vae: AUC-PR=0.0008 [0.0004, 0.0025]
+[2026-10-22 18:58:37,436][__main__][INFO] - r2_semi_supervised M5c_euler: AUC-PR=0.0012 [0.0007, 0.0025]
+[2026-10-22 18:58:37,468][__main__][INFO] - r2_semi_supervised: 60/78 pairwise AUC-PR differences significant at alpha=0.05 after holm_bonferroni correction.
+[2026-10-22 18:58:46,715][__main__][INFO] - Wrote headline figure to reports/runs/20261022T102638Z/temporal/figures/r2_semi_supervised/campaign_recall_vs_budget.png

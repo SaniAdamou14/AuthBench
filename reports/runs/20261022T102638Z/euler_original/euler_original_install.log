@@ -1,0 +1,74 @@
++ . /root/.local/bin/env
+++ case ":${PATH}:" in
+++ export PATH=/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin
+++ PATH=/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin
++ cd /root/euler_original
++ uv venv --python 3.10 .venv
+Downloading cpython-3.10.22-linux-x86_64-gnu (download) (28.0MiB)
+ Downloaded cpython-3.10.22-linux-x86_64-gnu (download)
+Using CPython 3.10.22
+Creating virtual environment at: .venv
+Activate with: source .venv/bin/activate
++ uv pip install --python .venv/bin/python torch==1.13.1 --index-url https://download.pytorch.org/whl/cpu
+Resolved 2 packages in 960ms
+Downloading torch (189.9MiB)
+ Downloaded torch
+Prepared 2 packages in 2.42s
+Installed 2 packages in 180ms
+ + torch==1.13.1+cpu
+ + typing-extensions==4.16.0
++ uv pip install --python .venv/bin/python torch-scatter==2.1.0 torch-sparse==0.6.16 torch-cluster==1.6.0 --find-links https://data.pyg.org/whl/torch-1.13.0+cpu.html --no-build-isolation
+Resolved 5 packages in 656ms
+Downloading numpy (16.0MiB)
+Downloading torch-sparse (1.1MiB)
+Downloading scipy (35.9MiB)
+ Downloaded torch-sparse
+ Downloaded numpy
+ Downloaded scipy
+Prepared 5 packages in 627ms
+Installed 5 packages in 50ms
+ + numpy==2.2.6
+ + scipy==1.15.3
+ + torch-cluster==1.6.0+pt113cpu
+ + torch-scatter==2.1.0+pt113cpu
+ + torch-sparse==0.6.16+pt113cpu
++ uv pip install --python .venv/bin/python torch-geometric==2.2.0 numpy==1.23.5 pandas==1.4.3 scikit-learn==1.1.1 scipy==1.9.3 joblib==1.1.0 tqdm==4.64.1 psutil==5.9.0
+Resolved 21 packages in 1.12s
+   Building torch-geometric==2.2.0
+Downloading pandas (11.1MiB)
+Downloading scikit-learn (29.0MiB)
+Downloading numpy (16.3MiB)
+Downloading scipy (32.1MiB)
+ Downloaded pandas
+ Downloaded numpy
+      Built torch-geometric==2.2.0
+ Downloaded scipy
+ Downloaded scikit-learn
+Prepared 13 packages in 708ms
+Uninstalled 2 packages in 63ms
+Installed 21 packages in 51ms
+ + certifi==2026.10.19
+ + charset-normalizer==3.5.2
+ + idna==3.20
+ + jinja2==3.1.6
+ + joblib==1.1.0
+ + markupsafe==3.0.4
+ - numpy==2.2.6
+ + numpy==1.23.5
+ + pandas==1.4.3
+ + psutil==5.9.0
+ + pyparsing==3.3.3
+ + python-dateutil==3.0.0
+ + pytz==2026.5
+ + requests==2.34.2
+ + scikit-learn==1.1.1
+ - scipy==1.15.3
+ + scipy==1.9.3
+ + six==1.17.0
+ + threadpoolctl==3.7.0
+ + torch-geometric==2.2.0
+ + tqdm==4.64.1
+ + tzdata==2026.5
+ + urllib3==2.8.0
++ .venv/bin/python -c 'import torch, torch_geometric, torch_scatter, torch_sparse; print(torch.__version__, torch_geometric.__version__, torch_scatter.__version__, torch_sparse.__version__)'
+1.13.1+cpu 2.2.0 2.1.0+pt113cpu 0.6.16+pt113cpu

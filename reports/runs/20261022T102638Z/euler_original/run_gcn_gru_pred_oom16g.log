@@ -1,0 +1,62 @@
+[2026-10-22T17:01:45Z] start run.py at commit b6ab8fd, paths diff in /root/euler_original_data/paths.diff
+Namespace(delta=0.5, workers=4, threads=1, encoder='GCN', rnn='GRU', hidden=32, zdim=16, ngrus=1, tests=5, load=False, fpweight=0.6, nowrite=False, impl='PRED', dataset='LANL', lr=0.005, patience=5, te_end=None)
+GCN -> GRU (PRED)
+{'tr_start': 0, 'tr_end': 143341, 'val_start': 143341, 'val_end': 150885, 'te_times': [(150885, 5011199)], 'delta': 1800}
+worker1 loading 36000-72000
+Finding start:   0%|          | 0/5999 [00:00<?, ?it/s]
+Seconds read:   0%|          | 0/35999 [00:00<?, ?it/s][Aworker2 loading 72000-108000
+Finding start:   0%|          | 0/1999 [00:00<?, ?it/s]
+Seconds read:   0%|          | 0/35999 [00:00<?, ?it/s][Aworker3 loading 108000-143341
+Finding start:   0%|          | 0/7999 [00:00<?, ?it/s]
+Seconds read:   0%|          | 0/35340 [00:00<?, ?it/s][Aworker0 loading 0-36000
+Finding start: 0it [00:00, ?it/s]
+Seconds read:   0%|          | 0/35999 [00:00<?, ?it/s][AFinding start:  88%|████████▊ | 5307/5999 [00:00<00:00, 53069.92it/s]
+Seconds read:   0%|          | 1/35999 [00:00<1:02:37,  9.58it/s][A
+Seconds read:   6%|▋         | 2318/35999 [00:00<00:01, 23179.47it/s][AFinding start:  93%|█████████▎| 7460/7999 [00:00<00:00, 74599.36it/s]
+Seconds read:  20%|█▉        | 7038/35999 [00:00<00:00, 70379.73it/s][A
+Seconds read:   0%|          | 1/35340 [00:00<1:01:15,  9.61it/s][A
+Seconds read:  10%|█         | 3601/35999 [00:00<00:01, 20661.12it/s][A
+Seconds read:  17%|█▋        | 6016/35999 [00:00<00:00, 31297.24it/s][A
+Seconds read:  40%|████      | 14547/35999 [00:00<00:00, 73149.80it/s][A
+Seconds read:   9%|▉         | 3178/35340 [00:00<00:01, 18388.12it/s][A
+Seconds read:  21%|██▏       | 7688/35999 [00:00<00:00, 29764.50it/s][A
+Seconds read:  26%|██▋       | 9460/35999 [00:00<00:00, 32732.26it/s][A
+Seconds read:  61%|██████▏   | 22074/35999 [00:00<00:00, 74117.47it/s][A
+Seconds read:  17%|█▋        | 5965/35340 [00:00<00:01, 22679.06it/s][A
+Seconds read:  33%|███▎      | 11788/35999 [00:00<00:00, 34163.65it/s][A
+Seconds read:  36%|███▌      | 12934/35999 [00:00<00:00, 33524.65it/s][A
+Seconds read:  24%|██▎       | 8361/35340 [00:00<00:01, 23181.99it/s][A
+Seconds read:  47%|████▋     | 16746/35999 [00:00<00:00, 35181.73it/s][A
+Seconds read:  30%|███       | 10692/35340 [00:00<00:01, 23175.26it/s][A
+Seconds read:  42%|████▏     | 15225/35999 [00:00<00:00, 29835.49it/s][A
+Seconds read:  82%|████████▏ | 29486/35999 [00:00<00:00, 49102.86it/s][A
+Seconds read:  57%|█████▋    | 20581/35999 [00:00<00:00, 36258.72it/s][A
+Seconds read:  37%|███▋      | 13018/35340 [00:00<00:00, 22511.10it/s][A
+Seconds read:  54%|█████▎    | 19301/35999 [00:00<00:00, 33207.80it/s][A
+Seconds read:  67%|██████▋   | 24207/35999 [00:00<00:00, 36243.61it/s][A
+Seconds read:  43%|████▎     | 15278/35340 [00:00<00:00, 22141.05it/s][A
+Seconds read:  65%|██████▌   | 23429/35999 [00:00<00:00, 35678.08it/s][A
+Seconds read:  78%|███████▊  | 28057/35999 [00:00<00:00, 36961.60it/s][A
+Seconds read:  98%|█████████▊| 35250/35999 [00:00<00:00, 34805.04it/s][A
+Seconds read:  50%|████▉     | 17561/35340 [00:00<00:00, 22354.18it/s][A
+Seconds read:  79%|███████▉  | 28440/35999 [00:00<00:00, 40068.23it/s][AFinding start: 0it [00:00, ?it/s]
+Seconds read: 100%|██████████| 35999/35999 [00:00<00:00, 43388.43it/s]
+
+Seconds read:  88%|████████▊ | 31754/35999 [00:00<00:00, 36840.39it/s][A
+Seconds read:  95%|█████████▌| 34212/35999 [00:00<00:00, 45415.33it/s][A
+Seconds read:  98%|█████████▊| 35456/35999 [00:01<00:00, 36895.64it/s][AFinding start: 100%|██████████| 1999/1999 [00:01<00:00, 1973.06it/s]
+Seconds read: 36001it [00:01, 35533.19it/s]                           
+Finding start: 100%|██████████| 5999/5999 [00:01<00:00, 5704.95it/s] 
+Seconds read: 36001it [00:01, 34235.95it/s]                           
+
+Seconds read:  56%|█████▌    | 19802/35340 [00:01<00:00, 16487.89it/s][A
+Seconds read:  62%|██████▏   | 22010/35340 [00:01<00:00, 17852.53it/s][A
+Seconds read:  68%|██████▊   | 24202/35340 [00:01<00:00, 18903.98it/s][A
+Seconds read:  75%|███████▍  | 26470/35340 [00:01<00:00, 19922.26it/s][A
+Seconds read:  81%|████████▏ | 28801/35340 [00:01<00:00, 20751.67it/s][A
+Seconds read:  88%|████████▊ | 30963/35340 [00:01<00:00, 20947.52it/s][A
+Seconds read:  94%|█████████▍| 33135/35340 [00:01<00:00, 21169.60it/s][A
+Seconds read: 100%|█████████▉| 35297/35340 [00:01<00:00, 15958.28it/s][AFinding start: 100%|██████████| 7999/7999 [00:01<00:00, 4231.60it/s] 
+Seconds read: 36001it [00:01, 19045.31it/s]                           
+/root/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/multiprocessing/resource_tracker.py:224: UserWarning: resource_tracker: There appear to be 14 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

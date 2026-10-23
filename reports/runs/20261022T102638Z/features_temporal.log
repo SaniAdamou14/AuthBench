@@ -1,0 +1,20 @@
+[2026-10-22 10:38:27,931][__main__][INFO] - Redteam: 34 exact duplicates removed
+[2026-10-22 10:39:40,467][__main__][INFO] - Featurised day 0: 15740768 events.
+[2026-10-22 10:41:29,999][__main__][INFO] - Featurised day 1: 17562411 events.
+[2026-10-22 10:43:08,472][__main__][INFO] - Featurised day 2: 15585892 events.
+[2026-10-22 10:44:12,018][__main__][INFO] - Featurised day 3: 13473124 events.
+[2026-10-22 10:45:13,565][__main__][INFO] - Featurised day 4: 13398148 events.
+[2026-10-22 10:46:34,591][__main__][INFO] - Featurised day 5: 18557382 events.
+[2026-10-22 10:48:06,706][__main__][INFO] - Featurised day 6: 19381578 events.
+[2026-10-22 10:49:37,445][__main__][INFO] - Featurised day 7: 19394283 events.
+[2026-10-22 10:50:45,166][__main__][INFO] - Featurised day 6: 19381578 events.
+[2026-10-22 10:52:13,861][__main__][INFO] - Featurised day 7: 19394283 events.
+[2026-10-22 10:53:43,891][__main__][INFO] - Featurised day 8: 19374688 events.
+[2026-10-22 10:55:11,767][__main__][INFO] - Featurised day 9: 18141723 events.
+[2026-10-22 10:56:21,220][__main__][INFO] - Featurised day 10: 14170694 events.
+[2026-10-22 10:57:24,377][__main__][INFO] - Featurised day 9: 18141723 events.
+[2026-10-22 10:58:31,387][__main__][INFO] - Featurised day 10: 14170694 events.
+[2026-10-22 10:59:34,800][__main__][INFO] - Featurised day 11: 14012543 events.
+[2026-10-22 11:01:01,791][__main__][INFO] - Featurised day 12: 19870848 events.
+[2026-10-22 11:02:39,871][__main__][INFO] - Featurised day 13: 20807377 events.
+[2026-10-22 11:02:41,355][__main__][INFO] - Feature store version: 271421c5446d381a

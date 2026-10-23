@@ -1,0 +1,12 @@
+sample: 282 malicious, 2188368 benign (1 in 25)
+M1u ROC-AUC on the sample: 0.2443
+rule                         mean benign  mean malicious  ROC-AUC
+R1_new_pair                       0.5007          0.7195   0.7188
+R2_host_burst                     0.5072          0.5478   0.5409
+R3_fail_then_success              0.4619          0.2130   0.2260
+R4_offhours                       0.5097          0.3915   0.3753
+R5_machine_account_anomaly        0.4881          0.2037   0.1916
+R6_new_auth_type                  0.5001          0.5212   0.5212
+R7_lateral_chain                  0.5001          0.3232   0.3231
+R8_new_source                     0.5006          0.5635   0.5629
+machine accounts: 0.617 of benign, 0.000 of malicious

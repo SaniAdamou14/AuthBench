@@ -36,19 +36,35 @@ COLUMNS = ["time", "src_computer", "dst_computer"]
 _COMPUTER = re.compile(r"^C\d+$")
 
 
-def _snapshot_edges(frame: pl.LazyFrame, snapshot_seconds: int) -> pl.DataFrame:
-    """Distinct (snapshot, source, destination) edges and their event counts."""
-    return (
-        frame.select(
-            (pl.col("time") // snapshot_seconds).alias("snapshot"),
-            pl.col("src_computer").cast(pl.Utf8).alias("src"),
-            pl.col("dst_computer").cast(pl.Utf8).alias("dst"),
+def snapshot_edges(frame: pl.LazyFrame, snapshot_seconds: int) -> pl.DataFrame:
+    """Distinct (snapshot, source, destination) edges and their event counts.
+
+    Aggregated one day at a time: a snapshot never spans two days, so this is exact, and
+    memory is bounded by a day of events rather than the timeline (all of LANL at once
+    needed more than 50 GB).
+    """
+    if 86_400 % snapshot_seconds:
+        raise ValueError(f"A snapshot of {snapshot_seconds} s does not divide a day.")
+    bounds = frame.select(pl.col("time").min().alias("first"), pl.col("time").max().alias("last"))
+    first, last = bounds.collect().row(0)
+    if first is None:
+        return pl.DataFrame(
+            schema={"snapshot": pl.Int64, "src": pl.Utf8, "dst": pl.Utf8, "len": pl.UInt32}
         )
-        .group_by("snapshot", "src", "dst")
-        .len()
-        .sort("snapshot", "src", "dst")
-        .collect()
-    )
+    days = []
+    for day in range(int(first) // 86_400, int(last) // 86_400 + 1):
+        days.append(
+            frame.filter(pl.col("time").is_between(day * 86_400, (day + 1) * 86_400, closed="left"))
+            .select(
+                (pl.col("time") // snapshot_seconds).cast(pl.Int64).alias("snapshot"),
+                pl.col("src_computer").cast(pl.Utf8).alias("src"),
+                pl.col("dst_computer").cast(pl.Utf8).alias("dst"),
+            )
+            .group_by("snapshot", "src", "dst")
+            .len()
+            .collect()
+        )
+    return pl.concat(days).sort("snapshot", "src", "dst")
 
 
 class _Graph:
@@ -130,6 +146,7 @@ class EulerScorer(BaseAnomalyScorer):
         window: int = 48,
         seed: int = 42,
         cache_dir: str | None = None,
+        vocabulary: list[str] | None = None,
     ) -> None:
         self.snapshot_seconds = snapshot_seconds
         self.hidden = hidden
@@ -142,6 +159,11 @@ class EulerScorer(BaseAnomalyScorer):
         self.window = window
         self.seed = seed
         self.cache_dir = cache_dir
+        # The authors' code gives every node of the whole dataset its own identifier, those first
+        # seen after training included, and samples negatives among them all. That needs the
+        # future node set, so only scripts/euler_fidelity.py sets it; AuthBench's M5c maps a
+        # node unseen in training to the shared unseen node.
+        self.vocabulary = vocabulary
         self.history: list[tuple[int, float, float]] = []
         self._nodes: dict[str, int] = {}
         self._module: _Euler | None = None
@@ -187,8 +209,10 @@ class EulerScorer(BaseAnomalyScorer):
     def _fit(self, train: pl.LazyFrame) -> None:
         torch.manual_seed(self.seed)
         generator = torch.Generator().manual_seed(self.seed)
-        edges = _snapshot_edges(train, self.snapshot_seconds)
-        names = sorted(set(edges["src"].to_list()) | set(edges["dst"].to_list()))
+        edges = snapshot_edges(train, self.snapshot_seconds)
+        names = sorted(
+            set(edges["src"].to_list()) | set(edges["dst"].to_list()) | set(self.vocabulary or ())
+        )
         self._nodes = {n: i for i, n in enumerate(names)}
         n_nodes = len(names)
         first, last = int(edges["snapshot"].min()), int(edges["snapshot"].max())  # type: ignore[arg-type]
@@ -267,7 +291,7 @@ class EulerScorer(BaseAnomalyScorer):
         if self._module is None:
             raise RuntimeError(f"{self.name} must be fitted before it is prepared.")
         frames = [f.select(COLUMNS) for f in timeline]
-        edges = pl.concat([_snapshot_edges(f, self.snapshot_seconds) for f in frames])
+        edges = pl.concat([snapshot_edges(f, self.snapshot_seconds) for f in frames])
         first, last = int(edges["snapshot"].min()), int(edges["snapshot"].max())  # type: ignore[arg-type]
         graphs = self._graphs(edges, first, last)
         directory = Path(self.cache_dir or tempfile.mkdtemp(prefix="authbench_euler_"))

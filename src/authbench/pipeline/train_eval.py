@@ -380,7 +380,8 @@ def evaluate_regime(
         exclude=exclude_models,
         deep_models=bool(cfg.runtime.get("deep_models", False)),
         euler=bool(cfg.runtime.get("euler", False)),
-        cache_dir=str(Path(cfg.paths.processed_dir) / "euler" / regime),
+        # Per split and regime: protocols may run side by side on one machine.
+        cache_dir=str(Path(cfg.paths.processed_dir) / "euler" / str(cfg.split.name) / regime),
     )
     tuning_cfg = cfg.eval.get("tuning", {})
     models, tuning = fit_models(

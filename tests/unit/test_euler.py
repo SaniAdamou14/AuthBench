@@ -83,3 +83,42 @@ def test_training_stops_early_and_keeps_its_history() -> None:
     model, _, _ = _fitted()
     assert 1 <= len(model.history) <= 15
     assert all(np.isfinite(loss) for _, _, loss in model.history)
+
+
+def test_snapshot_edges_aggregated_by_day_equal_one_aggregation() -> None:
+    from authbench.models.euler import snapshot_edges
+
+    frame = pl.concat([_routine(range(0, 40)), _routine(range(40, 100), seed=2)])
+    expected = (
+        frame.select(
+            (pl.col("time") // SNAPSHOT).cast(pl.Int64).alias("snapshot"),
+            pl.col("src_computer").alias("src"),
+            pl.col("dst_computer").alias("dst"),
+        )
+        .group_by("snapshot", "src", "dst")
+        .len()
+        .sort("snapshot", "src", "dst")
+    )
+    assert snapshot_edges(frame.lazy(), SNAPSHOT).equals(expected)
+
+
+def test_a_snapshot_that_does_not_divide_a_day_is_refused() -> None:
+    from authbench.models.euler import snapshot_edges
+
+    with pytest.raises(ValueError, match="does not divide a day"):
+        snapshot_edges(_routine(range(0, 2)).lazy(), 7_000)
+
+
+def test_a_vocabulary_gives_a_node_first_seen_after_training_its_own_identifier() -> None:
+    train, test = _routine(range(0, 30)), _routine(range(30, 36), seed=1)
+    later = pl.DataFrame(
+        {"time": [32 * SNAPSHOT + 1], "src_computer": ["C77"], "dst_computer": ["C1"]}
+    )
+    shared = EulerScorer(epochs=3, patience=2, window=10, seed=3)
+    own = EulerScorer(epochs=3, patience=2, window=10, seed=3, vocabulary=["C77"])
+    for model in (shared, own):
+        model.fit(train.lazy())
+        model.prepare([train.lazy(), test.lazy()])
+    assert "C77" not in shared._nodes
+    assert own._nodes["C77"] < len(own._nodes)
+    assert np.isfinite(own.score(later.lazy()).to_numpy()).all()
