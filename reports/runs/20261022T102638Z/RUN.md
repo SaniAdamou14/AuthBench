@@ -7,7 +7,8 @@ evaluates two protocols: `temporal`, the split of the wider-window run of 15 Sep
 `harmonised`, the protocol of Larroche (2026). It also checks the Euler reimplementation
 against the paper and runs the authors' own Euler code on the same machine.
 
-Which run the report is built on is decided with the paper update, not here. Every number
+Since 23 October 2026 the report (`reports/paper/main.tex`, version 2) is built on this run,
+the harmonised protocol first. Every number
 below is read from a file of this directory, named next to it. The working notes written during
 the run, with every attempt and correction in order, are in [`REVIEW_NOTES.md`](REVIEW_NOTES.md).
 
@@ -157,6 +158,27 @@ validation partition, so nothing is tuned, no label is read, and M1 keeps unifor
   detection.
 - **Ties**: M2a's bracket is [0, 32.1 %] at 10 and up to [0, 61.7 %] at 500 (about 216,500
   contenders over 57 days), M0b's [0, 0.6 %]; every other bracket has zero width.
+
+## Units, fixed thresholds and fitting variance (added 23 October 2026)
+
+Read from `operational.alert_units`, `operational.fixed_threshold` and `tables/fit_variance.json`
+of each protocol; the report's tables are generated from the same fields.
+
+- **Alert units.** In the harmonised protocol, at 500 user-days a day Euler reaches 51.2% of the
+  campaigns and source rarity 50.6%, PCA 41.4% and the VAE 43.8%, against 4.3% for the random
+  floor; at 500 events the same detectors reach 0.6%, 0.0%, 2.5% and 4.3%. A user-day budget
+  covers more of a day (11,636 to 19,358 user-days per test day) and units carry no tie
+  bracket, which matters for M2a and M2c (limitation 14).
+- **Fixed threshold.** Calibrated on the 41 harmonised training hours for 10 alerts a day, PCA
+  raises 149 a day on average on the test and 8,222 on its worst day, the VAE 167 and 9,151,
+  pair rarity 58,396 on average (its threshold falls inside a tie); HBOS raises 4. Calibrated on
+  the temporal validation days, PCA raises 26 and M1 14.
+- **Fitting variance.** Over five seeds, PCA's harmonised first detection ranges from 13 to 243
+  alerts a day and its AUC-PR from 1.23e-5 to 4.59e-5; Isolation Forest's from 718 to 1,641
+  (harmonised) and 20,183 to 102,041 (temporal). M1, ECOD and HBOS barely move. The
+  autoencoders and Euler are fitted once.
+- **Benign correlation.** With source users as the resampling unit, 54 of 78 pairwise
+  differences stay significant (harmonised, against 69) and 53 (temporal, against 60).
 
 ## M1u: why uniform rules rank the red team below benign traffic
 

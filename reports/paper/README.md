@@ -1,22 +1,32 @@
 # Technical report
 
-`main.tex` is the AuthBench report, version 2: written against the wider-window
-LANL run ([`../lanl/wider_window_results/RUN.md`](../lanl/wider_window_results/RUN.md)),
-with the single-day run of [`../lanl/RUN.md`](../lanl/RUN.md) in an appendix.
+`main.tex` is the AuthBench report, version 2: written against the full LANL
+run of 22 October 2026
+([`../runs/20261022T102638Z/RUN.md`](../runs/20261022T102638Z/RUN.md)), both
+protocols, with the wider-window run of September
+([`../lanl/wider_window_results/RUN.md`](../lanl/wider_window_results/RUN.md))
+compared in an appendix on the same temporal partitions.
 Version 1 (single-day run) is archived on Zenodo,
 [10.5281/zenodo.23159768](https://doi.org/10.5281/zenodo.23159768); its two
 errors are listed in the correction notice at the top of the repository README.
 
 ## Where every number comes from
 
-Nothing in the report is typed by hand. `scripts/paper_assets.py` reads the
-committed run outputs and writes `generated/`:
+No result of a run is typed by hand: the text quotes them through macros, and the
+tables and figures are generated. What is typed are constants of the protocol (the
+budgets, the 749 red-team lines, the staffing inputs) and figures published by other
+works. `scripts/paper_assets.py` reads the committed run outputs and writes `generated/`:
 
 | File | Content |
 |---|---|
 | `numbers.tex` | every number quoted in the text, as LaTeX macros |
 | `table_*.tex` | the rows of each results table |
-| `figure_first_detection.pdf` | budget for first detection against ROC-AUC and AUC-PR |
+| `figure_first_detection.pdf` | budget for first detection against ROC-AUC and AUC-PR, both protocols |
+| `figure_campaign_recall.pdf` | campaign recall against the daily budget, from the positives ledger |
+
+The script also checks the run against itself before writing (first detections in the ledger
+against the metrics, the simulated random-ranking null against its exact formula, the Euler
+recounts against the published counts) and stops on any disagreement.
 
 CI reruns the script and fails if a generated `.tex` file differs from the
 committed copy, so the text cannot drift from the runs it describes.
