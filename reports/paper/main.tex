@@ -9,6 +9,8 @@
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{multirow}
+\usepackage{tocloft}
+\setlength{\cftbeforesecskip}{0.3em}
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \usepackage{siunitx}
 \sisetup{group-separator={,}, group-minimum-digits=4}
@@ -51,6 +53,11 @@ on the LANL Data, with a Reproduction of Euler}
 \begin{abstract}
 \noindent Security operations centres investigate a bounded number of alerts per day, yet anomaly detectors for authentication logs are mostly compared by threshold-free metrics. We present \AuthBench{}, an open evaluation harness that enforces its temporal split in code, scores every event independently of the others, ranks events within each day, and reports for each red-team campaign the daily budget at which it is first detected, with the exact distribution of that budget under a random ranking. We evaluate rules, rarity scores, outlier detectors, two autoencoders and a reimplementation of the temporal graph detector Euler on the authentication log of the Los Alamos National Laboratory (LANL) data, under the harmonised protocol of Larroche (training on the first 41 hours, testing on the next 57 days, no labels; \HarmTestPositives{} red-team events in \HarmTestCampaigns{} campaigns) and under a day-based split. Ranked as individual events, no detector detects a campaign at 10 alerts per day, and none exceeds \TempPcaRecallFiveHundred{} of the campaigns at 500. In the harmonised protocol, the detectors whose first detection a random ranking rarely matches (PCA, the VAE and the autoencoder, at \HarmPcaFirstDetection{}, \HarmVaeFirstDetection{} and \HarmAutoencoderFirstDetection{} alerts per day) are not those with the highest ROC-AUC: over the non-trivial detectors, ROC-AUC and the first-detection budget are unrelated (Spearman $\rho = \HarmSpearmanRocAuc$ and $\TempSpearmanRocAuc$ in the two protocols). Ranked as user-days instead of events, Euler and a source-novelty score reach about half of the campaigns at 500 per day, against \HarmRandomUserDayFiveHundred{} for a random ranking: the alert unit matters as much as the detector. PCA's first detection ranges from \HarmPcaFitFirstMin{} to \HarmPcaFitFirstMax{} alerts per day over five fitting seeds. Rerun on the same machine, the authors' Euler code reproduces its published AUC (\EulerAuthorsAuc{} against \EulerPublishedAuc{}) but not its average precision (\EulerAuthorsAp{} against \EulerPublishedAp{}); our reimplementation reaches \EulerFidNtlmAuc{} and \EulerFidNtlmAp{} on an identical test set. The labelled activity is one intrusion, \RedTeamTopHostShare{} of it from one host, so these results are a case study of one operation, not an estimate for detectors in general.
 \end{abstract}
+
+% Table of contents on a page of its own, for the preprint; a venue's template replaces it.
+\clearpage
+\tableofcontents
+\clearpage
 
 \section{Introduction}
 \label{sec:introduction}
@@ -494,10 +501,14 @@ The code, configuration and run outputs are public at \url{https://github.com/Sa
 Under a leak-free protocol and at the event level, none of thirteen detectors detects a campaign of the LANL red team within 10 alerts per day, and ROC-AUC did not indicate which of them detect one earliest. Three findings qualify that statement more than any choice of detector: the alert unit (in user-days, a graph detector and a source-novelty score reach half of the campaigns at 500 per day), the fit (another seed moves a first detection by an order of magnitude), and the threshold (calibrated on 41 hours, it does not hold for eight weeks). The reproduction of Euler adds a fourth: the authors' own code does not reach its published average precision on the published data. Because the labelled activity is one operation, these findings describe one case; the harness is meant to make the next case cheap to evaluate.
 
 \section*{Ethics and data statement}
+\addcontentsline{toc}{section}{Ethics and data statement}
 The LANL data are public and de-identified, and their use requires citation of the provider; the benchmark manipulates no personal data. It is defensive in purpose and contains no offensive technique. The authors' Euler code carries no licence; it was run unmodified apart from paths, and only those path edits are published with the run outputs.
 
-\printbibliography
+% References and appendices each start on a page of their own.
+\clearpage
+\printbibliography[heading=bibintoc]
 
+\clearpage
 \appendix
 
 \section{Features}
