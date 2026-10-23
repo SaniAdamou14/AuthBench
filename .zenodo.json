@@ -1,0 +1,37 @@
+{
+  "title": "AuthBench v2.0.0: temporally leak-free, alert-budget evaluation of authentication anomaly detectors",
+  "upload_type": "software",
+  "version": "2.0.0",
+  "description": "<p>AuthBench is an open harness that evaluates authentication anomaly detectors under a temporally leak-free protocol and daily alert budgets. It enforces its temporal split in code, tests that every detector scores an event identically alone or among others, ranks events, edge-hours and user-days within each day, gives every red-team campaign the daily budget at which it is first detected, and places each result against its exact distribution under a random ranking.</p><p>Version 2.0.0 accompanies version 2 of the report (DOI 10.5281/zenodo.23588166). It contains the full LANL run of 22 October 2026 (both protocols, thirteen detectors, the Euler fidelity check and the authors' Euler code rerun beside it), the generator that rebuilds every number, table and figure of the report from the committed run outputs, and two rounds of review with point-by-point responses.</p><p>Breaking change: <code>authbench data to-parquet</code> refuses an output directory that already holds day partitions unless <code>--overwrite</code> is given.</p>",
+  "creators": [
+    {
+      "name": "Adamou Mahamane, Mahamane Sani",
+      "affiliation": "University of the People",
+      "orcid": "0009-0001-5561-753X"
+    }
+  ],
+  "license": "Apache-2.0",
+  "keywords": [
+    "anomaly detection",
+    "authentication logs",
+    "lateral movement",
+    "alert budget",
+    "evaluation",
+    "reproducibility",
+    "LANL dataset"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "10.5281/zenodo.23588166",
+      "relation": "isSupplementTo",
+      "resource_type": "publication-preprint",
+      "scheme": "doi"
+    },
+    {
+      "identifier": "https://github.com/SaniAdamou14/AuthBench/tree/v2.0.0",
+      "relation": "isSupplementTo",
+      "resource_type": "software",
+      "scheme": "url"
+    }
+  ]
+}
