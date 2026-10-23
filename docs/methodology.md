@@ -195,7 +195,9 @@ a resample varies, as the number of attacks in another sample would. Earlier tex
 - *Blocks.* `eval.bootstrap.block` is `account` (default) or `campaign`. Two campaigns of one
   account are not independent, so the account is the unit; on the wider LANL test window 52
   campaigns map to 50 accounts. Benign events are singleton blocks either way. Any other value
-  is rejected.
+  is rejected. (Note, 23 October 2026: the full run's logs and `budget_summary.json` show 48
+  positive blocks, accounts with a labelled positive, for that window, and 98 for the
+  harmonised one.)
 - *Resamples.* `n_resamples: 10000`, which the sufficient-statistics bootstrap makes cheap
   (0.7 s for nine models on a real LANL day).
 - *Per-model intervals: BCa* (Efron, 1987; Efron and Tibshirani, 1993, ch. 14). The bias
@@ -210,7 +212,11 @@ a resample varies, as the number of attacks in another sample would. Earlier tex
   the percentile test rejects.
 - *Monte Carlo error.* Each interval endpoint carries the order statistics that cover it with
   95% probability (`auc_pr_ci_monte_carlo`), and each raw p-value its standard error
-  `sqrt(p (1 - p) / R)` (`p_value_raw_mc_se`).
+  `sqrt(p (1 - p) / R)` (`p_value_raw_mc_se`). **Correction, 23 October 2026 (review round 2):**
+  the p-value is about 2t/R with t binomial of probability p/2, so its standard error is
+  `sqrt(2p (1 - p/2) / R)` (`stats_tests.p_value_monte_carlo_se`), up to sqrt(2) larger for
+  small p. The run of 22 October 2026 used the old formula; no Holm decision is within 3.2
+  corrected standard errors of its threshold, so none changes.
 
 Three artifacts of the method can manufacture a verdict that is indistinguishable from a real
 one — two of them a spurious "no difference", the third a spurious clean sweep. All are
@@ -292,6 +298,15 @@ non-edges, Adam, early stopping after 10 epochs without improvement on 5% of eac
 edges. Chosen here because the paper does not say: dropout 0.1 on edges and between GCN
 layers, a single linear projection, learning rate 0.01 (from its grid), at most 100 epochs,
 back-propagation truncated to one day, and one shared node for computers unseen in training.
+
+**Correction, 23 October 2026 (review round 2).** The paper does not fix the number of
+negatives (Eq. 5): "as many random non-edges" is our choice, like early stopping on a held-out
+loss and the ReLU after the first layer, which comes from the authors' code. Two deviations
+are unintended: the second layer applies its bias before propagation, so the bias is scaled by
+node degree, and a unit self-loop is added to every node even where one exists. The authors'
+code itself departs from the paper in its edge weights (`sigmoid(trunc(C / sigma))`, not
+Eq. 13), its identity node features (no type vector), negatives drawn among non-edges, a 5%
+time tail held out of training, and no random seed; see the report, section 9.
 
 In AuthBench an event scores the negated log-odds of its edge under the previous snapshot's
 embeddings. The model trains on the regime's training rows but observes the whole timeline,

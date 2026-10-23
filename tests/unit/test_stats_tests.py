@@ -7,9 +7,22 @@ from authbench.evaluate.stats_tests import (
     PairwiseComparison,
     holm_adjusted_p_values,
     holm_bonferroni,
+    p_value_monte_carlo_se,
     render_comparison_sentence,
     render_p_value,
 )
+
+
+@pytest.mark.parametrize("tail", [0.01, 0.05, 0.25])
+def test_p_value_monte_carlo_se_matches_the_spread_of_repeated_bootstraps(tail: float) -> None:
+    """Rerunning the percentile-inversion p-value with fresh resamples spreads it as stated."""
+    rng = np.random.default_rng(0)
+    resamples, repeats = 2000, 4000
+    below = rng.binomial(resamples, tail, size=repeats)
+    t = np.minimum(below, resamples - below)
+    p = np.minimum(1.0, 2 * (t + 1) / (resamples + 1))
+    stated = p_value_monte_carlo_se(float(p.mean()), resamples)
+    assert abs(p.std() - stated) / stated < 0.08
 
 
 def test_holm_bonferroni_rejects_only_small_p_values() -> None:

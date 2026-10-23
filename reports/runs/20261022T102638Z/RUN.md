@@ -308,3 +308,28 @@ data-use form e-mail is redacted from `machine/console_logs/download.log`.
 | `diagnostics/` | M1u rule by rule, script and outputs |
 | `machine/` | kernel OOM log, systemd log, console logs, smoke run, package list, helper scripts |
 | `REVIEW_NOTES.md` | working notes, in the order things happened |
+
+## Review round 2 (added 23 October 2026)
+
+Four independent reviewers read the report built on this run
+([`../../paper/review_round2/`](../../paper/review_round2/)). Corrections to how the files of
+this directory should be read, all recomputed from them by `scripts/paper_assets.py`:
+
+- **Random-ranking probabilities.** `random_ranking_at_least_as_good` in
+  `*/tables/budget_summary.json` is simulated (10,000 rankings); the report uses the exact
+  value of Eq. 2, which differs by up to about 0.005 (e.g. harmonised Euler 0.0221 here, 0.020
+  exact). The tables above quote the simulated values.
+- **First-detection intervals.** The `ci_low`/`ci_high` of `first_detection` are not an
+  interval with coverage: the upper end is the fourth smallest campaign budget of the resampled
+  accounts. Read the smallest campaign budgets in `positives_ledger.csv` instead.
+- **The partial first day.** Harmonised test day 1 holds hours 41 to 47 only (1,653,645
+  events). The autoencoder's and Euler's first detections fall on it; without it they are 528
+  and 397 alerts a day.
+- **User-day results.** The random floor's 4.3% at 500 user-days is one draw; the exact
+  expectation is 3.0% (95% range 0.6% to 5.6%) and the median user-day first detection of a
+  random ranking is 72. No detector's user-day first detection is below the 5% level.
+- **Seeds.** PCA's reported harmonised fit (seed 42, first detection 20) is the second best of
+  five; the median is 137.
+- **Monte Carlo error of p-values.** `p_value_raw_mc_se` used `sqrt(p (1 - p) / R)`; the
+  correct value is `sqrt(2p (1 - p/2) / R)` (fixed in the code for later runs). No Holm decision
+  changes.
