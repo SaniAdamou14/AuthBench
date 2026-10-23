@@ -1,0 +1,717 @@
+2026-10-22T08:41:40+00:00 Ubuntu-2404-noble-64-minimal systemd[1]: modprobe@configfs.service: Deactivated successfully.
+2026-10-22T08:41:40+00:00 Ubuntu-2404-noble-64-minimal systemd[1]: modprobe@dm_mod.service: Deactivated successfully.
+2026-10-22T08:41:40+00:00 Ubuntu-2404-noble-64-minimal systemd[1]: modprobe@drm.service: Deactivated successfully.
+2026-10-22T08:41:40+00:00 Ubuntu-2404-noble-64-minimal systemd[1]: modprobe@efi_pstore.service: Deactivated successfully.
+2026-10-22T08:41:40+00:00 Ubuntu-2404-noble-64-minimal systemd[1]: modprobe@fuse.service: Deactivated successfully.
+2026-10-22T08:41:40+00:00 Ubuntu-2404-noble-64-minimal systemd[1]: modprobe@loop.service: Deactivated successfully.
+2026-10-22T08:41:41+00:00 Ubuntu-2404-noble-64-minimal systemd[1]: modprobe@dm_mod.service: Deactivated successfully.
+2026-10-22T08:41:41+00:00 Ubuntu-2404-noble-64-minimal systemd[1]: modprobe@efi_pstore.service: Deactivated successfully.
+2026-10-22T08:41:41+00:00 Ubuntu-2404-noble-64-minimal systemd[1]: modprobe@loop.service: Deactivated successfully.
+2026-10-22T08:41:41+00:00 Ubuntu-2404-noble-64-minimal systemd[1]: etc-machine\x2did.mount: Deactivated successfully.
+2026-10-22T08:41:54+00:00 ubuntu-64gb-nbg1-2 systemd[1]: e2scrub_reap.service: Deactivated successfully.
+2026-10-22T08:41:54+00:00 ubuntu-64gb-nbg1-2 systemd[1]: grub-common.service: Deactivated successfully.
+2026-10-22T08:41:54+00:00 ubuntu-64gb-nbg1-2 systemd[1]: grub-initrd-fallback.service: Deactivated successfully.
+2026-10-22T08:41:55+00:00 ubuntu-64gb-nbg1-2 systemd[1]: tmp-syscheck\x2dmountpoint\x2d3104449888.mount: Deactivated successfully.
+2026-10-22T08:41:55+00:00 ubuntu-64gb-nbg1-2 systemd[1]: systemd-update-utmp-runlevel.service: Deactivated successfully.
+2026-10-22T08:41:56+00:00 ubuntu-64gb-nbg1-2 systemd[1]: dmesg.service: Deactivated successfully.
+2026-10-22T08:42:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: snapd.service: Deactivated successfully.
+2026-10-22T08:42:11+00:00 ubuntu-64gb-nbg1-2 systemd[1]: systemd-fsckd.service: Deactivated successfully.
+2026-10-22T08:42:21+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-1.scope: Deactivated successfully.
+2026-10-22T08:42:25+00:00 ubuntu-64gb-nbg1-2 systemd[1]: systemd-timedated.service: Deactivated successfully.
+2026-10-22T08:42:27+00:00 ubuntu-64gb-nbg1-2 systemd[1]: apt-news.service: Deactivated successfully.
+2026-10-22T08:42:28+00:00 ubuntu-64gb-nbg1-2 systemd[1]: esm-cache.service: Deactivated successfully.
+2026-10-22T08:42:42+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-3.scope: Deactivated successfully.
+2026-10-22T08:42:42+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-3.scope: Consumed 13.514s CPU time.
+2026-10-22T08:43:27+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-4.scope: Deactivated successfully.
+2026-10-22T08:43:27+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-4.scope: Consumed 1min 10.473s CPU time.
+2026-10-22T08:43:37+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-5.scope: Deactivated successfully.
+2026-10-22T08:43:37+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-5.scope: Consumed 7.915s CPU time.
+2026-10-22T08:43:50+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-6.scope: Deactivated successfully.
+2026-10-22T08:43:50+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-6.scope: Consumed 8.983s CPU time.
+2026-10-22T08:44:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-22T08:44:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-22T08:44:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-22T08:44:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-0.slice: Consumed 1min 41.844s CPU time.
+2026-10-22T08:46:27+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-8.scope: Deactivated successfully.
+2026-10-22T08:46:27+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-8.scope: Consumed 4min 8.343s CPU time.
+2026-10-22T08:46:50+00:00 ubuntu-64gb-nbg1-2 systemd[1]: update-notifier-download.service: Deactivated successfully.
+2026-10-22T08:47:35+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-10.scope: Deactivated successfully.
+2026-10-22T08:47:35+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-10.scope: Consumed 3min 24.723s CPU time.
+2026-10-22T08:47:46+00:00 ubuntu-64gb-nbg1-2 systemd[1]: packagekit.service: Deactivated successfully.
+2026-10-22T08:48:45+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-11.scope: Deactivated successfully.
+2026-10-22T08:48:45+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-11.scope: Consumed 3min 34.473s CPU time.
+2026-10-22T08:48:55+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-22T08:48:55+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-22T08:48:55+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-22T08:48:55+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-0.slice: Consumed 11min 7.758s CPU time.
+2026-10-22T08:49:44+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-12.scope: Deactivated successfully.
+2026-10-22T08:49:44+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-12.scope: Consumed 5.816s CPU time.
+2026-10-22T08:49:54+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-14.scope: Deactivated successfully.
+2026-10-22T08:50:04+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T08:50:04+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-22T08:50:04+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-22T08:50:04+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-22T08:50:04+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-0.slice: Consumed 6.262s CPU time.
+2026-10-22T08:50:23+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-15.scope: Deactivated successfully.
+2026-10-22T08:50:33+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-22T08:50:33+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-22T08:50:33+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-22T08:51:43+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-17.scope: Deactivated successfully.
+2026-10-22T08:51:43+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-17.scope: Consumed 38.471s CPU time.
+2026-10-22T08:51:53+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-22T08:51:53+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-22T08:51:53+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-22T08:51:53+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-0.slice: Consumed 38.724s CPU time.
+2026-10-22T08:51:55+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-19.scope: Deactivated successfully.
+2026-10-22T08:52:05+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-22T08:52:06+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-22T08:52:06+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-22T08:56:50+00:00 ubuntu-64gb-nbg1-2 systemd[1]: systemd-tmpfiles-clean.service: Deactivated successfully.
+2026-10-22T09:00:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T09:03:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-24.scope: Deactivated successfully.
+2026-10-22T09:03:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-25.scope: Deactivated successfully.
+2026-10-22T09:03:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-25.scope: Consumed 5.014s CPU time.
+2026-10-22T09:10:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T09:11:38+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-21.scope: Deactivated successfully.
+2026-10-22T09:11:38+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-21.scope: Consumed 4min 518ms CPU time.
+2026-10-22T09:12:17+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-28.scope: Deactivated successfully.
+2026-10-22T09:14:28+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-29.scope: Deactivated successfully.
+2026-10-22T09:14:30+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-30.scope: Deactivated successfully.
+2026-10-22T09:15:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-26.scope: Deactivated successfully.
+2026-10-22T09:15:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-26.scope: Consumed 40min 43.124s CPU time.
+2026-10-22T09:20:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T09:24:51+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-34.scope: Deactivated successfully.
+2026-10-22T09:24:59+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-35.scope: Deactivated successfully.
+2026-10-22T09:25:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-37.scope: Deactivated successfully.
+2026-10-22T09:25:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-37.scope: Consumed 49.916s CPU time.
+2026-10-22T09:27:50+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-40.scope: Deactivated successfully.
+2026-10-22T09:28:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-41.scope: Deactivated successfully.
+2026-10-22T09:29:02+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-42.scope: Deactivated successfully.
+2026-10-22T09:30:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T09:30:04+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-43.scope: Deactivated successfully.
+2026-10-22T09:31:07+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-44.scope: Deactivated successfully.
+2026-10-22T09:32:09+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-45.scope: Deactivated successfully.
+2026-10-22T09:33:11+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-46.scope: Deactivated successfully.
+2026-10-22T09:34:14+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-47.scope: Deactivated successfully.
+2026-10-22T09:35:16+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-49.scope: Deactivated successfully.
+2026-10-22T09:36:18+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-50.scope: Deactivated successfully.
+2026-10-22T09:37:20+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-51.scope: Deactivated successfully.
+2026-10-22T09:38:23+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-52.scope: Deactivated successfully.
+2026-10-22T09:39:25+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-53.scope: Deactivated successfully.
+2026-10-22T09:40:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T09:40:27+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-54.scope: Deactivated successfully.
+2026-10-22T09:40:35+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-31.scope: Deactivated successfully.
+2026-10-22T09:40:35+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-31.scope: Consumed 2.089s CPU time.
+2026-10-22T09:41:29+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-55.scope: Deactivated successfully.
+2026-10-22T09:42:32+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-56.scope: Deactivated successfully.
+2026-10-22T09:43:34+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-57.scope: Deactivated successfully.
+2026-10-22T09:44:36+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-58.scope: Deactivated successfully.
+2026-10-22T09:45:39+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-60.scope: Deactivated successfully.
+2026-10-22T09:46:41+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-61.scope: Deactivated successfully.
+2026-10-22T09:47:44+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-62.scope: Deactivated successfully.
+2026-10-22T09:48:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-63.scope: Deactivated successfully.
+2026-10-22T09:49:49+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-64.scope: Deactivated successfully.
+2026-10-22T09:50:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T09:50:52+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-65.scope: Deactivated successfully.
+2026-10-22T09:51:54+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-66.scope: Deactivated successfully.
+2026-10-22T09:52:58+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-67.scope: Deactivated successfully.
+2026-10-22T09:54:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-68.scope: Deactivated successfully.
+2026-10-22T09:55:06+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-70.scope: Deactivated successfully.
+2026-10-22T09:56:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-71.scope: Deactivated successfully.
+2026-10-22T09:57:13+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-72.scope: Deactivated successfully.
+2026-10-22T09:58:16+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-73.scope: Deactivated successfully.
+2026-10-22T09:59:19+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-74.scope: Deactivated successfully.
+2026-10-22T10:00:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T10:00:21+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-75.scope: Deactivated successfully.
+2026-10-22T10:01:23+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-76.scope: Deactivated successfully.
+2026-10-22T10:02:26+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-77.scope: Deactivated successfully.
+2026-10-22T10:03:29+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-78.scope: Deactivated successfully.
+2026-10-22T10:04:31+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-79.scope: Deactivated successfully.
+2026-10-22T10:05:34+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-81.scope: Deactivated successfully.
+2026-10-22T10:06:36+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-82.scope: Deactivated successfully.
+2026-10-22T10:07:39+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-83.scope: Deactivated successfully.
+2026-10-22T10:08:42+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-84.scope: Deactivated successfully.
+2026-10-22T10:10:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T10:11:25+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-85.scope: Deactivated successfully.
+2026-10-22T10:12:27+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-86.scope: Deactivated successfully.
+2026-10-22T10:13:30+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-87.scope: Deactivated successfully.
+2026-10-22T10:14:33+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-88.scope: Deactivated successfully.
+2026-10-22T10:15:36+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-90.scope: Deactivated successfully.
+2026-10-22T10:16:38+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-91.scope: Deactivated successfully.
+2026-10-22T10:17:40+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-93.scope: Deactivated successfully.
+2026-10-22T10:18:43+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-94.scope: Deactivated successfully.
+2026-10-22T10:19:45+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-95.scope: Deactivated successfully.
+2026-10-22T10:20:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T10:20:48+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-96.scope: Deactivated successfully.
+2026-10-22T10:21:51+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-97.scope: Deactivated successfully.
+2026-10-22T10:22:53+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-98.scope: Deactivated successfully.
+2026-10-22T10:23:56+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-99.scope: Deactivated successfully.
+2026-10-22T10:23:58+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-100.scope: Deactivated successfully.
+2026-10-22T10:24:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-101.scope: Deactivated successfully.
+2026-10-22T10:24:29+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-102.scope: Deactivated successfully.
+2026-10-22T10:24:44+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-103.scope: Deactivated successfully.
+2026-10-22T10:24:59+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-104.scope: Deactivated successfully.
+2026-10-22T10:25:50+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-106.scope: Deactivated successfully.
+2026-10-22T10:26:14+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-107.scope: Deactivated successfully.
+2026-10-22T10:26:22+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-38.scope: Deactivated successfully.
+2026-10-22T10:26:22+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-38.scope: Consumed 2h 24min 38.641s CPU time.
+2026-10-22T10:26:24+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-108.scope: Deactivated successfully.
+2026-10-22T10:27:17+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-110.scope: Deactivated successfully.
+2026-10-22T10:27:20+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-111.scope: Deactivated successfully.
+2026-10-22T10:28:42+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-112.scope: Deactivated successfully.
+2026-10-22T10:29:04+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-113.scope: Deactivated successfully.
+2026-10-22T10:29:46+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-114.scope: Deactivated successfully.
+2026-10-22T10:30:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T10:30:19+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-115.scope: Deactivated successfully.
+2026-10-22T10:30:51+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-116.scope: Deactivated successfully.
+2026-10-22T10:31:23+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-117.scope: Deactivated successfully.
+2026-10-22T10:31:55+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-118.scope: Deactivated successfully.
+2026-10-22T10:32:28+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-119.scope: Deactivated successfully.
+2026-10-22T10:33:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-120.scope: Deactivated successfully.
+2026-10-22T10:33:32+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-121.scope: Deactivated successfully.
+2026-10-22T10:34:05+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-122.scope: Deactivated successfully.
+2026-10-22T10:34:37+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-123.scope: Deactivated successfully.
+2026-10-22T10:35:09+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-125.scope: Deactivated successfully.
+2026-10-22T10:35:41+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-126.scope: Deactivated successfully.
+2026-10-22T10:36:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-127.scope: Deactivated successfully.
+2026-10-22T10:36:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-128.scope: Deactivated successfully.
+2026-10-22T10:37:19+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-129.scope: Deactivated successfully.
+2026-10-22T10:37:52+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-130.scope: Deactivated successfully.
+2026-10-22T10:38:25+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-131.scope: Deactivated successfully.
+2026-10-22T10:38:57+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-132.scope: Deactivated successfully.
+2026-10-22T10:39:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-133.scope: Deactivated successfully.
+2026-10-22T10:40:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T10:41:57+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-39.scope: Deactivated successfully.
+2026-10-22T10:41:57+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-39.scope: Consumed 5.608s CPU time.
+2026-10-22T10:42:35+00:00 ubuntu-64gb-nbg1-2 kernel: polars-2 invoked oom-killer: gfp_mask=0x140dca(GFP_HIGHUSER_MOVABLE|__GFP_COMP|__GFP_ZERO), order=0, oom_score_adj=0
+2026-10-22T10:42:35+00:00 ubuntu-64gb-nbg1-2 kernel:  oom_kill_process+0x118/0x280
+2026-10-22T10:42:35+00:00 ubuntu-64gb-nbg1-2 kernel:  ? oom_evaluate_task+0x143/0x1e0
+2026-10-22T10:42:35+00:00 ubuntu-64gb-nbg1-2 kernel:  __alloc_pages_may_oom+0x10c/0x1d0
+2026-10-22T10:42:35+00:00 ubuntu-64gb-nbg1-2 kernel: [  pid  ]   uid  tgid total_vm      rss rss_anon rss_file rss_shmem pgtables_bytes swapents oom_score_adj name
+2026-10-22T10:42:35+00:00 ubuntu-64gb-nbg1-2 kernel: oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=/,mems_allowed=0,global_oom,task_memcg=/user.slice/user-0.slice/session-109.scope,task=python,pid=10950,uid=0
+2026-10-22T10:42:35+00:00 ubuntu-64gb-nbg1-2 kernel: Out of memory: Killed process 10950 (python) total-vm:70212520kB, anon-rss:50856172kB, file-rss:2476kB, shmem-rss:0kB, UID:0 pgtables:113684kB oom_score_adj:0
+2026-10-22T10:42:39+00:00 ubuntu-64gb-nbg1-2 kernel: oom_reaper: reaped process 10950 (python), now anon-rss:0kB, file-rss:0kB, shmem-rss:0kB
+2026-10-22T10:50:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T11:00:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T11:01:45+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-136.scope: Deactivated successfully.
+2026-10-22T11:10:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T11:20:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T11:30:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T11:31:30+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-141.scope: Deactivated successfully.
+2026-10-22T11:31:50+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-142.scope: Deactivated successfully.
+2026-10-22T11:32:02+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-143.scope: Deactivated successfully.
+2026-10-22T11:32:17+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-144.scope: Deactivated successfully.
+2026-10-22T11:32:25+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-145.scope: Deactivated successfully.
+2026-10-22T11:32:41+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-146.scope: Deactivated successfully.
+2026-10-22T11:33:04+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-147.scope: Deactivated successfully.
+2026-10-22T11:35:22+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-149.scope: Deactivated successfully.
+2026-10-22T11:40:05+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T11:40:06+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started euler-fidelity.service - /usr/bin/bash -lc ". /root/.local/bin/env; echo [\$(date -u +%FT%TZ)] start euler_fidelity rerun after commit \$(git rev-parse --short HEAD) >> reports/runs/20261022T102638Z/run.log; uv run python scripts/euler_fidelity.py data/interim/auth data/raw/redteam.txt.gz reports/runs/20261022T102638Z > reports/runs/20261022T102638Z/euler_fidelity_rerun.log 2>&1; echo [\$(date -u +%FT%TZ)] euler_fidelity rerun exit \$? >> reports/runs/20261022T102638Z/run.log".
+2026-10-22T11:40:06+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-fidelity.service: Deactivated successfully.
+2026-10-22T11:40:26+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-150.scope: Deactivated successfully.
+2026-10-22T11:40:34+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-151.scope: Deactivated successfully.
+2026-10-22T11:40:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started euler-fidelity2.service - /usr/bin/bash /root/fidelity_rerun.sh.
+2026-10-22T11:41:32+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-152.scope: Deactivated successfully.
+2026-10-22T11:44:37+00:00 ubuntu-64gb-nbg1-2 kernel: polars-14 invoked oom-killer: gfp_mask=0xcc0(GFP_KERNEL), order=0, oom_score_adj=0
+2026-10-22T11:44:37+00:00 ubuntu-64gb-nbg1-2 kernel:  oom_kill_process+0x118/0x280
+2026-10-22T11:44:37+00:00 ubuntu-64gb-nbg1-2 kernel: Memory cgroup stats for /system.slice/euler-fidelity2.service:
+2026-10-22T11:44:37+00:00 ubuntu-64gb-nbg1-2 kernel: [  pid  ]   uid  tgid total_vm      rss rss_anon rss_file rss_shmem pgtables_bytes swapents oom_score_adj name
+2026-10-22T11:44:37+00:00 ubuntu-64gb-nbg1-2 kernel: oom-kill:constraint=CONSTRAINT_MEMCG,nodemask=(null),cpuset=/,mems_allowed=0,oom_memcg=/system.slice/euler-fidelity2.service,task_memcg=/system.slice/euler-fidelity2.service,task=python,pid=13945,uid=0
+2026-10-22T11:44:37+00:00 ubuntu-64gb-nbg1-2 kernel: Memory cgroup out of memory: Killed process 13945 (python) total-vm:54531824kB, anon-rss:25054860kB, file-rss:189528kB, shmem-rss:0kB, UID:0 pgtables:88596kB oom_score_adj:0
+2026-10-22T11:44:37+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-fidelity2.service: A process of this unit has been killed by the OOM killer.
+2026-10-22T11:44:39+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-fidelity2.service: Failed with result 'oom-kill'.
+2026-10-22T11:44:39+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-fidelity2.service: Consumed 29min 633ms CPU time, 18.4G memory peak, 0B memory swap peak.
+2026-10-22T11:44:50+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-154.scope: Deactivated successfully.
+2026-10-22T11:44:56+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-155.scope: Deactivated successfully.
+2026-10-22T11:45:08+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-157.scope: Deactivated successfully.
+2026-10-22T11:45:42+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-u284.service: Deactivated successfully.
+2026-10-22T11:45:42+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-u284.service: Consumed 33.612s CPU time, 3.3M memory peak, 0B memory swap peak.
+2026-10-22T11:45:43+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-158.scope: Deactivated successfully.
+2026-10-22T11:50:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T11:50:44+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started euler-fidelity3.service - /usr/bin/bash /root/fidelity_rerun.sh.
+2026-10-22T11:51:14+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-159.scope: Deactivated successfully.
+2026-10-22T11:56:25+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-162.scope: Deactivated successfully.
+2026-10-22T11:57:40+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-fidelity3.service: Deactivated successfully.
+2026-10-22T11:57:40+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-fidelity3.service: Consumed 37min 48.477s CPU time, 18.2G memory peak, 0B memory swap peak.
+2026-10-22T11:58:57+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-153.scope: Deactivated successfully.
+2026-10-22T12:00:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T12:09:40+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-160.scope: Deactivated successfully.
+2026-10-22T12:10:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T12:16:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-165.scope: Deactivated successfully.
+2026-10-22T12:20:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T12:20:43+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started run-u296.service - /root/AuthBench/.venv/bin/python /root/euler_edge_sets.py.
+2026-10-22T12:27:28+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-u296.service: Deactivated successfully.
+2026-10-22T12:27:28+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-u296.service: Consumed 23min 22.831s CPU time, 3.0M memory peak, 0B memory swap peak.
+2026-10-22T12:30:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T12:31:18+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-169.scope: Deactivated successfully.
+2026-10-22T12:31:28+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started edge-sets.service - /usr/bin/bash -c "/root/AuthBench/.venv/bin/python /root/euler_edge_sets.py > /root/euler_edge_sets.out 2>&1".
+2026-10-22T12:31:28+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-170.scope: Deactivated successfully.
+2026-10-22T12:31:43+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-171.scope: Deactivated successfully.
+2026-10-22T12:32:45+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-172.scope: Deactivated successfully.
+2026-10-22T12:33:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-173.scope: Deactivated successfully.
+2026-10-22T12:34:49+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-174.scope: Deactivated successfully.
+2026-10-22T12:35:52+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-176.scope: Deactivated successfully.
+2026-10-22T12:36:54+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-177.scope: Deactivated successfully.
+2026-10-22T12:37:57+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-178.scope: Deactivated successfully.
+2026-10-22T12:38:12+00:00 ubuntu-64gb-nbg1-2 systemd[1]: edge-sets.service: Deactivated successfully.
+2026-10-22T12:38:12+00:00 ubuntu-64gb-nbg1-2 systemd[1]: edge-sets.service: Consumed 23min 29.198s CPU time.
+2026-10-22T12:38:59+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-179.scope: Deactivated successfully.
+2026-10-22T12:39:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-180.scope: Deactivated successfully.
+2026-10-22T12:40:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T12:43:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started euler-fidelity4.service - /usr/bin/bash /root/fidelity_rerun.sh.
+2026-10-22T12:43:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-181.scope: Deactivated successfully.
+2026-10-22T12:43:11+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-167.scope: Deactivated successfully.
+2026-10-22T12:43:17+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-182.scope: Deactivated successfully.
+2026-10-22T12:44:20+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-183.scope: Deactivated successfully.
+2026-10-22T12:45:22+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-185.scope: Deactivated successfully.
+2026-10-22T12:46:25+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-186.scope: Deactivated successfully.
+2026-10-22T12:47:29+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-187.scope: Deactivated successfully.
+2026-10-22T12:48:29+00:00 ubuntu-64gb-nbg1-2 kernel: async-executor- invoked oom-killer: gfp_mask=0xcc0(GFP_KERNEL), order=0, oom_score_adj=0
+2026-10-22T12:48:29+00:00 ubuntu-64gb-nbg1-2 kernel:  oom_kill_process+0x118/0x280
+2026-10-22T12:48:29+00:00 ubuntu-64gb-nbg1-2 kernel: Memory cgroup stats for /system.slice/euler-fidelity4.service:
+2026-10-22T12:48:29+00:00 ubuntu-64gb-nbg1-2 kernel: [  pid  ]   uid  tgid total_vm      rss rss_anon rss_file rss_shmem pgtables_bytes swapents oom_score_adj name
+2026-10-22T12:48:29+00:00 ubuntu-64gb-nbg1-2 kernel: oom-kill:constraint=CONSTRAINT_MEMCG,nodemask=(null),cpuset=/,mems_allowed=0,oom_memcg=/system.slice/euler-fidelity4.service,task_memcg=/system.slice/euler-fidelity4.service,task=python,pid=16428,uid=0
+2026-10-22T12:48:29+00:00 ubuntu-64gb-nbg1-2 kernel: Memory cgroup out of memory: Killed process 16428 (python) total-vm:43005876kB, anon-rss:25084116kB, file-rss:211504kB, shmem-rss:0kB, UID:0 pgtables:64364kB oom_score_adj:0
+2026-10-22T12:48:29+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-fidelity4.service: A process of this unit has been killed by the OOM killer.
+2026-10-22T12:48:30+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-fidelity4.service: Failed with result 'oom-kill'.
+2026-10-22T12:48:30+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-fidelity4.service: Consumed 47min 24.191s CPU time.
+2026-10-22T12:48:31+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-188.scope: Deactivated successfully.
+2026-10-22T12:48:33+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-189.scope: Deactivated successfully.
+2026-10-22T12:48:54+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-190.scope: Deactivated successfully.
+2026-10-22T12:50:14+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T12:50:16+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started euler-fidelity5.service - /usr/bin/bash /root/fidelity_rerun.sh.
+2026-10-22T12:50:16+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-191.scope: Deactivated successfully.
+2026-10-22T12:50:19+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-192.scope: Deactivated successfully.
+2026-10-22T12:51:21+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-193.scope: Deactivated successfully.
+2026-10-22T12:52:23+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-194.scope: Deactivated successfully.
+2026-10-22T12:53:26+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-195.scope: Deactivated successfully.
+2026-10-22T12:54:29+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-196.scope: Deactivated successfully.
+2026-10-22T12:55:31+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-198.scope: Deactivated successfully.
+2026-10-22T12:56:34+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-199.scope: Deactivated successfully.
+2026-10-22T12:57:36+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-200.scope: Deactivated successfully.
+2026-10-22T12:58:38+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-201.scope: Deactivated successfully.
+2026-10-22T12:59:40+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-202.scope: Deactivated successfully.
+2026-10-22T13:00:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T13:00:43+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-203.scope: Deactivated successfully.
+2026-10-22T13:01:45+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-204.scope: Deactivated successfully.
+2026-10-22T13:02:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-205.scope: Deactivated successfully.
+2026-10-22T13:03:50+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-206.scope: Deactivated successfully.
+2026-10-22T13:04:21+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-fidelity5.service: Deactivated successfully.
+2026-10-22T13:04:21+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-fidelity5.service: Consumed 1h 19min 1.259s CPU time.
+2026-10-22T13:04:52+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-207.scope: Deactivated successfully.
+2026-10-22T13:04:54+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-208.scope: Deactivated successfully.
+2026-10-22T13:05:14+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-210.scope: Deactivated successfully.
+2026-10-22T13:10:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T13:12:49+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-211.scope: Deactivated successfully.
+2026-10-22T13:13:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started euler-fidelity6.service - /usr/bin/bash /root/fidelity_rerun.sh.
+2026-10-22T13:13:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-212.scope: Deactivated successfully.
+2026-10-22T13:13:13+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-213.scope: Deactivated successfully.
+2026-10-22T13:14:16+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-214.scope: Deactivated successfully.
+2026-10-22T13:15:18+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-216.scope: Deactivated successfully.
+2026-10-22T13:16:21+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-217.scope: Deactivated successfully.
+2026-10-22T13:17:25+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-219.scope: Deactivated successfully.
+2026-10-22T13:18:27+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-220.scope: Deactivated successfully.
+2026-10-22T13:19:29+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-221.scope: Deactivated successfully.
+2026-10-22T13:20:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T13:20:32+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-222.scope: Deactivated successfully.
+2026-10-22T13:21:34+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-223.scope: Deactivated successfully.
+2026-10-22T13:22:37+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-224.scope: Deactivated successfully.
+2026-10-22T13:23:39+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-225.scope: Deactivated successfully.
+2026-10-22T13:24:42+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-226.scope: Deactivated successfully.
+2026-10-22T13:25:45+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-228.scope: Deactivated successfully.
+2026-10-22T13:26:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-229.scope: Deactivated successfully.
+2026-10-22T13:26:49+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-230.scope: Deactivated successfully.
+2026-10-22T13:27:06+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-231.scope: Deactivated successfully.
+2026-10-22T13:28:09+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-232.scope: Deactivated successfully.
+2026-10-22T13:29:12+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-233.scope: Deactivated successfully.
+2026-10-22T13:30:14+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T13:30:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-234.scope: Deactivated successfully.
+2026-10-22T13:31:18+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-235.scope: Deactivated successfully.
+2026-10-22T13:32:20+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-236.scope: Deactivated successfully.
+2026-10-22T13:33:24+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-237.scope: Deactivated successfully.
+2026-10-22T13:34:26+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-238.scope: Deactivated successfully.
+2026-10-22T13:35:29+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-240.scope: Deactivated successfully.
+2026-10-22T13:36:31+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-241.scope: Deactivated successfully.
+2026-10-22T13:37:35+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-242.scope: Deactivated successfully.
+2026-10-22T13:38:39+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-243.scope: Deactivated successfully.
+2026-10-22T13:39:41+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-244.scope: Deactivated successfully.
+2026-10-22T13:40:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T13:40:43+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-245.scope: Deactivated successfully.
+2026-10-22T13:41:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-246.scope: Deactivated successfully.
+2026-10-22T13:42:50+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-247.scope: Deactivated successfully.
+2026-10-22T13:43:52+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-248.scope: Deactivated successfully.
+2026-10-22T13:44:55+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-249.scope: Deactivated successfully.
+2026-10-22T13:45:58+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-251.scope: Deactivated successfully.
+2026-10-22T13:47:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-252.scope: Deactivated successfully.
+2026-10-22T13:48:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-253.scope: Deactivated successfully.
+2026-10-22T13:49:06+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-254.scope: Deactivated successfully.
+2026-10-22T13:50:07+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T13:50:08+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-255.scope: Deactivated successfully.
+2026-10-22T13:51:11+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-256.scope: Deactivated successfully.
+2026-10-22T13:52:14+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-257.scope: Deactivated successfully.
+2026-10-22T13:53:17+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-258.scope: Deactivated successfully.
+2026-10-22T13:54:19+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-259.scope: Deactivated successfully.
+2026-10-22T13:55:22+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-261.scope: Deactivated successfully.
+2026-10-22T13:56:25+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-262.scope: Deactivated successfully.
+2026-10-22T13:57:27+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-263.scope: Deactivated successfully.
+2026-10-22T13:58:31+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-264.scope: Deactivated successfully.
+2026-10-22T13:59:33+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-265.scope: Deactivated successfully.
+2026-10-22T14:00:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T14:00:36+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-266.scope: Deactivated successfully.
+2026-10-22T14:01:38+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-267.scope: Deactivated successfully.
+2026-10-22T14:02:42+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-268.scope: Deactivated successfully.
+2026-10-22T14:03:45+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-269.scope: Deactivated successfully.
+2026-10-22T14:04:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-270.scope: Deactivated successfully.
+2026-10-22T14:05:50+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-272.scope: Deactivated successfully.
+2026-10-22T14:06:52+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-273.scope: Deactivated successfully.
+2026-10-22T14:07:55+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-274.scope: Deactivated successfully.
+2026-10-22T14:08:58+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-275.scope: Deactivated successfully.
+2026-10-22T14:10:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T14:10:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-276.scope: Deactivated successfully.
+2026-10-22T14:11:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-277.scope: Deactivated successfully.
+2026-10-22T14:12:06+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-278.scope: Deactivated successfully.
+2026-10-22T14:13:09+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-279.scope: Deactivated successfully.
+2026-10-22T14:14:12+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-280.scope: Deactivated successfully.
+2026-10-22T14:15:14+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-282.scope: Deactivated successfully.
+2026-10-22T14:16:17+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-283.scope: Deactivated successfully.
+2026-10-22T14:17:19+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-285.scope: Deactivated successfully.
+2026-10-22T14:17:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-286.scope: Deactivated successfully.
+2026-10-22T14:18:22+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-287.scope: Deactivated successfully.
+2026-10-22T14:19:24+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-288.scope: Deactivated successfully.
+2026-10-22T14:20:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T14:20:26+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-289.scope: Deactivated successfully.
+2026-10-22T14:21:32+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-290.scope: Deactivated successfully.
+2026-10-22T14:22:34+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-291.scope: Deactivated successfully.
+2026-10-22T14:23:36+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-292.scope: Deactivated successfully.
+2026-10-22T14:24:39+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-293.scope: Deactivated successfully.
+2026-10-22T14:25:41+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-295.scope: Deactivated successfully.
+2026-10-22T14:26:44+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-296.scope: Deactivated successfully.
+2026-10-22T14:27:46+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-297.scope: Deactivated successfully.
+2026-10-22T14:28:48+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-298.scope: Deactivated successfully.
+2026-10-22T14:29:51+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-299.scope: Deactivated successfully.
+2026-10-22T14:30:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T14:30:53+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-300.scope: Deactivated successfully.
+2026-10-22T14:31:56+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-301.scope: Deactivated successfully.
+2026-10-22T14:32:59+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-302.scope: Deactivated successfully.
+2026-10-22T14:34:02+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-303.scope: Deactivated successfully.
+2026-10-22T14:35:04+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-305.scope: Deactivated successfully.
+2026-10-22T14:36:07+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-306.scope: Deactivated successfully.
+2026-10-22T14:37:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-307.scope: Deactivated successfully.
+2026-10-22T14:38:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-308.scope: Deactivated successfully.
+2026-10-22T14:39:17+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-309.scope: Deactivated successfully.
+2026-10-22T14:40:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T14:40:21+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-310.scope: Deactivated successfully.
+2026-10-22T14:41:24+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-311.scope: Deactivated successfully.
+2026-10-22T14:42:26+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-312.scope: Deactivated successfully.
+2026-10-22T14:43:29+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-313.scope: Deactivated successfully.
+2026-10-22T14:44:31+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-314.scope: Deactivated successfully.
+2026-10-22T14:45:34+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-316.scope: Deactivated successfully.
+2026-10-22T14:46:13+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-fidelity6.service: Deactivated successfully.
+2026-10-22T14:46:13+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-fidelity6.service: Consumed 9h 28min 50.368s CPU time.
+2026-10-22T14:46:22+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-317.scope: Deactivated successfully.
+2026-10-22T14:46:33+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-318.scope: Deactivated successfully.
+2026-10-22T14:46:37+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-319.scope: Deactivated successfully.
+2026-10-22T14:46:39+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-320.scope: Deactivated successfully.
+2026-10-22T14:50:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T15:00:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T15:10:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T15:20:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T15:30:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T15:40:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T15:50:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T16:00:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T16:10:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T16:20:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T16:30:02+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T16:40:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T16:45:12+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-335.scope: Deactivated successfully.
+2026-10-22T16:45:29+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-336.scope: Deactivated successfully.
+2026-10-22T16:45:36+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-337.scope: Deactivated successfully.
+2026-10-22T16:50:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T16:54:25+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-338.scope: Deactivated successfully.
+2026-10-22T16:54:25+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-338.scope: Consumed 1.088s CPU time.
+2026-10-22T16:54:43+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started euler-original-install.service - /usr/bin/bash -c "bash /root/euler_original_install.sh > /root/euler_original_install.log 2>&1".
+2026-10-22T16:54:43+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-339.scope: Deactivated successfully.
+2026-10-22T16:54:50+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-340.scope: Deactivated successfully.
+2026-10-22T16:54:54+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-original-install.service: Deactivated successfully.
+2026-10-22T16:54:54+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-original-install.service: Consumed 12.770s CPU time.
+2026-10-22T16:55:12+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-342.scope: Deactivated successfully.
+2026-10-22T16:55:14+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-343.scope: Deactivated successfully.
+2026-10-22T16:55:30+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-344.scope: Deactivated successfully.
+2026-10-22T16:55:42+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started euler-original-split.service - /usr/bin/bash -c "bash /root/euler_original_split.sh > /root/euler_original_data/split.log 2>&1".
+2026-10-22T16:56:42+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-345.scope: Deactivated successfully.
+2026-10-22T16:56:52+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-346.scope: Deactivated successfully.
+2026-10-22T16:57:14+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-347.scope: Deactivated successfully.
+2026-10-22T16:57:36+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-348.scope: Deactivated successfully.
+2026-10-22T16:57:59+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-349.scope: Deactivated successfully.
+2026-10-22T16:58:21+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-350.scope: Deactivated successfully.
+2026-10-22T16:58:44+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-351.scope: Deactivated successfully.
+2026-10-22T16:59:06+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-352.scope: Deactivated successfully.
+2026-10-22T16:59:37+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-353.scope: Deactivated successfully.
+2026-10-22T16:59:59+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-354.scope: Deactivated successfully.
+2026-10-22T17:00:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T17:00:21+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-355.scope: Deactivated successfully.
+2026-10-22T17:00:29+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-original-split.service: Deactivated successfully.
+2026-10-22T17:00:29+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-original-split.service: Consumed 9min 6.258s CPU time.
+2026-10-22T17:00:44+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-356.scope: Deactivated successfully.
+2026-10-22T17:01:09+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-357.scope: Deactivated successfully.
+2026-10-22T17:01:09+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-357.scope: Consumed 23.854s CPU time.
+2026-10-22T17:01:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: motd-news.service: Deactivated successfully.
+2026-10-22T17:01:33+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-358.scope: Deactivated successfully.
+2026-10-22T17:01:33+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-358.scope: Consumed 1.829s CPU time.
+2026-10-22T17:01:45+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started euler-original-run.service - /usr/bin/bash -c "bash /root/euler_original_run.sh > /root/euler_original_data/run_gcn_gru_pred.log 2>&1".
+2026-10-22T17:03:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-359.scope: Deactivated successfully.
+2026-10-22T17:03:30+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-360.scope: Deactivated successfully.
+2026-10-22T17:05:33+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-362.scope: Deactivated successfully.
+2026-10-22T17:07:36+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-363.scope: Deactivated successfully.
+2026-10-22T17:09:38+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-364.scope: Deactivated successfully.
+2026-10-22T17:10:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T17:11:43+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-365.scope: Deactivated successfully.
+2026-10-22T17:13:46+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-366.scope: Deactivated successfully.
+2026-10-22T17:14:18+00:00 ubuntu-64gb-nbg1-2 kernel: python invoked oom-killer: gfp_mask=0xcc0(GFP_KERNEL), order=0, oom_score_adj=0
+2026-10-22T17:14:18+00:00 ubuntu-64gb-nbg1-2 kernel:  oom_kill_process+0x118/0x280
+2026-10-22T17:14:18+00:00 ubuntu-64gb-nbg1-2 kernel: Memory cgroup stats for /system.slice/euler-original-run.service:
+2026-10-22T17:14:18+00:00 ubuntu-64gb-nbg1-2 kernel: [  pid  ]   uid  tgid total_vm      rss rss_anon rss_file rss_shmem pgtables_bytes swapents oom_score_adj name
+2026-10-22T17:14:18+00:00 ubuntu-64gb-nbg1-2 kernel: oom-kill:constraint=CONSTRAINT_MEMCG,nodemask=(null),cpuset=/,mems_allowed=0,oom_memcg=/system.slice/euler-original-run.service,task_memcg=/system.slice/euler-original-run.service,task=python,pid=29505,uid=0
+2026-10-22T17:14:18+00:00 ubuntu-64gb-nbg1-2 kernel: Memory cgroup out of memory: Killed process 29505 (python) total-vm:8416640kB, anon-rss:3638792kB, file-rss:7716kB, shmem-rss:20608kB, UID:0 pgtables:8712kB oom_score_adj:0
+2026-10-22T17:14:18+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-original-run.service: A process of this unit has been killed by the OOM killer.
+2026-10-22T17:14:19+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-original-run.service: Failed with result 'oom-kill'.
+2026-10-22T17:14:19+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-original-run.service: Consumed 1h 15min 2.659s CPU time, 8.2G memory peak, 0B memory swap peak.
+2026-10-22T17:15:48+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-368.scope: Deactivated successfully.
+2026-10-22T17:16:04+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-369.scope: Deactivated successfully.
+2026-10-22T17:16:23+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-370.scope: Deactivated successfully.
+2026-10-22T17:16:35+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-371.scope: Deactivated successfully.
+2026-10-22T17:16:41+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-372.scope: Deactivated successfully.
+2026-10-22T17:17:21+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started euler-original-run2.service - /usr/bin/bash -c "bash /root/euler_original_run.sh > /root/euler_original_data/run_gcn_gru_pred.log 2>&1".
+2026-10-22T17:17:21+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-374.scope: Deactivated successfully.
+2026-10-22T17:17:32+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-375.scope: Deactivated successfully.
+2026-10-22T17:20:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T17:20:36+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-376.scope: Deactivated successfully.
+2026-10-22T17:23:39+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-377.scope: Deactivated successfully.
+2026-10-22T17:23:48+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-378.scope: Deactivated successfully.
+2026-10-22T17:26:41+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-380.scope: Deactivated successfully.
+2026-10-22T17:29:43+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-381.scope: Deactivated successfully.
+2026-10-22T17:29:58+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-382.scope: Deactivated successfully.
+2026-10-22T17:30:08+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T17:32:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-383.scope: Deactivated successfully.
+2026-10-22T17:35:50+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-385.scope: Deactivated successfully.
+2026-10-22T17:38:53+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-386.scope: Deactivated successfully.
+2026-10-22T17:40:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T17:41:58+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-387.scope: Deactivated successfully.
+2026-10-22T17:42:11+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-388.scope: Deactivated successfully.
+2026-10-22T17:42:23+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-389.scope: Deactivated successfully.
+2026-10-22T17:42:58+00:00 ubuntu-64gb-nbg1-2 kernel: polars-11 invoked oom-killer: gfp_mask=0x140dca(GFP_HIGHUSER_MOVABLE|__GFP_COMP|__GFP_ZERO), order=0, oom_score_adj=0
+2026-10-22T17:42:58+00:00 ubuntu-64gb-nbg1-2 kernel:  oom_kill_process+0x118/0x280
+2026-10-22T17:42:58+00:00 ubuntu-64gb-nbg1-2 kernel:  ? oom_evaluate_task+0x143/0x1e0
+2026-10-22T17:42:58+00:00 ubuntu-64gb-nbg1-2 kernel:  __alloc_pages_may_oom+0x10c/0x1d0
+2026-10-22T17:42:58+00:00 ubuntu-64gb-nbg1-2 kernel: [  pid  ]   uid  tgid total_vm      rss rss_anon rss_file rss_shmem pgtables_bytes swapents oom_score_adj name
+2026-10-22T17:42:58+00:00 ubuntu-64gb-nbg1-2 kernel: oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=/,mems_allowed=0,global_oom,task_memcg=/system.slice/euler-original-run2.service,task=python,pid=31036,uid=0
+2026-10-22T17:42:58+00:00 ubuntu-64gb-nbg1-2 kernel: Out of memory: Killed process 31036 (python) total-vm:10300952kB, anon-rss:4758692kB, file-rss:3196kB, shmem-rss:20608kB, UID:0 pgtables:11036kB oom_score_adj:1000
+2026-10-22T17:42:58+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-original-run2.service: A process of this unit has been killed by the OOM killer.
+2026-10-22T17:42:59+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-original-run2.service: Failed with result 'oom-kill'.
+2026-10-22T17:42:59+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-original-run2.service: Consumed 2h 31min 19.156s CPU time, 23.0G memory peak, 0B memory swap peak.
+2026-10-22T17:45:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-390.scope: Deactivated successfully.
+2026-10-22T17:45:09+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-392.scope: Deactivated successfully.
+2026-10-22T17:45:39+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started euler-original-run3.service - /usr/bin/bash -c "bash /root/euler_original_after_eval.sh > /root/euler_original_data/run_gcn_gru_pred.log 2>&1".
+2026-10-22T17:45:44+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-393.scope: Deactivated successfully.
+2026-10-22T17:45:59+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-394.scope: Deactivated successfully.
+2026-10-22T17:50:02+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T17:51:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-395.scope: Deactivated successfully.
+2026-10-22T17:56:04+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-397.scope: Deactivated successfully.
+2026-10-22T17:58:22+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-398.scope: Deactivated successfully.
+2026-10-22T18:00:04+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T18:01:06+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-399.scope: Deactivated successfully.
+2026-10-22T18:06:09+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-401.scope: Deactivated successfully.
+2026-10-22T18:10:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T18:11:11+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-402.scope: Deactivated successfully.
+2026-10-22T18:16:13+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-404.scope: Deactivated successfully.
+2026-10-22T18:20:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T18:21:16+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-406.scope: Deactivated successfully.
+2026-10-22T18:26:18+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-408.scope: Deactivated successfully.
+2026-10-22T18:30:06+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T18:31:20+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-409.scope: Deactivated successfully.
+2026-10-22T18:36:23+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-411.scope: Deactivated successfully.
+2026-10-22T18:40:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T18:50:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T19:00:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T19:10:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T19:18:21+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-417.scope: Deactivated successfully.
+2026-10-22T19:18:31+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-418.scope: Deactivated successfully.
+2026-10-22T19:18:38+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-419.scope: Deactivated successfully.
+2026-10-22T19:18:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-420.scope: Deactivated successfully.
+2026-10-22T19:19:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-421.scope: Deactivated successfully.
+2026-10-22T19:19:04+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-422.scope: Deactivated successfully.
+2026-10-22T19:20:02+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T19:21:42+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-423.scope: Deactivated successfully.
+2026-10-22T19:22:34+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-424.scope: Deactivated successfully.
+2026-10-22T19:22:38+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-425.scope: Deactivated successfully.
+2026-10-22T19:23:20+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-426.scope: Deactivated successfully.
+2026-10-22T19:23:39+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-427.scope: Deactivated successfully.
+2026-10-22T19:23:41+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started m1u-diagnostic.service - /usr/bin/bash -c "/root/AuthBench/.venv/bin/python /root/m1u_diagnostic.py data/processed/features/271421c5446d381a > /root/m1u_diagnostic.out 2>&1".
+2026-10-22T19:23:41+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-428.scope: Deactivated successfully.
+2026-10-22T19:23:48+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-429.scope: Deactivated successfully.
+2026-10-22T19:24:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: m1u-diagnostic.service: Deactivated successfully.
+2026-10-22T19:24:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: m1u-diagnostic.service: Consumed 41.072s CPU time.
+2026-10-22T19:24:22+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-430.scope: Deactivated successfully.
+2026-10-22T19:24:25+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-431.scope: Deactivated successfully.
+2026-10-22T19:24:39+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-432.scope: Deactivated successfully.
+2026-10-22T19:30:09+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T19:30:56+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-434.scope: Deactivated successfully.
+2026-10-22T19:31:38+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-435.scope: Deactivated successfully.
+2026-10-22T19:40:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T19:50:02+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T20:00:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T20:10:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T20:20:05+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T20:30:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T20:34:33+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-443.scope: Deactivated successfully.
+2026-10-22T20:34:40+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-444.scope: Deactivated successfully.
+2026-10-22T20:40:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T20:50:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T21:00:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T21:10:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T21:20:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T21:30:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T21:40:04+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T21:50:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T21:57:43+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-109.scope: Deactivated successfully.
+2026-10-22T21:57:43+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-109.scope: Consumed 1d 11h 2min 20.140s CPU time.
+2026-10-22T21:57:53+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-22T21:57:53+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-22T21:57:53+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-22T21:57:53+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-0.slice: Consumed 1d 14h 14min 53.527s CPU time.
+2026-10-22T22:00:08+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T22:10:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T22:19:45+00:00 ubuntu-64gb-nbg1-2 systemd[1]: apt-news.service: Deactivated successfully.
+2026-10-22T22:19:45+00:00 ubuntu-64gb-nbg1-2 systemd[1]: esm-cache.service: Deactivated successfully.
+2026-10-22T22:20:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T22:20:24+00:00 ubuntu-64gb-nbg1-2 systemd[1]: apt-daily.service: Deactivated successfully.
+2026-10-22T22:20:24+00:00 ubuntu-64gb-nbg1-2 systemd[1]: apt-daily.service: Consumed 39.431s CPU time.
+2026-10-22T22:24:51+00:00 ubuntu-64gb-nbg1-2 systemd[1]: packagekit.service: Deactivated successfully.
+2026-10-22T22:30:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T22:40:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T22:50:13+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T23:00:07+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T23:10:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T23:20:04+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T23:30:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T23:40:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-22T23:49:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-original-run3.service: Deactivated successfully.
+2026-10-22T23:49:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: euler-original-run3.service: Consumed 15h 28min 9.526s CPU time.
+2026-10-22T23:50:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-23T00:00:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-23T00:00:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: logrotate.service: Deactivated successfully.
+2026-10-23T00:00:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: dpkg-db-backup.service: Deactivated successfully.
+2026-10-23T00:07:04+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-summary.service: Deactivated successfully.
+2026-10-23T00:10:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-23T00:18:22+00:00 ubuntu-64gb-nbg1-2 systemd[1]: man-db.service: Deactivated successfully.
+2026-10-23T00:20:01+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-23T00:30:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-23T00:30:25+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-474.scope: Deactivated successfully.
+2026-10-23T00:30:36+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-476.scope: Deactivated successfully.
+2026-10-23T00:30:46+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:30:46+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:30:46+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:30:49+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-477.scope: Deactivated successfully.
+2026-10-23T00:31:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-479.scope: Deactivated successfully.
+2026-10-23T00:31:12+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-480.scope: Deactivated successfully.
+2026-10-23T00:31:22+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:31:22+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:31:22+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:35:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-482.scope: Deactivated successfully.
+2026-10-23T00:35:10+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-482.scope: Consumed 1.787s CPU time.
+2026-10-23T00:35:20+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:35:20+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:35:20+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:35:20+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-0.slice: Consumed 1.993s CPU time.
+2026-10-23T00:35:36+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-484.scope: Deactivated successfully.
+2026-10-23T00:35:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:35:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:35:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:36:08+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-486.scope: Deactivated successfully.
+2026-10-23T00:36:15+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-488.scope: Deactivated successfully.
+2026-10-23T00:36:21+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-489.scope: Deactivated successfully.
+2026-10-23T00:36:31+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:36:31+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:36:31+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:36:55+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started authors-test-edges.service - /usr/bin/bash -c "cat /root/euler_original_data/split/*.txt | awk -f /root/authors_test_edges.awk > /root/authors_test_edges.out 2>&1".
+2026-10-23T00:36:55+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started m1u-harmonised.service - /usr/bin/bash -c "/root/AuthBench/.venv/bin/python /root/m1u_diagnostic_harmonised.py data/processed/features/0ee0df0b3faf583b > /root/m1u_diagnostic_harmonised.out 2>&1".
+2026-10-23T00:36:57+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-490.scope: Deactivated successfully.
+2026-10-23T00:37:07+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:37:07+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:37:07+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:37:42+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-492.scope: Deactivated successfully.
+2026-10-23T00:37:49+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-494.scope: Deactivated successfully.
+2026-10-23T00:37:59+00:00 ubuntu-64gb-nbg1-2 systemd[1]: m1u-harmonised.service: Deactivated successfully.
+2026-10-23T00:37:59+00:00 ubuntu-64gb-nbg1-2 systemd[1]: m1u-harmonised.service: Consumed 2min 51.877s CPU time.
+2026-10-23T00:37:59+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:38:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:38:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:38:13+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-495.scope: Deactivated successfully.
+2026-10-23T00:38:13+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-495.scope: Consumed 1min 30.273s CPU time.
+2026-10-23T00:38:23+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:38:23+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:38:23+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:38:23+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-0.slice: Consumed 1min 30.514s CPU time.
+2026-10-23T00:38:24+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-497.scope: Deactivated successfully.
+2026-10-23T00:38:35+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-499.scope: Deactivated successfully.
+2026-10-23T00:38:38+00:00 ubuntu-64gb-nbg1-2 systemd[1]: authors-test-edges.service: Deactivated successfully.
+2026-10-23T00:38:38+00:00 ubuntu-64gb-nbg1-2 systemd[1]: authors-test-edges.service: Consumed 1min 45.012s CPU time, 5.4G memory peak, 0B memory swap peak.
+2026-10-23T00:38:45+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:38:45+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:38:45+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:38:48+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-500.scope: Deactivated successfully.
+2026-10-23T00:38:58+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:38:58+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:38:58+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:39:12+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-502.scope: Deactivated successfully.
+2026-10-23T00:39:22+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-504.scope: Deactivated successfully.
+2026-10-23T00:39:32+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:39:32+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:39:32+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:39:37+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-505.scope: Deactivated successfully.
+2026-10-23T00:39:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:39:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:39:47+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:39:51+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started authors-test-load.service - /usr/bin/bash -c "/root/euler_original/.venv/bin/python /root/authors_test_load.py > /root/authors_test_load.out 2>&1".
+2026-10-23T00:39:52+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-507.scope: Deactivated successfully.
+2026-10-23T00:40:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-509.scope: Deactivated successfully.
+2026-10-23T00:40:00+00:00 ubuntu-64gb-nbg1-2 systemd[1]: sysstat-collect.service: Deactivated successfully.
+2026-10-23T00:40:06+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-510.scope: Deactivated successfully.
+2026-10-23T00:40:11+00:00 ubuntu-64gb-nbg1-2 systemd[1]: authors-test-load.service: Main process exited, code=exited, status=1/FAILURE
+2026-10-23T00:40:11+00:00 ubuntu-64gb-nbg1-2 systemd[1]: authors-test-load.service: Failed with result 'exit-code'.
+2026-10-23T00:40:11+00:00 ubuntu-64gb-nbg1-2 systemd[1]: authors-test-load.service: Consumed 42.392s CPU time.
+2026-10-23T00:40:16+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:40:16+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:40:16+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:40:24+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-511.scope: Deactivated successfully.
+2026-10-23T00:40:30+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-513.scope: Deactivated successfully.
+2026-10-23T00:40:40+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-514.scope: Deactivated successfully.
+2026-10-23T00:40:50+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:40:50+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:40:50+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:40:54+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-515.scope: Deactivated successfully.
+2026-10-23T00:40:56+00:00 ubuntu-64gb-nbg1-2 systemd[1]: Started authors-test-load2.service - /usr/bin/bash -c "/root/euler_original/.venv/bin/python /root/authors_test_load.py > /root/authors_test_load.out 2>&1".
+2026-10-23T00:40:56+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-517.scope: Deactivated successfully.
+2026-10-23T00:41:03+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-518.scope: Deactivated successfully.
+2026-10-23T00:41:13+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:41:13+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:41:13+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:41:20+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-519.scope: Deactivated successfully.
+2026-10-23T00:41:30+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:41:30+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:41:30+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:41:39+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-521.scope: Deactivated successfully.
+2026-10-23T00:41:49+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:41:49+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:41:49+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:41:56+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-523.scope: Deactivated successfully.
+2026-10-23T00:42:06+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:42:06+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:42:06+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.
+2026-10-23T00:42:08+00:00 ubuntu-64gb-nbg1-2 systemd[1]: authors-test-load2.service: Deactivated successfully.
+2026-10-23T00:42:08+00:00 ubuntu-64gb-nbg1-2 systemd[1]: authors-test-load2.service: Consumed 2min 11.981s CPU time.
+2026-10-23T00:42:14+00:00 ubuntu-64gb-nbg1-2 systemd[1]: session-525.scope: Deactivated successfully.
+2026-10-23T00:42:24+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user@0.service: Deactivated successfully.
+2026-10-23T00:42:24+00:00 ubuntu-64gb-nbg1-2 systemd[1]: run-user-0.mount: Deactivated successfully.
+2026-10-23T00:42:24+00:00 ubuntu-64gb-nbg1-2 systemd[1]: user-runtime-dir@0.service: Deactivated successfully.

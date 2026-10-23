@@ -1,0 +1,239 @@
+[2026-10-22T13:14:09Z] config ntlm: 44748939 events, vocabulary from training; first red-team event at t=150885 (peak RSS 1.3 GB)
+[2026-10-22T13:14:14Z] 14400984 test edges, 525 anomalous (peak RSS 2.8 GB)
+[2026-10-22T13:16:58Z] seed 42: {'seed': 42, 'auc': 0.9553580773924999, 'ap': 0.0019685647017304384, 'training_epochs': 46} (peak RSS 5.1 GB)
+[2026-10-22T13:19:16Z] seed 43: {'seed': 43, 'auc': 0.960727147986179, 'ap': 0.004081095432168184, 'training_epochs': 36} (peak RSS 5.2 GB)
+[2026-10-22T13:21:40Z] seed 44: {'seed': 44, 'auc': 0.9570437459501746, 'ap': 0.002089964464380609, 'training_epochs': 42} (peak RSS 5.2 GB)
+[2026-10-22T13:23:48Z] seed 45: {'seed': 45, 'auc': 0.9584419844501055, 'ap': 0.003670233354100483, 'training_epochs': 29} (peak RSS 5.2 GB)
+[2026-10-22T13:26:44Z] seed 46: {'seed': 46, 'auc': 0.9534667929020608, 'ap': 0.00170377087542709, 'training_epochs': 59} (peak RSS 5.2 GB)
+[2026-10-22T13:26:44Z] wrote reports/runs/20261022T102638Z/euler_fidelity_ntlm.json (peak RSS 5.2 GB)
+{
+  "protocol": "King and Huang (2022): link prediction, edges per 30-minute snapshot, training before the first red-team event",
+  "config": "ntlm",
+  "events": "NTLM authentications only, self-loops dropped (the authors' loader)",
+  "vocabulary": "training nodes, then one shared unseen node",
+  "params": {},
+  "events_kept": 44748939,
+  "first_red_team_event": 150885,
+  "test_edges": 14400984,
+  "anomalous_edges": 525,
+  "auc_mean": 0.9570075497362038,
+  "auc_std": 0.0027907007286139093,
+  "ap_mean": 0.0027027257655613613,
+  "ap_std": 0.001089535867249886,
+  "runs": [
+    {
+      "seed": 42,
+      "auc": 0.9553580773924999,
+      "ap": 0.0019685647017304384,
+      "training_epochs": 46
+    },
+    {
+      "seed": 43,
+      "auc": 0.960727147986179,
+      "ap": 0.004081095432168184,
+      "training_epochs": 36
+    },
+    {
+      "seed": 44,
+      "auc": 0.9570437459501746,
+      "ap": 0.002089964464380609,
+      "training_epochs": 42
+    },
+    {
+      "seed": 45,
+      "auc": 0.9584419844501055,
+      "ap": 0.003670233354100483,
+      "training_epochs": 29
+    },
+    {
+      "seed": 46,
+      "auc": 0.9534667929020608,
+      "ap": 0.00170377087542709,
+      "training_epochs": 59
+    }
+  ],
+  "published": {
+    "auc": 0.9906,
+    "ap": 0.0155
+  }
+}
+[2026-10-22T13:27:50Z] config ntlm_vocabulary: 44748939 events, vocabulary 15554; first red-team event at t=150885 (peak RSS 5.2 GB)
+[2026-10-22T13:27:55Z] 14400984 test edges, 525 anomalous (peak RSS 5.2 GB)
+[2026-10-22T13:31:17Z] seed 42: {'seed': 42, 'auc': 0.8859884195688618, 'ap': 0.00015190104255656314, 'training_epochs': 33} (peak RSS 6.9 GB)
+[2026-10-22T13:36:14Z] seed 43: {'seed': 43, 'auc': 0.8196999604235499, 'ap': 9.849603451012243e-05, 'training_epochs': 83} (peak RSS 7.0 GB)
+[2026-10-22T13:41:46Z] seed 44: {'seed': 44, 'auc': 0.815077517816818, 'ap': 9.703514878130127e-05, 'training_epochs': 100} (peak RSS 7.0 GB)
+[2026-10-22T13:47:29Z] seed 45: {'seed': 45, 'auc': 0.804962452668382, 'ap': 9.361282519348189e-05, 'training_epochs': 100} (peak RSS 7.0 GB)
+[2026-10-22T13:53:43Z] seed 46: {'seed': 46, 'auc': 0.8047590202639011, 'ap': 9.359174415866277e-05, 'training_epochs': 100} (peak RSS 7.0 GB)
+[2026-10-22T13:53:43Z] wrote reports/runs/20261022T102638Z/euler_fidelity_ntlm_vocabulary.json (peak RSS 7.0 GB)
+{
+  "protocol": "King and Huang (2022): link prediction, edges per 30-minute snapshot, training before the first red-team event",
+  "config": "ntlm_vocabulary",
+  "events": "NTLM authentications only, self-loops dropped (the authors' loader)",
+  "vocabulary": "every node of the timeline",
+  "params": {},
+  "events_kept": 44748939,
+  "first_red_team_event": 150885,
+  "test_edges": 14400984,
+  "anomalous_edges": 525,
+  "auc_mean": 0.8260974741483025,
+  "auc_std": 0.034100262865218715,
+  "ap_mean": 0.0001069273590400263,
+  "ap_std": 2.5232373560526474e-05,
+  "runs": [
+    {
+      "seed": 42,
+      "auc": 0.8859884195688618,
+      "ap": 0.00015190104255656314,
+      "training_epochs": 33
+    },
+    {
+      "seed": 43,
+      "auc": 0.8196999604235499,
+      "ap": 9.849603451012243e-05,
+      "training_epochs": 83
+    },
+    {
+      "seed": 44,
+      "auc": 0.815077517816818,
+      "ap": 9.703514878130127e-05,
+      "training_epochs": 100
+    },
+    {
+      "seed": 45,
+      "auc": 0.804962452668382,
+      "ap": 9.361282519348189e-05,
+      "training_epochs": 100
+    },
+    {
+      "seed": 46,
+      "auc": 0.8047590202639011,
+      "ap": 9.359174415866277e-05,
+      "training_epochs": 100
+    }
+  ],
+  "published": {
+    "auc": 0.9906,
+    "ap": 0.0155
+  }
+}
+[2026-10-22T13:54:48Z] config ntlm_code: 44748939 events, vocabulary 15554; first red-team event at t=150885 (peak RSS 7.0 GB)
+[2026-10-22T13:54:54Z] 14400984 test edges, 525 anomalous (peak RSS 7.0 GB)
+[2026-10-22T13:58:33Z] seed 42: {'seed': 42, 'auc': 0.9383294629705901, 'ap': 0.0002855325785655455, 'training_epochs': 48} (peak RSS 7.0 GB)
+[2026-10-22T14:01:18Z] seed 43: {'seed': 43, 'auc': 0.9601713596172773, 'ap': 0.001699112408940064, 'training_epochs': 21} (peak RSS 7.0 GB)
+[2026-10-22T14:04:29Z] seed 44: {'seed': 44, 'auc': 0.9763852732220616, 'ap': 0.0015072312139531932, 'training_epochs': 32} (peak RSS 7.0 GB)
+[2026-10-22T14:07:36Z] seed 45: {'seed': 45, 'auc': 0.9525588816300923, 'ap': 0.0011500062620706003, 'training_epochs': 27} (peak RSS 7.0 GB)
+[2026-10-22T14:10:06Z] seed 46: {'seed': 46, 'auc': 0.96741387016437, 'ap': 0.0016316260122071617, 'training_epochs': 17} (peak RSS 7.0 GB)
+[2026-10-22T14:10:06Z] wrote reports/runs/20261022T102638Z/euler_fidelity_ntlm_code.json (peak RSS 7.0 GB)
+{
+  "protocol": "King and Huang (2022): link prediction, edges per 30-minute snapshot, training before the first red-team event",
+  "config": "ntlm_code",
+  "events": "NTLM authentications only, self-loops dropped (the authors' loader)",
+  "vocabulary": "every node of the timeline",
+  "params": {
+    "learning_rate": 0.005,
+    "patience": 5
+  },
+  "events_kept": 44748939,
+  "first_red_team_event": 150885,
+  "test_edges": 14400984,
+  "anomalous_edges": 525,
+  "auc_mean": 0.9589717695208784,
+  "auc_std": 0.014518678845208403,
+  "ap_mean": 0.0012547016951473128,
+  "ap_std": 0.0005817202702837827,
+  "runs": [
+    {
+      "seed": 42,
+      "auc": 0.9383294629705901,
+      "ap": 0.0002855325785655455,
+      "training_epochs": 48
+    },
+    {
+      "seed": 43,
+      "auc": 0.9601713596172773,
+      "ap": 0.001699112408940064,
+      "training_epochs": 21
+    },
+    {
+      "seed": 44,
+      "auc": 0.9763852732220616,
+      "ap": 0.0015072312139531932,
+      "training_epochs": 32
+    },
+    {
+      "seed": 45,
+      "auc": 0.9525588816300923,
+      "ap": 0.0011500062620706003,
+      "training_epochs": 27
+    },
+    {
+      "seed": 46,
+      "auc": 0.96741387016437,
+      "ap": 0.0016316260122071617,
+      "training_epochs": 17
+    }
+  ],
+  "published": {
+    "auc": 0.9906,
+    "ap": 0.0155
+  }
+}
+[2026-10-22T14:10:06Z] config all: 1051430459 events, vocabulary from training; first red-team event at t=150885 (peak RSS 7.0 GB)
+[2026-10-22T14:11:06Z] 99430341 test edges, 525 anomalous (peak RSS 15.8 GB)
+[2026-10-22T14:16:58Z] seed 42: {'seed': 42, 'auc': 0.9297562466239166, 'ap': 9.944055407832608e-05, 'training_epochs': 28} (peak RSS 20.6 GB)
+[2026-10-22T14:24:43Z] seed 43: {'seed': 43, 'auc': 0.960023871530696, 'ap': 0.00043351957427555316, 'training_epochs': 60} (peak RSS 20.6 GB)
+[2026-10-22T14:30:48Z] seed 44: {'seed': 44, 'auc': 0.964964739550559, 'ap': 0.0007062941919746288, 'training_epochs': 30} (peak RSS 20.8 GB)
+[2026-10-22T14:38:12Z] seed 45: {'seed': 45, 'auc': 0.9494698814919432, 'ap': 0.00016785670110913155, 'training_epochs': 51} (peak RSS 20.8 GB)
+[2026-10-22T14:46:11Z] seed 46: {'seed': 46, 'auc': 0.9564717161471391, 'ap': 0.00035990305856166833, 'training_epochs': 70} (peak RSS 20.8 GB)
+[2026-10-22T14:46:11Z] wrote reports/runs/20261022T102638Z/euler_fidelity_all.json (peak RSS 20.8 GB)
+{
+  "protocol": "King and Huang (2022): link prediction, edges per 30-minute snapshot, training before the first red-team event",
+  "config": "all",
+  "events": "every authentication event, self-loops included (AuthBench's graph)",
+  "vocabulary": "training nodes, then one shared unseen node",
+  "params": {},
+  "events_kept": 1051430459,
+  "first_red_team_event": 150885,
+  "test_edges": 99430341,
+  "anomalous_edges": 525,
+  "auc_mean": 0.9521372910688509,
+  "auc_std": 0.013725478598107481,
+  "ap_mean": 0.0003534028159998616,
+  "ap_std": 0.00023974854669980744,
+  "runs": [
+    {
+      "seed": 42,
+      "auc": 0.9297562466239166,
+      "ap": 9.944055407832608e-05,
+      "training_epochs": 28
+    },
+    {
+      "seed": 43,
+      "auc": 0.960023871530696,
+      "ap": 0.00043351957427555316,
+      "training_epochs": 60
+    },
+    {
+      "seed": 44,
+      "auc": 0.964964739550559,
+      "ap": 0.0007062941919746288,
+      "training_epochs": 30
+    },
+    {
+      "seed": 45,
+      "auc": 0.9494698814919432,
+      "ap": 0.00016785670110913155,
+      "training_epochs": 51
+    },
+    {
+      "seed": 46,
+      "auc": 0.9564717161471391,
+      "ap": 0.00035990305856166833,
+      "training_epochs": 70
+    }
+  ],
+  "published": {
+    "auc": 0.9906,
+    "ap": 0.0155
+  }
+}

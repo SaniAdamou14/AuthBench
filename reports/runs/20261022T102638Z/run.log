@@ -1,0 +1,30 @@
+[2026-10-22T10:26:38Z] start install: uv sync --extra classical --extra deep --extra tracking --extra dev --locked --python 3.11
+[2026-10-22T10:26:38Z] done install in 0 s
+[2026-10-22T10:26:38Z] start preflight: uv run authbench preflight
+[2026-10-22T10:26:39Z] done preflight in 1 s
+[2026-10-22T10:26:39Z] raw files present, download skipped; source: lanl.ma.ic.ac.uk/data/cyber1 (Imperial College mirror; csr.lanl.gov unreachable on 2026-10-22); content verified: 1,051,430,459 rows, days 0, 5 and 13 identical by row count and content hash to the official download, redteam 749/715 rows
+[2026-10-22T10:26:44Z] start convert: uv run authbench data to-parquet data/raw/auth.txt.gz --out-dir data/interim/auth --dataset lanl
+[2026-10-22T10:38:27Z] done convert in 703 s
+[2026-10-22T10:38:27Z] start features_temporal: uv run python -m authbench.pipeline.build_features split=temporal
+[2026-10-22T10:38:27Z] start features_harmonised: uv run python -m authbench.pipeline.build_features split=harmonised
+[2026-10-22T10:38:27Z] start euler_fidelity: uv run python scripts/euler_fidelity.py data/interim/auth data/raw/redteam.txt.gz reports/runs/20261022T102638Z
+[2026-10-22T11:02:42Z] done features_temporal in 1455 s
+[2026-10-22T11:02:42Z] start evaluate_temporal: uv run python -m authbench.pipeline.train_eval split=temporal runtime.deep_models=true runtime.euler=true paths.reports_dir=reports/runs/20261022T102638Z/temporal paths.tables_dir=reports/runs/20261022T102638Z/temporal/tables paths.figures_dir=reports/runs/20261022T102638Z/temporal/figures mlflow.tracking_uri=sqlite:///reports/runs/20261022T102638Z/temporal/mlruns.db
+[2026-10-22T11:08:32Z] done features_harmonised in 1805 s
+[2026-10-22T11:08:32Z] start evaluate_harmonised: uv run python -m authbench.pipeline.train_eval split=harmonised runtime.deep_models=true runtime.euler=true paths.reports_dir=reports/runs/20261022T102638Z/harmonised paths.tables_dir=reports/runs/20261022T102638Z/harmonised/tables paths.figures_dir=reports/runs/20261022T102638Z/harmonised/figures mlflow.tracking_uri=sqlite:///reports/runs/20261022T102638Z/harmonised/mlruns.db
+[2026-10-22T11:40:06Z] start euler_fidelity rerun after commit 90ab443
+[2026-10-22T11:40:06Z] euler_fidelity rerun exit 0
+[2026-10-22T11:40:47Z] correction: the rerun line above reporting exit 0 is wrong; the unit had no HOME, uv was not found and nothing ran (its $? was that of date). Relaunched below.
+[2026-10-22T11:40:47Z] start euler_fidelity rerun after commit 90ab443
+[2026-10-22T11:45:07Z] euler_fidelity rerun oom-killed at its 24G cgroup cap (systemd: 18.4G peak recorded, 29 min CPU) after about 4 min; the evaluations were unaffected
+[2026-10-22T11:50:44Z] start euler_fidelity rerun after commit c4892b0
+[2026-10-22T11:57:40Z] euler_fidelity rerun exit 0 in 416 s
+[2026-10-22T12:43:10Z] start euler_fidelity variants after commit ef40bdf
+[2026-10-22T12:50:16Z] euler_fidelity variants (ef40bdf) oom-killed at the 24G cap building the ntlm test edges; relaunched below
+[2026-10-22T12:50:16Z] start euler_fidelity variants after commit c05b615
+[2026-10-22T13:04:21Z] euler_fidelity variants exit 0 in 845 s
+[2026-10-22T13:13:03Z] start euler_fidelity configs after commit 6c12582
+[2026-10-22T14:46:12Z] euler_fidelity configs exit 0 in 5589 s
+[2026-10-22T18:58:49Z] done evaluate_temporal in 28567 s
+[2026-10-22T21:57:43Z] done evaluate_harmonised in 38951 s
+[2026-10-22T21:57:43Z] a protocol or the fidelity check failed; see the step logs in reports/runs/20261022T102638Z

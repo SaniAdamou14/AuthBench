@@ -1,0 +1,2 @@
+eee54f2ee202756f25e403b7b896ec1d4c6152f1ab65fc1b5beb3a3187faf53d  data/raw/auth.txt.gz
+e8ffba5383035389b0de67ccbe8ec61ba10d3cb4467e754cb9f5188b3d7a4aff  data/raw/redteam.txt.gz

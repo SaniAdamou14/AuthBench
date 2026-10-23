@@ -1,0 +1,238 @@
+Destination data/raw: 343.9 GB free.
+╭───────────────────── Traceback (most recent call last) ──────────────────────╮
+│ /root/AuthBench/.venv/lib/python3.11/site-packages/urllib3/connection.py:239 │
+│ in _new_conn                                                                 │
+│                                                                              │
+│    236 │   │   :return: New socket connection.                               │
+│    237 │   │   """                                                           │
+│    238 │   │   try:                                                          │
+│ ❱  239 │   │   │   sock = connection.create_connection(                      │
+│    240 │   │   │   │   (self._dns_host, self.port),                          │
+│    241 │   │   │   │   self.timeout,                                         │
+│    242 │   │   │   │   source_address=self.source_address,                   │
+│                                                                              │
+│ /root/AuthBench/.venv/lib/python3.11/site-packages/urllib3/util/connection.p │
+│ y:85 in create_connection                                                    │
+│                                                                              │
+│    82 │                                                                      │
+│    83 │   if err is not None:                                                │
+│    84 │   │   try:                                                           │
+│ ❱  85 │   │   │   raise err                                                  │
+│    86 │   │   finally:                                                       │
+│    87 │   │   │   # Break explicitly a reference cycle                       │
+│    88 │   │   │   err = None                                                 │
+│                                                                              │
+│ /root/AuthBench/.venv/lib/python3.11/site-packages/urllib3/util/connection.p │
+│ y:73 in create_connection                                                    │
+│                                                                              │
+│    70 │   │   │   │   sock.settimeout(timeout)                               │
+│    71 │   │   │   if source_address:                                         │
+│    72 │   │   │   │   sock.bind(source_address)                              │
+│ ❱  73 │   │   │   sock.connect(sa)                                           │
+│    74 │   │   │   # Break explicitly a reference cycle                       │
+│    75 │   │   │   err = None                                                 │
+│    76 │   │   │   return sock                                                │
+╰──────────────────────────────────────────────────────────────────────────────╯
+ConnectionRefusedError: [Errno 111] Connection refused
+
+The above exception was the direct cause of the following exception:
+
+╭───────────────────── Traceback (most recent call last) ──────────────────────╮
+│ /root/AuthBench/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py │
+│ :793 in urlopen                                                              │
+│                                                                              │
+│    790 │   │   │   response_conn = conn if not release_conn else None        │
+│    791 │   │   │                                                             │
+│    792 │   │   │   # Make the request on the HTTPConnection object           │
+│ ❱  793 │   │   │   response = self._make_request(                            │
+│    794 │   │   │   │   conn,                                                 │
+│    795 │   │   │   │   method,                                               │
+│    796 │   │   │   │   url,                                                  │
+│                                                                              │
+│ /root/AuthBench/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py │
+│ :494 in _make_request                                                        │
+│                                                                              │
+│    491 │   │   │   │   new_e, (OSError, NewConnectionError, TimeoutError,    │
+│        SSLError)                                                             │
+│    492 │   │   │   ) and (conn and conn.proxy and not                        │
+│        conn.has_connected_to_proxy):                                         │
+│    493 │   │   │   │   new_e = _wrap_proxy_error(new_e, conn.proxy.scheme)   │
+│ ❱  494 │   │   │   raise new_e                                               │
+│    495 │   │                                                                 │
+│    496 │   │   # conn.request() calls http.client.*.request, not the method  │
+│        in                                                                    │
+│    497 │   │   # urllib3.request. It also calls makefile (recv) on the       │
+│        socket.                                                               │
+│                                                                              │
+│ /root/AuthBench/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py │
+│ :470 in _make_request                                                        │
+│                                                                              │
+│    467 │   │   try:                                                          │
+│    468 │   │   │   # Trigger any extra validation we need to do.             │
+│    469 │   │   │   try:                                                      │
+│ ❱  470 │   │   │   │   self._validate_conn(conn)                             │
+│    471 │   │   │   except (SocketTimeout, BaseSSLError) as e:                │
+│    472 │   │   │   │   self._raise_timeout(err=e, url=url,                   │
+│        timeout_value=conn.timeout)                                           │
+│    473 │   │   │   │   raise                                                 │
+│                                                                              │
+│ /root/AuthBench/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py │
+│ :1125 in _validate_conn                                                      │
+│                                                                              │
+│   1122 │   │                                                                 │
+│   1123 │   │   # Force connect early to allow us to validate the connection. │
+│   1124 │   │   if conn.is_closed:                                            │
+│ ❱ 1125 │   │   │   conn.connect()                                            │
+│   1126 │   │                                                                 │
+│   1127 │   │   # TODO revise this, see                                       │
+│        https://github.com/urllib3/urllib3/issues/2791                        │
+│   1128 │   │   if not conn.is_verified and not conn.proxy_is_verified:       │
+│                                                                              │
+│ /root/AuthBench/.venv/lib/python3.11/site-packages/urllib3/connection.py:827 │
+│ in connect                                                                   │
+│                                                                              │
+│    824 │   │                                                                 │
+│    825 │   │   try:                                                          │
+│    826 │   │   │   sock: socket.socket | ssl.SSLSocket                       │
+│ ❱  827 │   │   │   self.sock = sock = self._new_conn()                       │
+│    828 │   │   │   server_hostname: str = self.host                          │
+│    829 │   │   │   tls_in_tls = False                                        │
+│    830                                                                       │
+│                                                                              │
+│ /root/AuthBench/.venv/lib/python3.11/site-packages/urllib3/connection.py:254 │
+│ in _new_conn                                                                 │
+│                                                                              │
+│    251 │   │   │   ) from e                                                  │
+│    252 │   │                                                                 │
+│    253 │   │   except OSError as e:                                          │
+│ ❱  254 │   │   │   raise NewConnectionError(                                 │
+│    255 │   │   │   │   self, f"Failed to establish a new connection: {e}"    │
+│    256 │   │   │   ) from e                                                  │
+│    257                                                                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+NewConnectionError: HTTPSConnection(host='csr.lanl.gov', port=443): Failed to 
+establish a new connection: [Errno 111] Connection refused
+
+The above exception was the direct cause of the following exception:
+
+╭───────────────────── Traceback (most recent call last) ──────────────────────╮
+│ /root/AuthBench/.venv/lib/python3.11/site-packages/requests/adapters.py:696  │
+│ in send                                                                      │
+│                                                                              │
+│   693 │   │   │   resolved_timeout = TimeoutSauce(connect=timeout,           │
+│       read=timeout)                                                          │
+│   694 │   │                                                                  │
+│   695 │   │   try:                                                           │
+│ ❱ 696 │   │   │   resp = conn.urlopen(                                       │
+│   697 │   │   │   │   method=request.method,                                 │
+│   698 │   │   │   │   url=url,                                               │
+│   699 │   │   │   │   body=request.body,  # type: ignore[arg-type]  #        │
+│       urllib3 stubs don't accept Iterable[bytes | str]                       │
+│                                                                              │
+│ /root/AuthBench/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py │
+│ :847 in urlopen                                                              │
+│                                                                              │
+│    844 │   │   │   elif isinstance(new_e, (OSError, HTTPException)):         │
+│    845 │   │   │   │   new_e = ProtocolError("Connection aborted.", new_e)   │
+│    846 │   │   │                                                             │
+│ ❱  847 │   │   │   retries = retries.increment(                              │
+│    848 │   │   │   │   method, url, error=new_e, _pool=self,                 │
+│        _stacktrace=sys.exc_info()[2]                                         │
+│    849 │   │   │   )                                                         │
+│    850 │   │   │   retries.sleep()                                           │
+│                                                                              │
+│ /root/AuthBench/.venv/lib/python3.11/site-packages/urllib3/util/retry.py:555 │
+│ in increment                                                                 │
+│                                                                              │
+│   552 │   │                                                                  │
+│   553 │   │   if new_retry.is_exhausted():                                   │
+│   554 │   │   │   reason = error or ResponseError(cause)                     │
+│ ❱ 555 │   │   │   raise MaxRetryError(_pool, url, reason) from reason  #     │
+│       type: ignore[arg-type]                                                 │
+│   556 │   │                                                                  │
+│   557 │   │   log.debug("Incremented Retry for (url='%s'): %r", url,         │
+│       new_retry)                                                             │
+│   558                                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+MaxRetryError: HTTPSConnectionPool(host='csr.lanl.gov', port=443): Max retries 
+exceeded with url: 
+/data-fence/token?email=[email-redacted]&usage=Academic+research%3A+ano
+maly+detection+benchmark+on+authentication+logs+%28AuthBench+project%29. (Caused
+by NewConnectionError("HTTPSConnection(host='csr.lanl.gov', port=443): Failed to
+establish a new connection: [Errno 111] Connection refused"))
+
+During handling of the above exception, another exception occurred:
+
+╭───────────────────── Traceback (most recent call last) ──────────────────────╮
+│ /root/AuthBench/src/authbench/cli.py:273 in data_download                    │
+│                                                                              │
+│   270 │   │   │   param_hint="--email",                                      │
+│   271 │   │   )                                                              │
+│   272 │                                                                      │
+│ ❱ 273 │   token = fetch_lanl_fence_token(email, usage)                       │
+│   274 │                                                                      │
+│   275 │   for key in outstanding:                                            │
+│   276 │   │   filename = cfg.fence.filenames[key]                            │
+│                                                                              │
+│ /root/AuthBench/src/authbench/ingest/download.py:167 in                      │
+│ fetch_lanl_fence_token                                                       │
+│                                                                              │
+│   164 │   plain static URLs the original spec assumed.                       │
+│   165 │   """                                                                │
+│   166 │   session = session or requests.Session()                            │
+│ ❱ 167 │   response = session.get(                                            │
+│   168 │   │   f"{LANL_FENCE_BASE}/data-fence/token",                         │
+│   169 │   │   params={"email": email, "usage": usage},                       │
+│   170 │   │   timeout=timeout_s,                                             │
+│                                                                              │
+│ /root/AuthBench/.venv/lib/python3.11/site-packages/requests/sessions.py:671  │
+│ in get                                                                       │
+│                                                                              │
+│   668 │   │   """                                                            │
+│   669 │   │                                                                  │
+│   670 │   │   kwargs.setdefault("allow_redirects", True)                     │
+│ ❱ 671 │   │   return self.request("GET", url, params=params, **kwargs)       │
+│   672 │                                                                      │
+│   673 │   def options(self, url: _t.UriType, **kwargs:                       │
+│       Unpack[_t.RequestKwargs]) -> Response:                                 │
+│   674 │   │   r"""Sends a OPTIONS request. Returns :class:`Response` object. │
+│                                                                              │
+│ /root/AuthBench/.venv/lib/python3.11/site-packages/requests/sessions.py:651  │
+│ in request                                                                   │
+│                                                                              │
+│   648 │   │   │   "allow_redirects": allow_redirects,                        │
+│   649 │   │   }                                                              │
+│   650 │   │   send_kwargs.update(settings)                                   │
+│ ❱ 651 │   │   resp = self.send(prep, **send_kwargs)                          │
+│   652 │   │                                                                  │
+│   653 │   │   return resp                                                    │
+│   654                                                                        │
+│                                                                              │
+│ /root/AuthBench/.venv/lib/python3.11/site-packages/requests/sessions.py:784  │
+│ in send                                                                      │
+│                                                                              │
+│   781 │   │   start = preferred_clock()                                      │
+│   782 │   │                                                                  │
+│   783 │   │   # Send the request                                             │
+│ ❱ 784 │   │   r = adapter.send(request, **kwargs)                            │
+│   785 │   │                                                                  │
+│   786 │   │   # Total elapsed time of the request (approximately)            │
+│   787 │   │   elapsed = preferred_clock() - start                            │
+│                                                                              │
+│ /root/AuthBench/.venv/lib/python3.11/site-packages/requests/adapters.py:729  │
+│ in send                                                                      │
+│                                                                              │
+│   726 │   │   │   │   # This branch is for urllib3 v1.22 and later.          │
+│   727 │   │   │   │   raise SSLError(e, request=request)                     │
+│   728 │   │   │                                                              │
+│ ❱ 729 │   │   │   raise ConnectionError(e, request=request)                  │
+│   730 │   │                                                                  │
+│   731 │   │   except ClosedPoolError as e:                                   │
+│   732 │   │   │   raise ConnectionError(e, request=request)                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+ConnectionError: HTTPSConnectionPool(host='csr.lanl.gov', port=443): Max retries
+exceeded with url: 
+/data-fence/token?email=[email-redacted]&usage=Academic+research%3A+ano
+maly+detection+benchmark+on+authentication+logs+%28AuthBench+project%29. (Caused
+by NewConnectionError("HTTPSConnection(host='csr.lanl.gov', port=443): Failed to
+establish a new connection: [Errno 111] Connection refused"))

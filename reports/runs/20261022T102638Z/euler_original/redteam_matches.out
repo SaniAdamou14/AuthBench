@@ -1,0 +1,32 @@
+Schema([('time', Int32), ('day', Int16), ('src_user', Categorical), ('src_domain', Categorical), ('dst_user', Categorical), ('dst_domain', Categorical), ('src_computer', Categorical), ('dst_computer', Categorical), ('auth_type', Categorical), ('auth_type_is_null', Boolean), ('logon_type', Categorical), ('logon_type_is_null', Boolean), ('auth_orientation', Categorical), ('success', Boolean), ('src_user_is_machine', Boolean), ('dst_user_is_machine', Boolean), ('event_id', UInt32)])
+red-team rows (distinct): 715  with any matching event: 701  with an NTLM one: 701  self-loops: 0
+without a matching event:
+shape: (14, 6)
+┌─────────┬────────────┬────────┬────────┬──────┬──────┐
+│ time    ┆ user       ┆ src    ┆ dst    ┆ n    ┆ ntlm │
+│ ---     ┆ ---        ┆ ---    ┆ ---    ┆ ---  ┆ ---  │
+│ i64     ┆ str        ┆ str    ┆ str    ┆ u32  ┆ bool │
+╞═════════╪════════════╪════════╪════════╪══════╪══════╡
+│ 743965  ┆ U9763@DOM1 ┆ C17693 ┆ C21814 ┆ null ┆ null │
+│ 744145  ┆ U5087@DOM1 ┆ C17693 ┆ C21814 ┆ null ┆ null │
+│ 752613  ┆ U737@DOM1  ┆ C17693 ┆ C21814 ┆ null ┆ null │
+│ 753250  ┆ U9763@DOM1 ┆ C17693 ┆ C21814 ┆ null ┆ null │
+│ 758915  ┆ U737@DOM1  ┆ C17693 ┆ C15197 ┆ null ┆ null │
+│ 767944  ┆ U4353@DOM1 ┆ C17693 ┆ C17636 ┆ null ┆ null │
+│ 768058  ┆ U4353@DOM1 ┆ C17693 ┆ C17636 ┆ null ┆ null │
+│ 768162  ┆ U4353@DOM1 ┆ C17693 ┆ C18190 ┆ null ┆ null │
+│ 768220  ┆ U4353@DOM1 ┆ C17693 ┆ C18190 ┆ null ┆ null │
+│ 768373  ┆ U4353@DOM1 ┆ C17693 ┆ C21349 ┆ null ┆ null │
+│ 768646  ┆ U4353@DOM1 ┆ C17693 ┆ C17636 ┆ null ┆ null │
+│ 768664  ┆ U4353@DOM1 ┆ C17693 ┆ C17636 ┆ null ┆ null │
+│ 1081727 ┆ U1289@DOM1 ┆ C17693 ┆ C17640 ┆ null ┆ null │
+│ 1081813 ┆ U1289@DOM1 ┆ C17693 ┆ C17640 ┆ null ┆ null │
+└─────────┴────────────┴────────┴────────┴──────┴──────┘
+matched but not NTLM:
+shape: (0, 6)
+┌──────┬──────┬─────┬─────┬─────┬──────┐
+│ time ┆ user ┆ src ┆ dst ┆ n   ┆ ntlm │
+│ ---  ┆ ---  ┆ --- ┆ --- ┆ --- ┆ ---  │
+│ i64  ┆ str  ┆ str ┆ str ┆ u32 ┆ bool │
+╞══════╪══════╪═════╪═════╪═════╪══════╡
+└──────┴──────┴─────┴─────┴─────┴──────┘

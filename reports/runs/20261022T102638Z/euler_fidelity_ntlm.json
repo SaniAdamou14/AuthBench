@@ -1,0 +1,51 @@
+{
+  "protocol": "King and Huang (2022): link prediction, edges per 30-minute snapshot, training before the first red-team event",
+  "config": "ntlm",
+  "events": "NTLM authentications only, self-loops dropped (the authors' loader)",
+  "vocabulary": "training nodes, then one shared unseen node",
+  "params": {},
+  "events_kept": 44748939,
+  "first_red_team_event": 150885,
+  "test_edges": 14400984,
+  "anomalous_edges": 525,
+  "auc_mean": 0.9570075497362038,
+  "auc_std": 0.0027907007286139093,
+  "ap_mean": 0.0027027257655613613,
+  "ap_std": 0.001089535867249886,
+  "runs": [
+    {
+      "seed": 42,
+      "auc": 0.9553580773924999,
+      "ap": 0.0019685647017304384,
+      "training_epochs": 46
+    },
+    {
+      "seed": 43,
+      "auc": 0.960727147986179,
+      "ap": 0.004081095432168184,
+      "training_epochs": 36
+    },
+    {
+      "seed": 44,
+      "auc": 0.9570437459501746,
+      "ap": 0.002089964464380609,
+      "training_epochs": 42
+    },
+    {
+      "seed": 45,
+      "auc": 0.9584419844501055,
+      "ap": 0.003670233354100483,
+      "training_epochs": 29
+    },
+    {
+      "seed": 46,
+      "auc": 0.9534667929020608,
+      "ap": 0.00170377087542709,
+      "training_epochs": 59
+    }
+  ],
+  "published": {
+    "auc": 0.9906,
+    "ap": 0.0155
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "protocol": "King and Huang (2022): link prediction, edges per 30-minute snapshot, training before the first red-team event",
+  "first_red_team_event": 150885,
+  "test_edges": 99420487,
+  "anomalous_edges": 523,
+  "auc": 0.9295530892393004,
+  "ap": 9.893786768628569e-05,
+  "published": {
+    "auc": 0.9906,
+    "ap": 0.0155
+  },
+  "training_epochs": 28
+}

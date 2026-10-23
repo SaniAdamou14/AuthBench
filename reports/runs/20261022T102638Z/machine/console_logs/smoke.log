@@ -1,0 +1,126 @@
+Thu Oct 22 09:25:28 AM UTC 2026
+[2026-10-22 09:25:28,723][__main__][INFO] - Redteam: 34 exact duplicates removed
+[2026-10-22 09:25:46,334][__main__][INFO] - Featurised day 0: 5765908 events.
+[2026-10-22 09:26:01,471][__main__][INFO] - Featurised day 0: 5765908 events.
+[2026-10-22 09:26:24,762][__main__][INFO] - Featurised day 1: 6593218 events.
+[2026-10-22 09:26:39,803][__main__][INFO] - Featurised day 0: 5765908 events.
+[2026-10-22 09:27:01,866][__main__][INFO] - Featurised day 1: 6593218 events.
+[2026-10-22 09:27:22,769][__main__][INFO] - Featurised day 2: 5778955 events.
+[2026-10-22 09:27:22,932][__main__][INFO] - Feature store version: 0ee0df0b3faf583b
+Thu Oct 22 09:27:23 AM UTC 2026
+2026/10/22 09:27:27 INFO mlflow.store.db.utils: Creating initial MLflow database tables...
+2026/10/22 09:27:27 INFO mlflow.store.db.utils: Updating database tables
+2026/10/22 09:27:28 INFO mlflow.tracking.fluent: Experiment with name 'authbench' does not exist. Creating a new experiment.
+[2026-10-22 09:27:28,534][authbench.pipeline.tracking][INFO] - MLflow tracking to sqlite:///mlruns.db (experiment 'authbench').
+[2026-10-22 09:27:28,534][__main__][WARNING] - ROC-AUC is reported for literature comparability only. At a positive rate near 1e-7, ROC-AUC stays high even for operationally useless models — see docs/limitations.md. Do not use it to rank models.
+[2026-10-22 09:27:28,568][__main__][INFO] - Regime r1_unsupervised
+[2026-10-22 09:27:29,995][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:27:31,717][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:27:33,477][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:27:35,243][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:27:37,000][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:27:38,650][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:28:52,634][authbench.pipeline.train_eval][INFO] - Scored day 1: 6593218 events, 6 models.
+[2026-10-22 09:28:52,650][authbench.pipeline.tuning][INFO] - Tuned M2b_pca_reconstruction on validation: candidate 1 of 6, AUC-PR 0.0003 (default 0.0000).
+[2026-10-22 09:28:52,652][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:29:49,165][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:30:14,798][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:30:44,072][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:31:18,447][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:32:07,125][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:33:14,108][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:34:49,505][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:36:42,039][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:43:09,394][authbench.pipeline.train_eval][INFO] - Scored day 1: 6593218 events, 9 models.
+[2026-10-22 09:43:09,411][authbench.pipeline.tuning][INFO] - Tuned M3a_iforest on validation: candidate 5 of 9, AUC-PR 0.0000 (default 0.0000).
+[2026-10-22 09:43:09,413][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+/root/AuthBench/src/authbench/models/classical.py:98: RuntimeWarning: Precision loss occurred in moment calculation due to catastrophic cancellation. This occurs when the data are nearly identical. Results may be unreliable.
+  self._skew_sign = np.sign(np.nan_to_num(skew(x, axis=0)))
+[2026-10-22 09:43:14,957][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:43:21,965][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:43:26,687][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:43:31,303][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:43:35,927][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:43:40,734][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:43:45,543][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:43:50,530][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:43:55,491][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:44:00,416][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:44:05,654][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:44:10,880][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:45:10,494][authbench.pipeline.train_eval][INFO] - Scored day 1: 6593218 events, 12 models.
+[2026-10-22 09:45:10,514][authbench.pipeline.tuning][INFO] - Tuned M3b_hbos on validation: candidate 3 of 12, AUC-PR 0.0002 (default 0.0001).
+[2026-10-22 09:47:07,334][authbench.pipeline.train_eval][INFO] - Scored day 1: 6593218 events, 20 models.
+[2026-10-22 09:47:07,367][authbench.pipeline.tuning][INFO] - Tuned M1_rules on validation: candidate 12 of 20, AUC-PR 0.0019 (default 0.0000).
+[2026-10-22 09:47:08,865][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:48:25,933][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:55:54,506][__main__][INFO] - Scored day 1: 6593218 events, 13 models.
+[2026-10-22 09:59:45,329][__main__][INFO] - Scored day 2: 5778955 events, 13 models.
+[2026-10-22 09:59:45,378][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:59:47,014][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 09:59:48,713][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:00:46,561][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:01:43,300][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+/root/AuthBench/src/authbench/models/classical.py:98: RuntimeWarning: Precision loss occurred in moment calculation due to catastrophic cancellation. This occurs when the data are nearly identical. Results may be unreliable.
+  self._skew_sign = np.sign(np.nan_to_num(skew(x, axis=0)))
+[2026-10-22 10:01:48,913][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:01:54,529][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:01:58,632][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:03:58,281][authbench.pipeline.train_eval][INFO] - Scored day 2: 5778955 events, 10 models.
+[2026-10-22 10:03:58,602][authbench.evaluate.stats_tests][INFO] - Bootstrap: 10000 resamples x 13 models over 2 positive blocks, 1566 degenerate draws redrawn.
+[2026-10-22 10:04:14,166][__main__][INFO] - r1_unsupervised M0a_random: AUC-PR=0.0000 [0.0000, 0.0000]
+[2026-10-22 10:04:14,281][__main__][INFO] - r1_unsupervised M0b_always_fail: AUC-PR=0.0000 [0.0000, 0.0000]
+[2026-10-22 10:04:14,450][__main__][INFO] - r1_unsupervised M2a_pair_rarity: AUC-PR=0.0001 [0.0001, 0.0005]
+[2026-10-22 10:04:14,646][__main__][INFO] - r1_unsupervised M2c_source_rarity: AUC-PR=0.0000 [0.0000, 0.0001]
+[2026-10-22 10:04:14,783][__main__][INFO] - r1_unsupervised M2b_pca_reconstruction: AUC-PR=0.0001 [0.0000, 0.0002]
+[2026-10-22 10:04:14,943][__main__][INFO] - r1_unsupervised M3a_iforest: AUC-PR=0.0000 [0.0000, 0.0000]
+[2026-10-22 10:04:15,123][__main__][INFO] - r1_unsupervised M3b_ecod: AUC-PR=0.0000 [0.0000, 0.0000]
+[2026-10-22 10:04:15,305][__main__][INFO] - r1_unsupervised M3b_hbos: AUC-PR=0.0000 [0.0000, 0.0001]
+[2026-10-22 10:04:15,486][__main__][INFO] - r1_unsupervised M1_rules: AUC-PR=0.0000 [0.0000, 0.0002]
+[2026-10-22 10:04:15,661][__main__][INFO] - r1_unsupervised M1u_rules_uniform: AUC-PR=0.0000 [0.0000, 0.0000]
+[2026-10-22 10:04:15,837][__main__][INFO] - r1_unsupervised M4a_autoencoder: AUC-PR=0.0000 [0.0000, 0.0000]
+[2026-10-22 10:04:16,064][__main__][INFO] - r1_unsupervised M4b_vae: AUC-PR=0.0000 [0.0000, 0.0001]
+[2026-10-22 10:04:16,252][__main__][INFO] - r1_unsupervised M5c_euler: AUC-PR=0.0000 [0.0000, 0.0000]
+[2026-10-22 10:04:16,281][__main__][INFO] - r1_unsupervised: 56/78 pairwise AUC-PR differences significant at alpha=0.05 after holm_bonferroni correction.
+[2026-10-22 10:04:22,166][__main__][INFO] - Wrote headline figure to /root/smoke/figures/campaign_recall_vs_budget.png
+[2026-10-22 10:04:22,180][__main__][INFO] - Regime r2_semi_supervised
+[2026-10-22 10:04:22,191][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:04:23,834][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:04:25,821][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:04:27,436][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:04:29,035][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:04:30,694][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:05:40,148][authbench.pipeline.train_eval][INFO] - Scored day 1: 6593218 events, 6 models.
+[2026-10-22 10:05:40,155][authbench.pipeline.tuning][INFO] - Tuned M2b_pca_reconstruction on validation: candidate 1 of 6, AUC-PR 0.0003 (default 0.0000).
+[2026-10-22 10:05:40,159][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:06:27,785][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:06:48,867][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:07:13,658][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:07:43,320][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:08:23,377][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:09:21,299][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:10:39,661][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:12:14,556][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:18:30,015][authbench.pipeline.train_eval][INFO] - Scored day 1: 6593218 events, 9 models.
+[2026-10-22 10:18:30,025][authbench.pipeline.tuning][INFO] - Tuned M3a_iforest on validation: candidate 5 of 9, AUC-PR 0.0000 (default 0.0000).
+[2026-10-22 10:18:30,028][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+/root/AuthBench/src/authbench/models/classical.py:98: RuntimeWarning: Precision loss occurred in moment calculation due to catastrophic cancellation. This occurs when the data are nearly identical. Results may be unreliable.
+  self._skew_sign = np.sign(np.nan_to_num(skew(x, axis=0)))
+[2026-10-22 10:18:35,489][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:18:40,156][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:18:44,703][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:18:49,284][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:18:53,815][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:18:58,529][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:19:03,262][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:19:08,134][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:19:13,045][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:19:17,923][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:19:23,127][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:19:28,318][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:20:27,384][authbench.pipeline.train_eval][INFO] - Scored day 1: 6593218 events, 12 models.
+[2026-10-22 10:20:27,395][authbench.pipeline.tuning][INFO] - Tuned M3b_hbos on validation: candidate 3 of 12, AUC-PR 0.0002 (default 0.0001).
+[2026-10-22 10:22:28,658][authbench.pipeline.train_eval][INFO] - Scored day 1: 6593218 events, 20 models.
+[2026-10-22 10:22:28,675][authbench.pipeline.tuning][INFO] - Tuned M1_rules on validation: candidate 12 of 20, AUC-PR 0.0019 (default 0.0000).
+[2026-10-22 10:22:29,506][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.
+[2026-10-22 10:23:50,096][authbench.models.base][INFO] - Fitting on a seeded sample of 5000000/5765908 training rows.

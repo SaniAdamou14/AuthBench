@@ -1,0 +1,16 @@
+{
+  "protocol": "King and Huang (2022): link prediction, edges per 30-minute snapshot, training before the first red-team event",
+  "variant": "ntlm",
+  "events": "NTLM authentications only, self-loops dropped (the authors' loader)",
+  "events_kept": 44748939,
+  "first_red_team_event": 150885,
+  "test_edges": 14400984,
+  "anomalous_edges": 525,
+  "auc": 0.9553580773924999,
+  "ap": 0.0019685647017304384,
+  "published": {
+    "auc": 0.9906,
+    "ap": 0.0155
+  },
+  "training_epochs": 46
+}

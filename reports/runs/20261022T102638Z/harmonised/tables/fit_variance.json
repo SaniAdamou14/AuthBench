@@ -1,0 +1,342 @@
+{
+  "M2b_pca_reconstruction": {
+    "runs": [
+      {
+        "seed": 42,
+        "auc_pr": 1.2263956367997424e-05,
+        "budget_for_first_detection": 20,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.006172839506172839,
+          "100": 0.006172839506172839,
+          "500": 0.024691358024691357
+        }
+      },
+      {
+        "seed": 7,
+        "auc_pr": 4.2174919379584636e-05,
+        "budget_for_first_detection": 13,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.006172839506172839,
+          "100": 0.006172839506172839,
+          "500": 0.012345679012345678
+        }
+      },
+      {
+        "seed": 13,
+        "auc_pr": 4.492734955098758e-05,
+        "budget_for_first_detection": 159,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.012345679012345678
+        }
+      },
+      {
+        "seed": 21,
+        "auc_pr": 4.512890164985987e-05,
+        "budget_for_first_detection": 137,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.012345679012345678
+        }
+      },
+      {
+        "seed": 99,
+        "auc_pr": 4.5865058230576565e-05,
+        "budget_for_first_detection": 243,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.012345679012345678
+        }
+      }
+    ],
+    "auc_pr": {
+      "min": 1.2263956367997424e-05,
+      "max": 4.5865058230576565e-05,
+      "sd": 1.4494968941731466e-05
+    },
+    "budget_for_first_detection": {
+      "min": 13.0,
+      "max": 243.0
+    }
+  },
+  "M3a_iforest": {
+    "runs": [
+      {
+        "seed": 42,
+        "auc_pr": 7.367903317822117e-05,
+        "budget_for_first_detection": 718,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      },
+      {
+        "seed": 7,
+        "auc_pr": 3.1137019901556345e-05,
+        "budget_for_first_detection": 909,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      },
+      {
+        "seed": 13,
+        "auc_pr": 2.3277198604486986e-05,
+        "budget_for_first_detection": 1199,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      },
+      {
+        "seed": 21,
+        "auc_pr": 3.696996877390034e-05,
+        "budget_for_first_detection": 737,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      },
+      {
+        "seed": 99,
+        "auc_pr": 4.600547686110286e-05,
+        "budget_for_first_detection": 1641,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      }
+    ],
+    "auc_pr": {
+      "min": 2.3277198604486986e-05,
+      "max": 7.367903317822117e-05,
+      "sd": 1.9450099023206608e-05
+    },
+    "budget_for_first_detection": {
+      "min": 718.0,
+      "max": 1641.0
+    }
+  },
+  "M3b_ecod": {
+    "runs": [
+      {
+        "seed": 42,
+        "auc_pr": 0.00017124637267294264,
+        "budget_for_first_detection": 1691,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      },
+      {
+        "seed": 7,
+        "auc_pr": 0.00017114147721110617,
+        "budget_for_first_detection": 1702,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      },
+      {
+        "seed": 13,
+        "auc_pr": 0.00017095034222634948,
+        "budget_for_first_detection": 1709,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      },
+      {
+        "seed": 21,
+        "auc_pr": 0.00017068954549413358,
+        "budget_for_first_detection": 1713,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      },
+      {
+        "seed": 99,
+        "auc_pr": 0.00017057317513227916,
+        "budget_for_first_detection": 1713,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      }
+    ],
+    "auc_pr": {
+      "min": 0.00017057317513227916,
+      "max": 0.00017124637267294264,
+      "sd": 2.871796166639243e-07
+    },
+    "budget_for_first_detection": {
+      "min": 1691.0,
+      "max": 1713.0
+    }
+  },
+  "M3b_hbos": {
+    "runs": [
+      {
+        "seed": 42,
+        "auc_pr": 5.9173858297845825e-05,
+        "budget_for_first_detection": 1262,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      },
+      {
+        "seed": 7,
+        "auc_pr": 5.916295020632123e-05,
+        "budget_for_first_detection": 1322,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      },
+      {
+        "seed": 13,
+        "auc_pr": 5.910274330814206e-05,
+        "budget_for_first_detection": 1225,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      },
+      {
+        "seed": 21,
+        "auc_pr": 5.9172891179409675e-05,
+        "budget_for_first_detection": 1322,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      },
+      {
+        "seed": 99,
+        "auc_pr": 5.90854961032396e-05,
+        "budget_for_first_detection": 1267,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      }
+    ],
+    "auc_pr": {
+      "min": 5.90854961032396e-05,
+      "max": 5.9173858297845825e-05,
+      "sd": 4.216874544763926e-08
+    },
+    "budget_for_first_detection": {
+      "min": 1225.0,
+      "max": 1322.0
+    }
+  },
+  "M1_rules": {
+    "runs": [
+      {
+        "seed": 42,
+        "auc_pr": 1.1606658969963823e-06,
+        "budget_for_first_detection": 41065,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      },
+      {
+        "seed": 7,
+        "auc_pr": 1.1607520799200797e-06,
+        "budget_for_first_detection": 41055,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      },
+      {
+        "seed": 13,
+        "auc_pr": 1.1606579240643216e-06,
+        "budget_for_first_detection": 41248,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      },
+      {
+        "seed": 21,
+        "auc_pr": 1.1607596793169338e-06,
+        "budget_for_first_detection": 41118,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      },
+      {
+        "seed": 99,
+        "auc_pr": 1.1606719162544474e-06,
+        "budget_for_first_detection": 41178,
+        "campaign_recall": {
+          "10": 0.0,
+          "50": 0.0,
+          "100": 0.0,
+          "500": 0.0
+        }
+      }
+    ],
+    "auc_pr": {
+      "min": 1.1606579240643216e-06,
+      "max": 1.1607596793169338e-06,
+      "sd": 4.9961973713882766e-11
+    },
+    "budget_for_first_detection": {
+      "min": 41055.0,
+      "max": 41248.0
+    }
+  }
+}
