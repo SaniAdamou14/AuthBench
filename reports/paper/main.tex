@@ -24,7 +24,7 @@
 \usepackage[style=apa,backend=biber,uniquename=init,maxcitenames=2]{biblatex}
 \addbibresource{references.bib}
 \usepackage[hidelinks]{hyperref}
-\hypersetup{pdftitle={Detection Under an Alert Budget: A Leak-Free Case Study of Authentication Anomaly Detectors on the LANL Data, with a Reproduction of Euler},
+\hypersetup{pdftitle={AuthBench: Temporally Leak-Free, Alert-Budget Evaluation of Authentication Anomaly Detectors, with a LANL Case Study},
   pdfauthor={Mahamane Sani Adamou Mahamane}, pdfsubject={AuthBench report, version 2},
   pdfkeywords={anomaly detection, authentication logs, alert budget, LANL, evaluation, reproducibility}}
 \usepackage[capitalise,noabbrev]{cleveref}
@@ -38,9 +38,9 @@
 \newcommand{\Rcamp}{R_{\mathrm{camp}}}
 \newcommand{\Rev}{R_{\mathrm{ev}}}
 
-\title{Detection Under an Alert Budget:\\
-A Leak-Free Case Study of Authentication Anomaly Detectors\\
-on the LANL Data, with a Reproduction of Euler}
+\title{\AuthBench{}: Temporally Leak-Free, Alert-Budget Evaluation\\
+of Authentication Anomaly Detectors,\\
+with a LANL Case Study}
 
 \author{Mahamane Sani Adamou Mahamane\\[2pt]
 \small University of the People\\
@@ -53,7 +53,7 @@ on the LANL Data, with a Reproduction of Euler}
 \maketitle
 
 \begin{abstract}
-\noindent Security operations centres investigate a bounded number of alerts per day, yet anomaly detectors for authentication logs are mostly compared by threshold-free metrics. We present \AuthBench{}, an open harness that enforces its temporal split in code, ranks events within each day, gives every red-team campaign the daily budget at which it is first detected, and places each result against its exact distribution under a random ranking. We evaluate thirteen detectors, from rules and rarity scores to two autoencoders and a reimplementation of the temporal graph detector Euler, on the LANL authentication log under the protocol of \textcite{larroche2026fair}, whose event set we reproduce exactly, and under a day-based split. Ranked as individual events, no detector detects a campaign within 10 alerts per day and none exceeds \TempPcaRecallFiveHundred{} of the campaigns at 500, although at 100 alerts per day the autoencoder alerts on the intrusion's first day. ROC-AUC tracks the bulk of the campaign-recall curve (Spearman $\rho = \HarmRhoRocAucMedian$ and $\TempRhoRocAucMedian$ with the median campaign budget) but not its leading edge: it does not rank the detectors by first detection ($\rho = \HarmRhoRocAucFirst$ and $\TempRhoRocAucFirst$), and the earliest first detections depend on the fitting seed and on a partial first test day. Ranked as user-days, Euler and a source-novelty score reach about half of the campaigns at 500 per day, against \HarmUnitNullFiveHundred{} expected from a random ranking, at a higher cost per alert. Rerun on the same machine with its released preprocessing, the authors' Euler code reproduces its published AUC (\EulerAuthorsAuc{} against \EulerPublishedAuc{}) but not its average precision (\EulerAuthorsAp{} against \EulerPublishedAp{}). The labelled activity is one intrusion, \RedTeamTopHostShare{} of it from one host: these results are a case study of one operation.
+\noindent Security operations centres investigate a bounded number of alerts per day, yet anomaly detectors for authentication logs are mostly compared by threshold-free metrics. We present \AuthBench{}, an open harness that enforces its temporal split in code, ranks events, edge-hours and user-days within each day, gives every red-team campaign the daily budget at which it is first detected, and places each result against its exact distribution under a random ranking. On the LANL authentication log, under the protocol of \textcite{larroche2026fair}, whose event set we reproduce exactly, we evaluate thirteen detectors and read the same rankings at three levels. Per event, no detector detects a campaign within 10 alerts per day. Per intrusion, the autoencoder notices the attack on its first day at 100 alerts per day, but only because that day is partial; two other detectors notice it a week later at 50. Per user-day, a graph detector and a source-novelty score reach about half of the campaigns at 500 per day, against \HarmUnitNullFiveHundred{} for a random ranking, at a higher cost per alert. ROC-AUC tracks where most campaigns are found but not which detector finds the first, and that first detection depends on the fitting seed. Rerun on the same machine, the authors' Euler code reproduces its published AUC but not its average precision ($p = \EulerAuthorsApTP$ over five runs); we reconcile both test sets edge by edge. The labelled activity is one intrusion, mostly from one host: these results are a case study of one operation.
 \end{abstract}
 
 % Table of contents on a page of its own, for the preprint; a venue's template replaces it.
