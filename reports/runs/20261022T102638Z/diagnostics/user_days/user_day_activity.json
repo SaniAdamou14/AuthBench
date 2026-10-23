@@ -1,0 +1,254 @@
+{
+  "redteam_sha256": "e8ffba5383035389b0de67ccbe8ec61ba10d3cb4467e754cb9f5188b3d7a4aff",
+  "redteam_distinct_rows": 715,
+  "stream": "https://lanl.ma.ic.ac.uk/data/cyber1/auth.txt.gz",
+  "stream_check": {
+    "day": 13,
+    "fingerprint": {
+      "rows": 20807377,
+      "first_event_id": 218664082,
+      "last_event_id": 239471458,
+      "hash": 10402719274626
+    }
+  },
+  "harmonised": {
+    "day_sources": {
+      "1": "interim",
+      "2": "interim",
+      "3": "interim",
+      "4": "interim",
+      "5": "interim",
+      "6": "interim",
+      "7": "interim",
+      "8": "interim",
+      "9": "interim",
+      "10": "interim",
+      "11": "interim",
+      "12": "interim",
+      "13": "interim",
+      "14": "stream",
+      "15": "stream",
+      "16": "stream",
+      "17": "stream",
+      "18": "stream",
+      "19": "stream",
+      "20": "stream",
+      "21": "stream",
+      "22": "stream",
+      "23": "stream",
+      "24": "stream",
+      "25": "stream",
+      "26": "stream",
+      "27": "stream",
+      "28": "stream",
+      "29": "stream"
+    },
+    "positives": 702,
+    "redteam_rows_matched": 701,
+    "days": [
+      {
+        "day": 1,
+        "user_days": 13623,
+        "events": 1653645,
+        "positives": 10
+      },
+      {
+        "day": 2,
+        "user_days": 15089,
+        "events": 5778955,
+        "positives": 15
+      },
+      {
+        "day": 3,
+        "user_days": 11735,
+        "events": 5071588,
+        "positives": 0
+      },
+      {
+        "day": 4,
+        "user_days": 11636,
+        "events": 5054728,
+        "positives": 0
+      },
+      {
+        "day": 5,
+        "user_days": 18566,
+        "events": 6893119,
+        "positives": 21
+      },
+      {
+        "day": 6,
+        "user_days": 19004,
+        "events": 7211763,
+        "positives": 3
+      },
+      {
+        "day": 7,
+        "user_days": 19101,
+        "events": 7216280,
+        "positives": 1
+      },
+      {
+        "day": 8,
+        "user_days": 19208,
+        "events": 7206182,
+        "positives": 261
+      },
+      {
+        "day": 9,
+        "user_days": 16513,
+        "events": 6890430,
+        "positives": 5
+      },
+      {
+        "day": 10,
+        "user_days": 12827,
+        "events": 5395374,
+        "positives": 0
+      },
+      {
+        "day": 11,
+        "user_days": 12427,
+        "events": 5320122,
+        "positives": 0
+      },
+      {
+        "day": 12,
+        "user_days": 18801,
+        "events": 7488528,
+        "positives": 207
+      },
+      {
+        "day": 13,
+        "user_days": 19077,
+        "events": 7873709,
+        "positives": 75
+      },
+      {
+        "day": 14,
+        "user_days": 19105,
+        "events": 7510031,
+        "positives": 25
+      },
+      {
+        "day": 15,
+        "user_days": 18747,
+        "events": 6795584,
+        "positives": 26
+      },
+      {
+        "day": 16,
+        "user_days": 16086,
+        "events": 5887719,
+        "positives": 0
+      },
+      {
+        "day": 17,
+        "user_days": 12427,
+        "events": 5064276,
+        "positives": 0
+      },
+      {
+        "day": 18,
+        "user_days": 12237,
+        "events": 4972831,
+        "positives": 0
+      },
+      {
+        "day": 19,
+        "user_days": 12308,
+        "events": 4874695,
+        "positives": 0
+      },
+      {
+        "day": 20,
+        "user_days": 18803,
+        "events": 6783852,
+        "positives": 1
+      },
+      {
+        "day": 21,
+        "user_days": 19056,
+        "events": 7048422,
+        "positives": 4
+      },
+      {
+        "day": 22,
+        "user_days": 19103,
+        "events": 6628047,
+        "positives": 1
+      },
+      {
+        "day": 23,
+        "user_days": 16620,
+        "events": 6256138,
+        "positives": 0
+      },
+      {
+        "day": 24,
+        "user_days": 12867,
+        "events": 5312268,
+        "positives": 0
+      },
+      {
+        "day": 25,
+        "user_days": 12573,
+        "events": 5203302,
+        "positives": 0
+      },
+      {
+        "day": 26,
+        "user_days": 18904,
+        "events": 6994079,
+        "positives": 26
+      },
+      {
+        "day": 27,
+        "user_days": 19076,
+        "events": 7337401,
+        "positives": 9
+      },
+      {
+        "day": 28,
+        "user_days": 19074,
+        "events": 7103424,
+        "positives": 2
+      },
+      {
+        "day": 29,
+        "user_days": 19149,
+        "events": 7134707,
+        "positives": 10
+      }
+    ]
+  },
+  "temporal": {
+    "day_sources": {
+      "11": "interim",
+      "12": "interim",
+      "13": "interim"
+    },
+    "positives": 282,
+    "redteam_rows_matched": 282,
+    "days": [
+      {
+        "day": 11,
+        "user_days": 13162,
+        "events": 14012543,
+        "positives": 0
+      },
+      {
+        "day": 12,
+        "user_days": 19894,
+        "events": 19870848,
+        "positives": 207
+      },
+      {
+        "day": 13,
+        "user_days": 20172,
+        "events": 20807377,
+        "positives": 75
+      }
+    ]
+  }
+}

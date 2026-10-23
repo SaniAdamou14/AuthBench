@@ -19,7 +19,7 @@ import hashlib
 import json
 import logging
 import shutil
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -61,6 +61,37 @@ def feature_store_version(features_cfg: DictConfig) -> str:
     """
     canonical = json.dumps(OmegaConf.to_container(features_cfg, resolve=True), sort_keys=True)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
+
+
+#: The feature settings `featurize_day` implements, which is all the feature store ever writes.
+#: Each is a fixed property of the code, not a knob: a configuration that asks for another value
+#: would change the store's hash and nothing else, so it is refused instead.
+SUPPORTED_FEATURES: dict[str, object] = {
+    "f1_event.enabled": True,
+    "f1_event.categorical_encoding": "frequency",
+    "f2_history.enabled": True,
+    "f2_history.windows_hours": DEFAULT_F2_WINDOWS_HOURS,
+    "f2_history.entities": DEFAULT_F2_ENTITIES,
+    "f3_novelty.enabled": True,
+    "f3_novelty.new_pair_sentinel_days": float("inf"),
+    "f4_temporal.enabled": True,
+    "f4_temporal.night_window_calibration": "empirical",
+    "f5_graph.enabled": False,
+    "f6_sequence.enabled": False,
+}
+
+
+def check_supported(features_cfg: DictConfig) -> None:
+    """Refuse a feature configuration the feature store would silently not honour."""
+    unsupported = []
+    for key, expected in SUPPORTED_FEATURES.items():
+        value = OmegaConf.select(features_cfg, key)
+        if isinstance(value, Sequence) and not isinstance(value, str):
+            value = list(value)
+        if value != expected:
+            unsupported.append(f"features.{key}={value!r} (only {expected!r} is implemented)")
+    if unsupported:
+        raise ValueError("Unsupported feature settings: " + "; ".join(unsupported))
 
 
 def featurize(
@@ -198,6 +229,7 @@ def build_store(
 
 @hydra.main(version_base=None, config_path=str(CONF_DIR), config_name="config")
 def main(cfg: DictConfig) -> None:
+    check_supported(cfg.features)
     auth_dir = Path(cfg.paths.interim_dir) / "auth"
     tables_dir = Path(cfg.paths.tables_dir)
     tables_dir.mkdir(parents=True, exist_ok=True)

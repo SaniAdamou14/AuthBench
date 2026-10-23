@@ -13,6 +13,7 @@ and for the comparison with the earlier code; the demo for the circularity contr
 from __future__ import annotations
 
 import csv
+import gzip
 import json
 import math
 import re
@@ -26,7 +27,8 @@ import numpy as np
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
-from scipy.stats import rankdata, ttest_1samp  # noqa: E402
+from scipy.stats import rankdata  # noqa: E402
+from scipy.stats import t as student_t  # noqa: E402
 
 from authbench.evaluate.budget import (  # noqa: E402
     random_first_detection_quantile,
@@ -38,6 +40,8 @@ RUN = ROOT / "reports" / "runs" / "20261022T102638Z"
 WIDE = ROOT / "reports" / "lanl" / "wider_window_results"
 DEMO = ROOT / "reports" / "demo" / "tables"
 OUT = ROOT / "reports" / "paper" / "generated"
+# User-day activity recomputed from the log by scripts/user_day_activity.py, after the run.
+USER_DAYS = RUN / "diagnostics" / "user_days"
 
 PROTOCOLS = {
     "Harm": (RUN / "harmonised" / "metrics_summary.json", RUN / "harmonised" / "tables"),
@@ -104,7 +108,7 @@ METRICS = {
 FPR_KEY = "0.0001"
 PERMUTATIONS = 200_000
 NULL_SIMULATIONS = 10_000
-UNIT_SIMULATIONS = 20_000
+UNIT_SIMULATIONS = 2_000
 # Campaign-budget summaries from budget_summary.json: macro suffix and table label.
 SUMMARIES = {
     "first_detection": ("First", "first detection $b^{*}$"),
@@ -112,6 +116,13 @@ SUMMARIES = {
     "budget_q25": ("Qtwentyfive", "25\\% quantile"),
     "budget_q50": ("Median", "median $b(c)$"),
     "log_area": ("LogArea", "log-area"),
+}
+# Label-free rankings of user-days by their activity that day: column, macro name, table label.
+BASELINES = {
+    "distinct_dst": ("Dst", "Most distinct destinations"),
+    "distinct_src": ("Src", "Most distinct sources"),
+    "events": ("Events", "Most events"),
+    "failures": ("Failures", "Most failed authentications"),
 }
 RULES = [
     ("R1_new_pair", "R1 new (user, destination) pair"),
@@ -256,6 +267,7 @@ class Protocol:
         with (tables / "day_sizes.csv").open(encoding="utf-8") as handle:
             self.day_rows = [{k: int(v) for k, v in row.items()} for row in csv.DictReader(handle)]
         self.days = [(row["events"], row["positives"]) for row in self.day_rows]
+        self.days_by_number = {row["day"]: row for row in self.day_rows}
         self.pairs = _load(tables / "pairwise_comparisons.json")
         self.tables = tables
         first = next(iter(self.budgets.values()))
@@ -263,11 +275,14 @@ class Protocol:
         self.accounts = int(first["n_accounts"])
         # Every positive event, with its campaign, day and daily rank (arrival tie order), per model.
         self.ledger: dict[str, list[tuple[int, int, int]]] = defaultdict(list)
+        self.event_campaign: dict[int, int] = {}
         with (tables / "positives_ledger.csv").open(encoding="utf-8") as handle:
             for row in csv.DictReader(handle):
                 self.ledger[row["model"]].append(
                     (int(row["campaign_id"]), int(row["day"]), int(row["rank"]))
                 )
+                if row["model"] == "M0a_random":
+                    self.event_campaign[int(row["event_id"])] = int(row["campaign_id"])
 
     def campaign_budgets(self, model: str, skip_days: tuple[int, ...] = ()) -> list[int]:
         """Sorted b(c): each campaign's best daily rank, ignoring the days in `skip_days`."""
@@ -276,17 +291,6 @@ class Protocol:
             if day not in skip_days:
                 best[campaign] = min(rank, best.get(campaign, rank))
         return sorted(best.values())
-
-    def positive_user_days(self) -> dict[int, list[int]]:
-        """Campaigns with a positive event on each test day: the day's positive user-days.
-
-        Two campaigns of one account are more than a day apart, so a (day, campaign) pair is
-        exactly one positive user-day.
-        """
-        by_day: dict[int, set[int]] = defaultdict(set)
-        for campaign, day, _ in self.ledger["M0a_random"]:
-            by_day[day].add(campaign)
-        return {day: sorted(campaigns) for day, campaigns in by_day.items()}
 
     def first_detection(self, model: str) -> int:
         value = self.budgets[model]["statistics"]["first_detection"]["value"]
@@ -347,6 +351,9 @@ def _model_macros(macros: Macros, p: Protocol) -> None:
         macros.add(f"{prefix}NullP", _p(p.null_p(model)))
         for budget, name in BUDGET_NAMES.items():
             macros.add(f"{prefix}Recall{name}", _pct(p.recall(model, budget)))
+            macros.add(
+                f"{prefix}Recall{name}Count", str(round(p.recall(model, budget) * p.campaigns))
+            )
             macros.add(f"{prefix}UserDay{name}", _pct(p.recall(model, budget, "user_day")))
             macros.add(f"{prefix}EdgeHour{name}", _pct(p.recall(model, budget, "edge_hour")))
         units = p.models[model]["operational"]["alert_units"]
@@ -482,9 +489,10 @@ def _correlations(macros: Macros, harm: Protocol, temp: Protocol) -> None:
     for summary, (_, label) in SUMMARIES.items():
         cells = [label]
         for tag in ("Harm", "Temp"):
-            for key in ("roc_auc", "auc_pr"):
+            for key in metrics:
                 rho, _, adjusted, _, _ = results[tag][(key, summary)]
-                cells += [f"{rho:.2f}", _p(adjusted)]
+                cell = f"{rho:.2f} ({_p(adjusted)})"
+                cells.append(f"\\textbf{{{cell}}}" if adjusted < 0.05 else cell)
         main.append(" & ".join(cells) + r" \\")
     for tag, protocol in (("Harm", "harmonised"), ("Temp", "temporal")):
         for key, (_, label) in metrics.items():
@@ -510,7 +518,7 @@ def _results_table(macros: Macros, name: str, p: Protocol) -> None:
     holm = _holm_null(p)
     for model, adjusted in holm.items():
         macros.add(f"{p.tag}{MACRO_NAMES[model]}NullHolm", _p(adjusted))
-    rows = []
+    rows, intervals = [], []
     for model in ORDER:
         if model not in p.models:
             continue
@@ -518,18 +526,23 @@ def _results_table(macros: Macros, name: str, p: Protocol) -> None:
         label = LABELS[model] + (" (floor)" if model in FLOORS else "")
         cells = [
             label,
-            f"${_sci(row['auc_pr'])}$",
-            f"[${_sci(row['auc_pr_ci_low'])}$, ${_sci(row['auc_pr_ci_high'])}$]",
             f"{p.metric(model, 'roc_auc'):.3f}",
+            f"${_sci(row['auc_pr'], 1)}$",
+            f"${_sci(float(row['auc_pr_campaign_weighted']), 1)}$",
             _pct(p.metric(model, "recall_fpr")),
-            _pct(p.recall(model, 50)),
-            _pct(p.recall(model, 500)),
+            str(round(p.recall(model, 50) * p.campaigns)),
+            str(round(p.recall(model, 500) * p.campaigns)),
             _int(p.first_detection(model)),
             _p(p.null_p(model)),
             _p(holm[model]) if model in holm else "",
         ]
         rows.append(" & ".join(cells) + r" \\")
+        intervals.append(
+            f"{label} & ${_sci(row['auc_pr'])}$ & "
+            f"[${_sci(row['auc_pr_ci_low'])}$, ${_sci(row['auc_pr_ci_high'])}$] \\\\"
+        )
     _write(name, rows)
+    _write(name.replace("results", "aucpr"), intervals)
 
 
 def _regime_table(macros: Macros, r1: Protocol, r2: Protocol) -> None:
@@ -561,66 +574,150 @@ def _regime_table(macros: Macros, r1: Protocol, r2: Protocol) -> None:
     macros.add("RegimeUnchanged", str(len(unchanged)))
 
 
-def _unit_null(p: Protocol) -> tuple[list[tuple[int, int]], dict[int, tuple[float, float, float]]]:
-    """The random-ranking null in user-days: per-day (units, positive units), and campaign recall.
+class UserDays:
+    """The user-days of a protocol's test days with red-team events, from `user_day_activity.py`.
 
-    The first-detection null is Eq. 2 with user-days for events. For campaign recall at k, a
-    random ranking puts a hypergeometric number of a day's positive user-days in its top k, and
-    which ones is uniform; campaigns are detected through any of their user-days. Returns the
-    days and, per budget, the mean and central 95% range of recall over UNIT_SIMULATIONS draws.
+    The harness keys a user-day by the source user without its domain, so one unit can hold
+    events of two campaigns (one user name under two domains); a campaign is detected in user-days
+    when one of its units is in the top k of its day. Every day is checked against the run:
+    events, user-days and positives per day, and the positives' event identifiers.
     """
-    positives = p.positive_user_days()
-    days = [(row["user_days"], len(positives.get(row["day"], []))) for row in p.day_rows]
-    campaigns = sorted({c for cs in positives.values() for c in cs})
-    if len(campaigns) != p.campaigns:
-        raise ValueError(
-            f"{p.tag}: {len(campaigns)} campaigns in the ledger, {p.campaigns} expected"
-        )
-    index = {c: i for i, c in enumerate(campaigns)}
-    recall = {}
-    for budget in (50, 500):
-        rng = np.random.default_rng(budget)
-        detected = np.zeros((UNIT_SIMULATIONS, len(campaigns)), dtype=bool)
-        for row in p.day_rows:
-            units = positives.get(row["day"], [])
-            if not units:
-                continue
-            n = row["user_days"]
-            inside = rng.hypergeometric(
-                len(units), n - len(units), min(budget, n), UNIT_SIMULATIONS
+
+    def __init__(self, p: Protocol) -> None:
+        name = {"Harm": "harmonised", "Temp": "temporal"}[p.tag]
+        self.p = p
+        self.summary = _load(USER_DAYS / "user_day_activity.json")[name]
+        with gzip.open(USER_DAYS / f"user_days_{name}.csv.gz", "rt", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+        with (USER_DAYS / f"positives_{name}.csv").open(encoding="utf-8") as handle:
+            self.positives = list(csv.DictReader(handle))
+        expected = {r["day"]: r for r in p.day_rows}
+        self.days: dict[int, dict[str, np.ndarray]] = {}
+        for day in sorted({int(r["day"]) for r in rows}):
+            day_rows = sorted(
+                (r for r in rows if int(r["day"]) == day),
+                # The harness's unit tie order: first event time, then the unit key.
+                key=lambda r: (int(r["first_time"]), r["src_user"]),
             )
-            order = np.argsort(
-                np.argsort(rng.random((UNIT_SIMULATIONS, len(units))), axis=1), axis=1
+            self.days[day] = {
+                "user": np.array([r["src_user"] for r in day_rows]),
+                **{
+                    c: np.array([int(r[c]) for r in day_rows])
+                    for c in ("events", "distinct_dst", "distinct_src", "failures")
+                },
+            }
+        positive_days = {d for _, d, _ in p.ledger["M0a_random"]}
+        if positive_days - set(self.days):
+            raise ValueError(
+                f"{p.tag}: positives on days {positive_days - set(self.days)} not read"
             )
-            chosen = order < inside[:, None]
-            for j, campaign in enumerate(units):
-                detected[:, index[campaign]] |= chosen[:, j]
-        share = detected.mean(axis=1)
-        recall[budget] = (
-            float(share.mean()),
-            float(np.quantile(share, 0.025)),
-            float(np.quantile(share, 0.975)),
-        )
-    return days, recall
+        for day, units in self.days.items():
+            row = expected[day]
+            here = sum(int(x["day"]) == day for x in self.positives)
+            if (int(units["events"].sum()), units["user"].size, here) != (
+                row["events"],
+                row["user_days"],
+                row["positives"],
+            ):
+                raise ValueError(f"{p.tag} day {day}: user-day activity differs from day_sizes.csv")
+        if {int(x["event_id"]) for x in self.positives} != set(p.event_campaign):
+            raise ValueError(f"{p.tag}: the positives read are not the ledger's")
+        # Per day, each positive unit's index and the campaigns it holds.
+        self.units: dict[int, dict[int, set[int]]] = {}
+        for x in self.positives:
+            day = int(x["day"])
+            index = int(np.flatnonzero(self.days[day]["user"] == x["src_user"])[0])
+            self.units.setdefault(day, {}).setdefault(index, set()).add(
+                p.event_campaign[int(x["event_id"])]
+            )
+        self.campaigns = sorted(set(p.event_campaign.values()))
+
+    def pairs(self) -> int:
+        return sum(len(c) for units in self.units.values() for c in units.values())
+
+    def shared(self) -> int:
+        return sum(len(c) > 1 for units in self.units.values() for c in units.values())
+
+    def budgets(self, column: str) -> list[int]:
+        """b(c) in user-days when each day's units are ranked by `column`, ties in the harness's order."""
+        best: dict[int, int] = {}
+        for day, units in self.units.items():
+            values = self.days[day][column]
+            # Stable sort on the tie-ordered rows: descending value, then the harness's tie order.
+            order = np.argsort(-values, kind="stable")
+            rank = np.empty(order.size, dtype=np.int64)
+            rank[order] = np.arange(1, order.size + 1)
+            for index, campaigns in units.items():
+                for c in campaigns:
+                    best[c] = min(int(rank[index]), best.get(c, int(rank[index])))
+        return sorted(best[c] for c in self.campaigns)
+
+    def null(self, size_aware: bool) -> tuple[dict[int, np.ndarray], np.ndarray]:
+        """Campaign recall at 50 and 500 user-days, and b*, under a random ranking, per simulation.
+
+        `size_aware=False` ranks the units uniformly at random. `size_aware=True` gives every event
+        an independent uniform score and every unit the maximum of its events, as the harness
+        aggregates a detector that ignores labels: a unit of n events then scores like U^(1/n),
+        so its order is that of -log(U)/n, smaller first.
+        """
+        rng = np.random.default_rng(0 if size_aware else 1)
+        index = {c: i for i, c in enumerate(self.campaigns)}
+        detected = {k: np.zeros((UNIT_SIMULATIONS, len(index)), dtype=bool) for k in (50, 500)}
+        first = np.full(UNIT_SIMULATIONS, np.iinfo(np.int64).max)
+        for day, units in sorted(self.units.items()):
+            n = self.days[day]["events"].astype(np.float64)
+            positive = np.array(sorted(units))
+            for start in range(0, UNIT_SIMULATIONS, 500):
+                rows = slice(start, min(start + 500, UNIT_SIMULATIONS))
+                key = rng.exponential(size=(rows.stop - rows.start, n.size))
+                if size_aware:
+                    key /= n
+                at_positive = key[:, positive]
+                best = at_positive.min(axis=1)
+                first[rows] = np.minimum(first[rows], (key < best[:, None]).sum(axis=1) + 1)
+                for k in (50, 500):
+                    kth = np.partition(key, min(k, n.size) - 1, axis=1)[:, min(k, n.size) - 1]
+                    inside = at_positive <= kth[:, None]
+                    for j, unit in enumerate(positive):
+                        for c in units[int(unit)]:
+                            detected[k][rows, index[c]] |= inside[:, j]
+        return {k: v.mean(axis=1) for k, v in detected.items()}, first
+
+
+def _null_summary(share: np.ndarray) -> tuple[float, float, float]:
+    return float(share.mean()), float(np.quantile(share, 0.025)), float(np.quantile(share, 0.975))
 
 
 def _units_table(macros: Macros, p: Protocol) -> None:
-    days, null_recall = _unit_null(p)
+    """User-day results with label-free activity rankings and two random-ranking nulls."""
     t = p.tag
-    macros.add(f"{t}PositiveUserDays", _int(sum(k for _, k in days)))
-    for budget, name in ((50, "Fifty"), (500, "FiveHundred")):
-        mean, low, high = null_recall[budget]
-        macros.add(f"{t}UnitNull{name}", _pct(mean))
-        macros.add(f"{t}UnitNull{name}Low", _pct(low))
-        macros.add(f"{t}UnitNull{name}High", _pct(high))
-    macros.add(f"{t}UnitNullFirstMedian", _int(random_first_detection_quantile(days, 0.5)))
+    units = UserDays(p)
+    counts = [
+        (int(p.days_by_number[d]["user_days"]), len(units.units.get(d, {})))
+        for d in sorted(p.days_by_number)
+    ]
+    macros.add(f"{t}PositiveUserDays", _int(sum(k for _, k in counts)))
+    macros.add(f"{t}PositiveUserDayPairs", _int(units.pairs()))
+    macros.add(f"{t}SharedPositiveUserDays", str(units.shared()))
+    macros.add(f"{t}UnitNullFirstMedian", _int(random_first_detection_quantile(counts, 0.5)))
+    uniform, _ = units.null(size_aware=False)
+    sized, sized_first = units.null(size_aware=True)
+    for name, recall in (("UnitNull", uniform), ("SizeNull", sized)):
+        for budget, label in ((50, "Fifty"), (500, "FiveHundred")):
+            mean, low, high = _null_summary(recall[budget])
+            macros.add(f"{t}{name}{label}", _pct(mean))
+            macros.add(f"{t}{name}{label}Low", _pct(low))
+            macros.add(f"{t}{name}{label}High", _pct(high))
+    macros.add(f"{t}SizeNullFirstMedian", _int(float(np.median(sized_first))))
     rows = []
     for model in sorted(p.non_trivial() + list(FLOORS), key=p.first_detection):
         first = int(
             p.models[model]["operational"]["alert_units"]["user_day"]["budget_for_first_detection"]
         )
-        null = 1 - random_first_detection_survival(days, first)
-        macros.add(f"{t}{MACRO_NAMES[model]}UserDayNullP", _p(null))
+        uniform_p = 1 - random_first_detection_survival(counts, first)
+        sized_p = float(np.mean(sized_first <= first))
+        macros.add(f"{t}{MACRO_NAMES[model]}UserDayNullP", _p(uniform_p))
+        macros.add(f"{t}{MACRO_NAMES[model]}UserDaySizeNullP", _p(sized_p))
         rows.append(
             " & ".join(
                 [
@@ -630,18 +727,75 @@ def _units_table(macros: Macros, p: Protocol) -> None:
                     _pct(p.recall(model, 50, "user_day")),
                     _pct(p.recall(model, 500, "user_day")),
                     _int(first),
-                    _p(null),
+                    _p(sized_p),
                 ]
             )
             + r" \\"
         )
     rows.append(r"\midrule")
+    best = 0.0
+    for column, (name, label) in BASELINES.items():
+        budgets = np.array(units.budgets(column))
+        at = {k: float(np.mean(budgets <= k)) for k in (50, 500)}
+        sized_p = float(np.mean(sized_first <= budgets[0]))
+        best = max(best, at[500])
+        macros.add(f"{t}Baseline{name}UserDayFifty", _pct(at[50]))
+        macros.add(f"{t}Baseline{name}UserDayFiveHundred", _pct(at[500]))
+        macros.add(f"{t}Baseline{name}UserDayFirst", _int(budgets[0]))
+        macros.add(f"{t}Baseline{name}UserDayFiveHundredCount", str(int(np.sum(budgets <= 500))))
+        rows.append(
+            f"{label} & & & {_pct(at[50])} & {_pct(at[500])} & {_int(budgets[0])} & {_p(sized_p)} \\\\"
+        )
+    beaten = [m for m in p.non_trivial() if p.recall(m, 500, "user_day") > best]
+    macros.add(f"{t}DetectorsAboveBaselines", str(len(beaten)))
+    rows.append(r"\midrule")
     rows.append(
-        "Random ranking (exact null) & & & "
-        f"{_pct(null_recall[50][0])} & {_pct(null_recall[500][0])} & "
-        f"{_int(random_first_detection_quantile(days, 0.5))} & \\\\"
+        "Random ranking of user-days & & & "
+        f"{_pct(uniform[50].mean())} & {_pct(uniform[500].mean())} & "
+        f"{_int(random_first_detection_quantile(counts, 0.5))} & \\\\"
+    )
+    rows.append(
+        "Random event scores, maximum per user-day & & & "
+        f"{_pct(sized[50].mean())} & {_pct(sized[500].mean())} & "
+        f"{_int(float(np.median(sized_first)))} & \\\\"
     )
     _write(f"table_units_{t.lower()}.tex", rows)
+    # Identity of the positives: red-team rows labelling two events, and campaigns off the top host.
+    data = units.summary
+    macros.add(f"{t}PositivesFromRows", _int(data["redteam_rows_matched"]))
+    macros.add(f"{t}DoublyLabelled", str(data["positives"] - data["redteam_rows_matched"]))
+    top = _load(RUN / "diagnostics" / "redteam_concentration.json")["all"]["top_sources"][0]
+    off_host = {
+        p.event_campaign[int(x["event_id"])]
+        for x in units.positives
+        if x["src_computer"] != top["src_computer"]
+    }
+    macros.add(f"{t}CampaignsOffTopHost", str(len(off_host)))
+    # Campaigns are keyed by user@domain, the run's regrouping and bootstrap by user name alone.
+    gaps = {
+        int(g["gap_hours"]): int(g["n_campaigns"])
+        for g in _load(p.tables / "campaign_gap_sensitivity.json")
+    }
+    by_name = _regroup(units.positives, ("src_user",), 24)
+    by_account = _regroup(units.positives, ("src_user", "src_domain"), 24)
+    if by_name != gaps[24]:
+        raise ValueError(f"{t}: regrouping by user name gives {by_name}, the run {gaps[24]}")
+    macros.add(f"{t}RegroupByAccount", str(by_account))
+    macros.add(
+        f"{t}TestAccountsWithDomain",
+        str(len({(x["src_user"], x["src_domain"]) for x in units.positives})),
+    )
+
+
+def _regroup(positives: list[dict[str, str]], key: tuple[str, ...], gap_hours: int) -> int:
+    """Campaigns when positives are grouped by `key` and split at gaps over `gap_hours`."""
+    times: dict[tuple[str, ...], list[int]] = defaultdict(list)
+    for x in positives:
+        times[tuple(x[k] for k in key)].append(int(x["time"]))
+    return sum(
+        1 + sum(b - a > gap_hours * 3600 for a, b in zip(ts, ts[1:], strict=False))
+        for ts in (sorted(v) for v in times.values())
+    )
 
 
 def _fixed_table(p: Protocol) -> None:
@@ -680,6 +834,17 @@ def _fit_variance(macros: Macros, harm: Protocol, temp: Protocol) -> None:
             macros.add(f"{prefix}FitFirstMedian", _int(float(np.median(firsts))))
             macros.add(f"{prefix}FitNullMedian", _p(float(np.median(nulls))))
             macros.add(f"{prefix}FitNullMax", _p(max(nulls)))
+            macros.add(f"{prefix}FitWithinFifty", str(sum(b <= 50 for b in firsts)))
+            if (p.tag, model) == ("Harm", "M2b_pca_reconstruction"):
+                # The text: the two fits with the lowest AUC-PR, the reported one first, give the
+                # two earliest first detections.
+                by_auc = sorted(runs, key=lambda r: r["auc_pr"])
+                if by_auc[0]["seed"] != 42 or {
+                    r["budget_for_first_detection"] for r in by_auc[:2]
+                } != set(sorted(firsts)[:2]):
+                    raise ValueError(
+                        "PCA's AUC-PR and first detection no longer run opposite ways."
+                    )
             rows.append(
                 " & ".join(
                     [
@@ -697,6 +862,40 @@ def _fit_variance(macros: Macros, harm: Protocol, temp: Protocol) -> None:
     _write("table_fit_variance.tex", rows)
 
 
+def _campaign_accounts(p: Protocol) -> dict[int, str]:
+    """campaign_id -> source user, the account the run's bootstrap resamples (`ledger.campaign_users`)."""
+    name = {"Harm": "harmonised", "Temp": "temporal"}[p.tag]
+    with (USER_DAYS / f"positives_{name}.csv").open(encoding="utf-8") as handle:
+        accounts = {
+            p.event_campaign[int(r["event_id"])]: r["src_user"] for r in csv.DictReader(handle)
+        }
+    if len(accounts) != p.campaigns or len(set(accounts.values())) != p.accounts:
+        raise ValueError(f"{p.tag}: campaigns or accounts differ from the run's budget summary")
+    return accounts
+
+
+def _recall_interval(
+    p: Protocol, model: str, accounts: dict[int, str], k: int, n_resamples: int = 2_000
+) -> tuple[float, float]:
+    """95% percentile interval of campaign recall at k over accounts resampled with replacement."""
+    best: dict[int, int] = {}
+    for campaign, _, rank in p.ledger[model]:
+        best[campaign] = min(rank, best.get(campaign, rank))
+    if abs(np.mean([b <= k for b in best.values()]) - p.recall(model, k)) > 1e-9:
+        raise ValueError(f"{p.tag} {model}: ledger recall at {k} differs from the run's")
+    users = sorted(set(accounts.values()))
+    detected = np.zeros(len(users))
+    size = np.zeros(len(users))
+    for campaign, b in best.items():
+        u = users.index(accounts[campaign])
+        detected[u] += b <= k
+        size[u] += 1
+    rng = np.random.default_rng(k)
+    draws = rng.integers(0, len(users), (n_resamples, len(users)))
+    share = detected[draws].sum(axis=1) / size[draws].sum(axis=1)
+    return float(np.quantile(share, 0.025)), float(np.quantile(share, 0.975))
+
+
 def _budgets_table(macros: Macros, p: Protocol) -> None:
     """The three smallest campaign budgets, budget quantiles and, for a partial first test day,
     the first detection without it (harmonised: test day 1 holds only hours 41 to 47)."""
@@ -708,15 +907,22 @@ def _budgets_table(macros: Macros, p: Protocol) -> None:
         macros.add(f"{t}DayOneEvents", _int(p.day_rows[0]["events"]))
         macros.add(f"{t}OtherDaysMin", _int(min(sizes)))
         macros.add(f"{t}OtherDaysMax", _int(max(sizes)))
+    accounts = _campaign_accounts(p)
     rows = []
     for model in sorted(p.non_trivial(), key=p.first_detection):
         budgets = p.campaign_budgets(model)
         stats = p.budgets[model]["statistics"]
+        median = stats["budget_q50"]
+        low, high = _recall_interval(p, model, accounts, 500)
         cells = [
             LABELS[model],
-            ", ".join(_int(b) for b in budgets[:3]),
+            # b* is in the results tables; the next two say how many campaigns it rests on.
+            ", ".join(_int(b) for b in budgets[1:3]),
             _int(stats["budget_q10"]["value"]),
-            _int(stats["budget_q50"]["value"]),
+            f"{_int(median['value'])} [{_int(median['ci_low'])}, {_int(median['ci_high'])}]",
+            f"{_pct(p.recall(model, 500))} [{_pct(low)}, {_pct(high)}]"
+            if p.recall(model, 500)
+            else _pct(0.0),
         ]
         prefix = t + MACRO_NAMES[model]
         macros.add(f"{prefix}SecondBudget", _int(budgets[1]))
@@ -978,16 +1184,26 @@ def _euler(macros: Macros) -> None:
     # Columns of a run line: model, TPR, FPR, TP, FP, F1, AUC, AP, ...
     run_auc = [float(r[6]) for r in runs]
     run_ap = [float(r[7]) for r in runs]
+    # The published value is one number, not a population mean: each sample is set against it
+    # through the 95% prediction interval for one further run, AP also on the log scale.
+    quantile = float(student_t.ppf(0.975, n - 1))
     for name, sample, published in (
         ("Auc", run_auc, EULER_PUBLISHED["auc"]),
         ("Ap", run_ap, EULER_PUBLISHED["ap"]),
     ):
-        test = ttest_1samp(sample, published)
-        macros.add(f"EulerAuthors{name}T", f"{float(test.statistic):.1f}")
-        macros.add(
-            f"EulerAuthors{name}TP",
-            f"{float(test.pvalue):.3f}" if test.pvalue >= 0.001 else _sci(float(test.pvalue), 1),
-        )
+        values_ = np.array(sample)
+        if not (values_ < published).all():
+            raise ValueError(f"The text says every authors' run is below the published {name}.")
+        macros.add(f"EulerAuthors{name}Min", f"{values_.min():.4f}")
+        macros.add(f"EulerAuthors{name}Max", f"{values_.max():.4f}")
+        macros.add(f"EulerAuthors{name}Gap", f"{published - values_.mean():.4f}")
+        for scale, x in (("", values_), ("Log", np.log(values_))):
+            half = quantile * x.std(ddof=1) * math.sqrt(1 + 1 / n)
+            low, high = x.mean() - half, x.mean() + half
+            if scale:
+                low, high = math.exp(low), math.exp(high)
+            macros.add(f"EulerAuthors{name}{scale}PredLow", f"{low:.4f}")
+            macros.add(f"EulerAuthors{name}{scale}PredHigh", f"{high:.4f}")
     tpr = float(values["mean"]["TPR"])
     fpr = float(values["mean"]["FPR"])
     precision = float(np.mean([float(r[3]) / (float(r[3]) + float(r[4])) for r in runs]))
@@ -1011,8 +1227,6 @@ def _euler(macros: Macros) -> None:
     macros.add("EulerAuthorsAucSd", f"{auc_sd:.4f}")
     macros.add("EulerAuthorsAp", f"{ap:.4f}")
     macros.add("EulerAuthorsApSd", f"{ap_sd:.4f}")
-    macros.add("EulerAuthorsApMin", f"{min(float(r[7]) for r in runs):.4f}")
-    macros.add("EulerAuthorsApMax", f"{max(float(r[7]) for r in runs):.4f}")
     macros.add("EulerAuthorsLoadedEdges", _int(int(total.group(2))))
     macros.add("EulerAuthorsLoadedAnomalous", total.group(3))
     macros.add("EulerAuthorsFirstSnapshot", first.group(1))
@@ -1167,7 +1381,7 @@ def _figure_first_detection(path: Path, harm: Protocol, temp: Protocol) -> None:
             (("roc_auc", "ROC-AUC"), ("auc_pr", "AUC-PR (log scale)"))
         ):
             ax = axes[row][col]
-            ax.axhspan(1, 500, color="0.93", zorder=0)
+            ax.axhspan(10, 500, color="0.93", zorder=0)
             ax.axhspan(low, high, color="0.80", zorder=0.5)
             ax.axhline(median, color="0.35", linestyle="--", linewidth=0.8, zorder=1)
             for model in p.non_trivial():
@@ -1213,7 +1427,7 @@ def _figure_first_detection(path: Path, harm: Protocol, temp: Protocol) -> None:
             if col == 0:
                 ax.set_ylabel(f"{title}\nfirst detection (alerts/day)")
             ax.text(
-                0.98, 0.03, "1 to 500 alerts/day", transform=ax.transAxes, fontsize=6, ha="right"
+                0.98, 0.03, "10 to 500 alerts/day", transform=ax.transAxes, fontsize=6, ha="right"
             )
     fig.tight_layout()
     fig.savefig(path, metadata={"CreationDate": None, "ModDate": None, "Producer": None})
@@ -1236,6 +1450,37 @@ def _campaign_budgets(p: Protocol) -> dict[str, list[int]]:
         if out[model][0] != p.first_detection(model):
             raise ValueError(f"{p.tag} {model}: ledger first detection differs")
     return out
+
+
+def _random_recall_band(
+    p: Protocol, grid: np.ndarray, n_simulations: int = 1_000
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Campaign recall under uniformly random rankings of each day: mean and central 95% range.
+
+    The curve the paper compares with, rather than the one realisation of the random floor M0a.
+    """
+    positives = p.ledger["M0a_random"]
+    campaigns = sorted({c for c, _, _ in positives})
+    position = {c: i for i, c in enumerate(campaigns)}
+    index = np.array([position[c] for c, _, _ in positives])
+    by_day: dict[int, list[int]] = defaultdict(list)
+    for i, (_, day, _) in enumerate(positives):
+        by_day[day].append(i)
+    rng = np.random.default_rng(0)
+    curves = np.empty((n_simulations, grid.size))
+    ranks = np.empty(len(positives), dtype=np.int64)
+    for s in range(n_simulations):
+        for day, rows in by_day.items():
+            n = p.days_by_number[day]["events"]
+            ranks[rows] = rng.choice(n, size=len(rows), replace=False) + 1
+        budgets = np.full(len(campaigns), np.iinfo(np.int64).max)
+        np.minimum.at(budgets, index, ranks)
+        curves[s] = (budgets[None, :] <= grid[:, None]).mean(axis=1)
+    return (
+        curves.mean(axis=0),
+        np.quantile(curves, 0.025, axis=0),
+        np.quantile(curves, 0.975, axis=0),
+    )
 
 
 def _figure_recall(path: Path, harm: Protocol, temp: Protocol) -> None:
@@ -1268,15 +1513,16 @@ def _figure_recall(path: Path, harm: Protocol, temp: Protocol) -> None:
                 linewidth=0.9,
                 label=LABELS[model],
             )
-        b = np.array(budgets["M0a_random"])
+        mean, low, high = _random_recall_band(p, grid)
+        ax.fill_between(grid, low, high, step="post", color="0.82", linewidth=0, zorder=0.5)
         ax.step(
             grid,
-            (b[None, :] <= grid[:, None]).mean(axis=1),
+            mean,
             where="post",
             color="0.45",
-            linewidth=1.4,
-            linestyle=(0, (4, 1, 1, 1, 1, 1)),
-            label="M0a random (floor)",
+            linewidth=1.2,
+            linestyle=(0, (1, 1)),
+            label="random ranking (mean, 95% band)",
         )
         ax.set_xscale("log")
         ax.set_xlim(1, 10**6)

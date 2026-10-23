@@ -32,7 +32,7 @@ split:
 
 # conf/features/base.yaml
 features:
-  f2_windows_hours: [1, 24, 168]
+  f2_windows_hours: [1, 24]
   f5_graph_enabled: false
   f6_sequence_enabled: false
   f6_context_length: 32

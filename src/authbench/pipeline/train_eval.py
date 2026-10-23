@@ -60,6 +60,7 @@ from authbench.models.stats import (
 from authbench.pipeline.build_features import CONF_DIR, feature_store_version
 from authbench.pipeline.tracking import open_tracker
 from authbench.pipeline.tuning import TuningRecord, fit_variance, tune_and_fit
+from authbench.split.temporal import verify_temporal_order
 
 logger = logging.getLogger(__name__)
 
@@ -301,6 +302,9 @@ def main(cfg: DictConfig) -> None:
         raise FileNotFoundError(
             f"No train or test day files under {version_dir}; run build_features."
         )
+    # On the written partitions, not their configured ranges: every timestamp of a partition
+    # precedes every timestamp of the next.
+    verify_temporal_order(train, val, test)
 
     tracker = open_tracker(str(cfg.mlflow.tracking_uri), str(cfg.mlflow.experiment_name))
     report_roc_auc = bool(cfg.eval.roc_auc.report)

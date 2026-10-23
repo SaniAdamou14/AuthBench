@@ -1,0 +1,8 @@
+# Generated outputs are compared byte for byte (CI regenerates them and fails on a difference),
+# so their line endings must not depend on the platform that checks them out.
+*.csv text eol=lf
+*.json text eol=lf
+*.tex text eol=lf
+*.bib text eol=lf
+*.md text eol=lf
+*.gz binary
