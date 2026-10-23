@@ -82,6 +82,25 @@ this summarizes.
 17. **Euler is a partial reproduction.** On the authors' protocol the reimplementation stays
     about 3 points of AUC and half the AP below the authors' own code on identical test edges;
     their code contains training choices the paper does not state, which are not ported.
+    (Addition, 23 October 2026, review round 2: the reimplementation also has two unintended
+    deviations, a degree-scaled bias in the second GCN layer and a self-loop added even where
+    one exists; and what was not reproduced is the authors' released code and preprocessing
+    in its November 2023 environment, whose node and event counts differ from the paper's
+    table V.)
+18. **The harmonised first test day is partial.** Test day 1 holds hours 41 to 47 only
+    (1,653,645 events against 4.6 to 8.3 million on the other days), so a daily budget is a
+    larger share of it. The autoencoder's and Euler's first detections fall on that day; without
+    it they move from 59 to 528 and from 203 to 397 alerts a day (report, appendix D).
+19. **Design choices made after seeing results on the same operation.** The source-side
+    features (M2c, R8), the edge-hour and user-day units and the day-anchored rarity were added
+    after the September run's results on the temporal test days were reviewed. Those days lie
+    inside the harmonised test window. Results that depend on these choices, above all the
+    user-day results of source rarity, are not confirmatory.
+
+**Correction to item 13, 23 October 2026 (review round 2).** The percentile bootstrap of a
+minimum has no coverage interpretation: its upper end is, by construction, about the fourth
+smallest campaign budget of the resampled accounts. The report no longer presents it as an
+interval; it gives the three smallest campaign budgets, the exact null and the seed range.
 
 ## Metrics deliberately not used as primary
 

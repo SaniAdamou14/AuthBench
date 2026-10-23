@@ -48,6 +48,17 @@ def minimum_resamples_for_family(n_comparisons: int, alpha: float = 0.05) -> int
     return int(np.ceil(2 * n_comparisons / alpha)) - 1
 
 
+def p_value_monte_carlo_se(p: float, n_resamples: int) -> float:
+    """Monte Carlo standard error of the percentile-inversion p-value.
+
+    The p-value is about 2t/R with t the smaller tail count, binomial with probability
+    q = p/2, so its standard error is 2 sqrt(q (1 - q) / R) = sqrt(2p (1 - p/2) / R).
+    The binomial formula sqrt(p (1 - p) / R) applied to p itself understates it by up to
+    a factor of sqrt(2) for small p (review round 2).
+    """
+    return float(np.sqrt(2 * p * (1 - p / 2) / n_resamples))
+
+
 @dataclass
 class BootstrapResult:
     point_estimate: float
@@ -251,7 +262,7 @@ class PairedBootstrap:
                 diff_ci_low=ci[0],
                 diff_ci_high=ci[1],
                 method="paired_block_bootstrap",
-                p_value_mc_se=float(np.sqrt(p * (1 - p) / self.n_resamples)),
+                p_value_mc_se=p_value_monte_carlo_se(p, self.n_resamples),
             )
             for (a, b), diff, p, adjusted, sig, ci, floored in zip(
                 pairs,

@@ -26,7 +26,7 @@ import numpy as np
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
-from scipy.stats import rankdata  # noqa: E402
+from scipy.stats import rankdata, ttest_1samp  # noqa: E402
 
 from authbench.evaluate.budget import (  # noqa: E402
     random_first_detection_quantile,
@@ -104,6 +104,15 @@ METRICS = {
 FPR_KEY = "0.0001"
 PERMUTATIONS = 200_000
 NULL_SIMULATIONS = 10_000
+UNIT_SIMULATIONS = 20_000
+# Campaign-budget summaries from budget_summary.json: macro suffix and table label.
+SUMMARIES = {
+    "first_detection": ("First", "first detection $b^{*}$"),
+    "budget_q10": ("Qten", "10\\% quantile of $b(c)$"),
+    "budget_q25": ("Qtwentyfive", "25\\% quantile"),
+    "budget_q50": ("Median", "median $b(c)$"),
+    "log_area": ("LogArea", "log-area"),
+}
 RULES = [
     ("R1_new_pair", "R1 new (user, destination) pair"),
     ("R2_host_burst", "R2 burst of destinations"),
@@ -122,7 +131,25 @@ EULER_CONFIGS = [
 ]
 # King and Huang (2022): table V (events, anomalous edges) and table VI (GCN + GRU, link
 # prediction). External published values, not run outputs.
-EULER_PUBLISHED = {"events": 45_871_390, "anomalous": 518, "auc": 0.9906, "ap": 0.0155}
+EULER_PUBLISHED = {
+    "events": 45_871_390,
+    "nodes": 17_685,
+    "anomalous": 518,
+    "auc": 0.9906,
+    "ap": 0.0155,
+    "tpr": 0.8549,
+    "fpr": 0.006088,
+    "precision": 0.0050,
+}
+# Larroche (2026), Table 4 (LANL universe) and Table 5 (event-level re-evaluation, mean and
+# standard deviation over ten runs, in percent; "rep." is the originally reported value).
+LARROCHE_EVENTS = 369_569_626
+LARROCHE_MALICIOUS = 702
+LARROCHE_TABLE5 = {
+    "Euler (link detection)": ("97.97 $\\pm$ 0.17", "99.12", "0.02 $\\pm$ 0.00", "5.23"),
+    "Argus": ("98.44 $\\pm$ 0.78", "99.83", "0.09 $\\pm$ 0.04", "32.27"),
+    "Pikachu": ("78.28 $\\pm$ 0.43", "94 $\\pm$ 0.4", "0.00 $\\pm$ 0.00", "n/a"),
+}
 # Label offsets in points for the first-detection figure, per (protocol, metric), chosen so no
 # label covers a point or another label; a leader line is drawn when the label is moved far.
 LABEL_OFFSETS: dict[tuple[str, str], dict[str, tuple[int, int]]] = {
@@ -234,6 +261,32 @@ class Protocol:
         first = next(iter(self.budgets.values()))
         self.campaigns = int(first["n_campaigns"])
         self.accounts = int(first["n_accounts"])
+        # Every positive event, with its campaign, day and daily rank (arrival tie order), per model.
+        self.ledger: dict[str, list[tuple[int, int, int]]] = defaultdict(list)
+        with (tables / "positives_ledger.csv").open(encoding="utf-8") as handle:
+            for row in csv.DictReader(handle):
+                self.ledger[row["model"]].append(
+                    (int(row["campaign_id"]), int(row["day"]), int(row["rank"]))
+                )
+
+    def campaign_budgets(self, model: str, skip_days: tuple[int, ...] = ()) -> list[int]:
+        """Sorted b(c): each campaign's best daily rank, ignoring the days in `skip_days`."""
+        best: dict[int, int] = {}
+        for campaign, day, rank in self.ledger[model]:
+            if day not in skip_days:
+                best[campaign] = min(rank, best.get(campaign, rank))
+        return sorted(best.values())
+
+    def positive_user_days(self) -> dict[int, list[int]]:
+        """Campaigns with a positive event on each test day: the day's positive user-days.
+
+        Two campaigns of one account are more than a day apart, so a (day, campaign) pair is
+        exactly one positive user-day.
+        """
+        by_day: dict[int, set[int]] = defaultdict(set)
+        for campaign, day, _ in self.ledger["M0a_random"]:
+            by_day[day].add(campaign)
+        return {day: sorted(campaigns) for day, campaigns in by_day.items()}
 
     def first_detection(self, model: str) -> int:
         value = self.budgets[model]["statistics"]["first_detection"]["value"]
@@ -354,25 +407,109 @@ def _spearman(x: list[float], y: list[float]) -> float:
     return float(np.corrcoef(rankdata(x), rankdata(y))[0, 1])
 
 
+def _holm(pvalues: list[float]) -> list[float]:
+    """Holm-adjusted p-values, in the input order."""
+    order = sorted(range(len(pvalues)), key=lambda i: pvalues[i])
+    adjusted = [0.0] * len(pvalues)
+    running = 0.0
+    for rank, i in enumerate(order):
+        running = max(running, min(1.0, (len(pvalues) - rank) * pvalues[i]))
+        adjusted[i] = running
+    return adjusted
+
+
+def _summary(p: Protocol, model: str, key: str) -> float:
+    """A campaign-budget summary oriented so that higher is better."""
+    if key == "first_detection":
+        return -float(p.first_detection(model))
+    value = float(p.budgets[model]["statistics"][key]["value"])
+    return value if key == "log_area" else -value
+
+
 def _correlations(macros: Macros, harm: Protocol, temp: Protocol) -> None:
-    rows = []
-    for key, (macro, label) in METRICS.items():
+    """Spearman's rho between threshold-free metrics and every budget summary, as one family.
+
+    Per protocol, the family is every (metric, summary) pair; p-values are Monte Carlo
+    permutation p-values, Holm-adjusted within the family. Leave-one-detector-out gives the
+    range of rho when any single detector is removed.
+    """
+    metrics = {
+        "roc_auc": ("RocAuc", "ROC-AUC"),
+        "auc_pr": ("AucPr", "AUC-PR"),
+        "cw_ap": ("CwAp", "campaign-weighted AP"),
+    }
+    results: dict[str, dict[tuple[str, str], tuple[float, float, float, float]]] = {}
+    for p in (harm, temp):
+        names = p.non_trivial()
+        raw: dict[tuple[str, str], tuple[float, float, float, float]] = {}
+        for key in metrics:
+            values = [
+                float(p.models[m]["auc_pr_campaign_weighted"])
+                if key == "cw_ap"
+                else p.metric(m, key)
+                for m in names
+            ]
+            for summary in SUMMARIES:
+                budget = [_summary(p, m, summary) for m in names]
+                rho = _spearman(values, budget)
+                drops = [
+                    _spearman(values[:i] + values[i + 1 :], budget[:i] + budget[i + 1 :])
+                    for i in range(len(names))
+                ]
+                raw[(key, summary)] = (
+                    rho,
+                    _permutation_p(values, budget, rho),
+                    min(drops),
+                    max(drops),
+                )
+        holm = _holm([v[1] for v in raw.values()])
+        results[p.tag] = {
+            k: (v[0], v[1], h, v[2], v[3]) for (k, v), h in zip(raw.items(), holm, strict=True)
+        }
+        for (key, summary), (rho, pvalue, adjusted, low, high) in results[p.tag].items():
+            name = f"{p.tag}Rho{metrics[key][0]}{SUMMARIES[summary][0]}"
+            macros.add(name, f"{rho:.2f}")
+            macros.add(f"{name}P", _p(pvalue))
+            macros.add(f"{name}Holm", _p(adjusted))
+            macros.add(f"{name}Low", f"{low:.2f}")
+            macros.add(f"{name}High", f"{high:.2f}")
+        zeros = sum(p.metric(m, "recall_fpr") == 0 for m in names)
+        macros.add(f"{p.tag}RecallFprZeros", str(zeros))
+        recall = [p.metric(m, "recall_fpr") for m in names]
+        rho = _spearman(recall, [_summary(p, m, "first_detection") for m in names])
+        macros.add(f"{p.tag}RhoRecallFprFirst", f"{rho:.2f}")
+    main, full = [], []
+    for summary, (_, label) in SUMMARIES.items():
         cells = [label]
-        for p in (harm, temp):
-            names = p.non_trivial()
-            metric = [p.metric(m, key) for m in names]
-            budget = [-p.first_detection(m) for m in names]
-            rho = _spearman(metric, budget)
-            pvalue = _permutation_p(metric, budget, rho)
-            macros.add(f"{p.tag}Spearman{macro}", f"{rho:.2f}")
-            macros.add(f"{p.tag}SpearmanP{macro}", _p(pvalue))
-            cells += [f"{rho:.2f}", _p(pvalue)]
-        rows.append(" & ".join(cells) + r" \\")
-    _write("table_correlations.tex", rows)
+        for tag in ("Harm", "Temp"):
+            for key in ("roc_auc", "auc_pr"):
+                rho, _, adjusted, _, _ = results[tag][(key, summary)]
+                cells += [f"{rho:.2f}", _p(adjusted)]
+        main.append(" & ".join(cells) + r" \\")
+    for tag, protocol in (("Harm", "harmonised"), ("Temp", "temporal")):
+        for key, (_, label) in metrics.items():
+            for summary, (_, slabel) in SUMMARIES.items():
+                rho, pvalue, adjusted, low, high = results[tag][(key, summary)]
+                full.append(
+                    f"{protocol} & {label} & {slabel} & {rho:.2f} & [{low:.2f}, {high:.2f}] & "
+                    f"{_p(pvalue)} & {_p(adjusted)} \\\\"
+                )
+    _write("table_correlations.tex", main)
+    _write("table_correlations_full.tex", full)
     macros.add("PermutationCount", _int(PERMUTATIONS))
+    macros.add("CorrelationFamily", str(len(metrics) * len(SUMMARIES)))
 
 
-def _results_table(name: str, p: Protocol) -> None:
+def _holm_null(p: Protocol) -> dict[str, float]:
+    """Null probabilities of the first detection, Holm-adjusted over the non-trivial detectors."""
+    names = p.non_trivial()
+    return dict(zip(names, _holm([p.null_p(m) for m in names]), strict=True))
+
+
+def _results_table(macros: Macros, name: str, p: Protocol) -> None:
+    holm = _holm_null(p)
+    for model, adjusted in holm.items():
+        macros.add(f"{p.tag}{MACRO_NAMES[model]}NullHolm", _p(adjusted))
     rows = []
     for model in ORDER:
         if model not in p.models:
@@ -389,6 +526,7 @@ def _results_table(name: str, p: Protocol) -> None:
             _pct(p.recall(model, 500)),
             _int(p.first_detection(model)),
             _p(p.null_p(model)),
+            _p(holm[model]) if model in holm else "",
         ]
         rows.append(" & ".join(cells) + r" \\")
     _write(name, rows)
@@ -423,23 +561,102 @@ def _regime_table(macros: Macros, r1: Protocol, r2: Protocol) -> None:
     macros.add("RegimeUnchanged", str(len(unchanged)))
 
 
-def _units_table(p: Protocol) -> None:
+def _unit_null(p: Protocol) -> tuple[list[tuple[int, int]], dict[int, tuple[float, float, float]]]:
+    """The random-ranking null in user-days: per-day (units, positive units), and campaign recall.
+
+    The first-detection null is Eq. 2 with user-days for events. For campaign recall at k, a
+    random ranking puts a hypergeometric number of a day's positive user-days in its top k, and
+    which ones is uniform; campaigns are detected through any of their user-days. Returns the
+    days and, per budget, the mean and central 95% range of recall over UNIT_SIMULATIONS draws.
+    """
+    positives = p.positive_user_days()
+    days = [(row["user_days"], len(positives.get(row["day"], []))) for row in p.day_rows]
+    campaigns = sorted({c for cs in positives.values() for c in cs})
+    if len(campaigns) != p.campaigns:
+        raise ValueError(
+            f"{p.tag}: {len(campaigns)} campaigns in the ledger, {p.campaigns} expected"
+        )
+    index = {c: i for i, c in enumerate(campaigns)}
+    recall = {}
+    for budget in (50, 500):
+        rng = np.random.default_rng(budget)
+        detected = np.zeros((UNIT_SIMULATIONS, len(campaigns)), dtype=bool)
+        for row in p.day_rows:
+            units = positives.get(row["day"], [])
+            if not units:
+                continue
+            n = row["user_days"]
+            inside = rng.hypergeometric(
+                len(units), n - len(units), min(budget, n), UNIT_SIMULATIONS
+            )
+            order = np.argsort(
+                np.argsort(rng.random((UNIT_SIMULATIONS, len(units))), axis=1), axis=1
+            )
+            chosen = order < inside[:, None]
+            for j, campaign in enumerate(units):
+                detected[:, index[campaign]] |= chosen[:, j]
+        share = detected.mean(axis=1)
+        recall[budget] = (
+            float(share.mean()),
+            float(np.quantile(share, 0.025)),
+            float(np.quantile(share, 0.975)),
+        )
+    return days, recall
+
+
+def _units_table(macros: Macros, p: Protocol) -> None:
+    days, null_recall = _unit_null(p)
+    t = p.tag
+    macros.add(f"{t}PositiveUserDays", _int(sum(k for _, k in days)))
+    for budget, name in ((50, "Fifty"), (500, "FiveHundred")):
+        mean, low, high = null_recall[budget]
+        macros.add(f"{t}UnitNull{name}", _pct(mean))
+        macros.add(f"{t}UnitNull{name}Low", _pct(low))
+        macros.add(f"{t}UnitNull{name}High", _pct(high))
+    macros.add(f"{t}UnitNullFirstMedian", _int(random_first_detection_quantile(days, 0.5)))
     rows = []
-    for model in sorted(p.non_trivial() + ["M0a_random"], key=p.first_detection):
-        units = p.models[model]["operational"]["alert_units"]
-        fixed = p.models[model]["operational"]["fixed_threshold"][0]
-        cells = [
-            LABELS[model],
-            _pct(p.recall(model, 500)),
-            _pct(p.recall(model, 500, "edge_hour")),
-            _pct(p.recall(model, 50, "user_day")),
-            _pct(p.recall(model, 500, "user_day")),
-            _int(units["user_day"]["budget_for_first_detection"]),
-            _int(fixed["alerts_per_day_mean"]),
-            _int(fixed["alerts_per_day_max"]),
-        ]
+    for model in sorted(p.non_trivial() + list(FLOORS), key=p.first_detection):
+        first = int(
+            p.models[model]["operational"]["alert_units"]["user_day"]["budget_for_first_detection"]
+        )
+        null = 1 - random_first_detection_survival(days, first)
+        macros.add(f"{t}{MACRO_NAMES[model]}UserDayNullP", _p(null))
+        rows.append(
+            " & ".join(
+                [
+                    LABELS[model],
+                    _pct(p.recall(model, 500)),
+                    _pct(p.recall(model, 500, "edge_hour")),
+                    _pct(p.recall(model, 50, "user_day")),
+                    _pct(p.recall(model, 500, "user_day")),
+                    _int(first),
+                    _p(null),
+                ]
+            )
+            + r" \\"
+        )
+    rows.append(r"\midrule")
+    rows.append(
+        "Random ranking (exact null) & & & "
+        f"{_pct(null_recall[50][0])} & {_pct(null_recall[500][0])} & "
+        f"{_int(random_first_detection_quantile(days, 0.5))} & \\\\"
+    )
+    _write(f"table_units_{t.lower()}.tex", rows)
+
+
+def _fixed_table(p: Protocol) -> None:
+    rows = []
+    for model in sorted(p.non_trivial() + list(FLOORS), key=p.first_detection):
+        cells = [LABELS[model]]
+        for entry in p.models[model]["operational"]["fixed_threshold"]:
+            if entry["budget"] in (10, 500):
+                cells += [
+                    _int(entry["alerts_per_day_mean"]),
+                    _int(entry["alerts_per_day_max"]),
+                    _pct(entry["campaign_recall"]),
+                ]
         rows.append(" & ".join(cells) + r" \\")
-    _write(f"table_units_{p.tag.lower()}.tex", rows)
+    _write(f"table_fixed_{p.tag.lower()}.tex", rows)
 
 
 def _fit_variance(macros: Macros, harm: Protocol, temp: Protocol) -> None:
@@ -452,17 +669,25 @@ def _fit_variance(macros: Macros, harm: Protocol, temp: Protocol) -> None:
             runs = variance[model]["runs"]
             aucs = [r["auc_pr"] for r in runs]
             firsts = [r["budget_for_first_detection"] for r in runs]
+            nulls = [1 - random_first_detection_survival(p.days, b) for b in firsts]
             at_500 = [r["campaign_recall"]["500"] for r in runs]
+            reported = next(r for r in runs if r["seed"] == 42)["budget_for_first_detection"]
+            if reported != p.first_detection(model):
+                raise ValueError(f"{p.tag} {model}: seed 42 is not the reported fit")
             prefix = p.tag + MACRO_NAMES[model]
             macros.add(f"{prefix}FitFirstMin", _int(min(firsts)))
             macros.add(f"{prefix}FitFirstMax", _int(max(firsts)))
+            macros.add(f"{prefix}FitFirstMedian", _int(float(np.median(firsts))))
+            macros.add(f"{prefix}FitNullMedian", _p(float(np.median(nulls))))
+            macros.add(f"{prefix}FitNullMax", _p(max(nulls)))
             rows.append(
                 " & ".join(
                     [
                         {"Harm": "harmonised", "Temp": "temporal"}[p.tag],
                         LABELS[model],
                         f"[${_sci(min(aucs))}$, ${_sci(max(aucs))}$]",
-                        f"[{_int(min(firsts))}, {_int(max(firsts))}]",
+                        f"{_int(float(np.median(firsts)))} [{_int(min(firsts))}, {_int(max(firsts))}]",
+                        f"{_p(float(np.median(nulls)))} [{_p(min(nulls))}, {_p(max(nulls))}]",
                         f"[{_pct(min(at_500))}, {_pct(max(at_500))}]",
                     ]
                 )
@@ -470,6 +695,133 @@ def _fit_variance(macros: Macros, harm: Protocol, temp: Protocol) -> None:
             )
         macros.add(f"{p.tag}FitSeeds", str(len(next(iter(variance.values()))["runs"])))
     _write("table_fit_variance.tex", rows)
+
+
+def _budgets_table(macros: Macros, p: Protocol) -> None:
+    """The three smallest campaign budgets, budget quantiles and, for a partial first test day,
+    the first detection without it (harmonised: test day 1 holds only hours 41 to 47)."""
+    t = p.tag
+    partial = (p.day_rows[0]["day"],) if t == "Harm" else ()
+    later = [(r["events"], r["positives"]) for r in p.day_rows if r["day"] not in partial]
+    if partial:
+        sizes = [r["events"] for r in p.day_rows[1:]]
+        macros.add(f"{t}DayOneEvents", _int(p.day_rows[0]["events"]))
+        macros.add(f"{t}OtherDaysMin", _int(min(sizes)))
+        macros.add(f"{t}OtherDaysMax", _int(max(sizes)))
+    rows = []
+    for model in sorted(p.non_trivial(), key=p.first_detection):
+        budgets = p.campaign_budgets(model)
+        stats = p.budgets[model]["statistics"]
+        cells = [
+            LABELS[model],
+            ", ".join(_int(b) for b in budgets[:3]),
+            _int(stats["budget_q10"]["value"]),
+            _int(stats["budget_q50"]["value"]),
+        ]
+        prefix = t + MACRO_NAMES[model]
+        macros.add(f"{prefix}SecondBudget", _int(budgets[1]))
+        macros.add(f"{prefix}ThirdBudget", _int(budgets[2]))
+        macros.add(f"{prefix}MedianBudget", _int(stats["budget_q50"]["value"]))
+        if partial:
+            without = p.campaign_budgets(model, partial)[0]
+            null = 1 - random_first_detection_survival(later, without)
+            macros.add(f"{prefix}FirstWithoutDayOne", _int(without))
+            macros.add(f"{prefix}NullWithoutDayOne", _p(null))
+            cells += [_int(without), _p(null)]
+        rows.append(" & ".join(cells) + r" \\")
+    _write(f"table_budgets_{t.lower()}.tex", rows)
+
+
+def _intrusion_table(macros: Macros, p: Protocol) -> None:
+    """The first test day on which some red-team event enters the top k of its day.
+
+    With one intrusion, this is the operational question: on which day is the operation first
+    noticed at a given staffing. The null is exact: a random ranking puts no positive of day d
+    in its top k with probability C(N_d - k, p_d) / C(N_d, p_d), independently across days.
+    """
+    t = p.tag
+    budgets = (50, 100, 500)
+    attack_day = min(r["day"] for r in p.day_rows if r["positives"])
+    macros.add(f"{t}AttackFirstDay", str(attack_day))
+    rows = []
+    for model in sorted(p.non_trivial() + ["M0a_random"], key=p.first_detection):
+        cells = [LABELS[model]]
+        for k in budgets:
+            days = sorted({day for _, day, rank in p.ledger[model] if rank <= k})
+            if not days:
+                cells.append("none")
+                continue
+            first = days[0]
+            upto = [(r["events"], r["positives"]) for r in p.day_rows if r["day"] <= first]
+            null = 1 - random_first_detection_survival(upto, k)
+            cells.append(f"{first} ({_p(null)})")
+            macros.add(f"{t}{MACRO_NAMES[model]}IntrusionDay{BUDGET_NAMES[k]}", str(first))
+            macros.add(f"{t}{MACRO_NAMES[model]}IntrusionNull{BUDGET_NAMES[k]}", _p(null))
+        rows.append(" & ".join(cells) + r" \\")
+    _write(f"table_intrusion_{t.lower()}.tex", rows)
+
+
+def _misc(macros: Macros, harm: Protocol, temp: Protocol) -> None:
+    tuning = _load(temp.tables / "tuning.json")
+    for entry in tuning:
+        macros.add(f"TuneCount{MACRO_NAMES[entry['model']]}", str(len(entry["candidates"])))
+    for p in (harm, temp):
+        macros.add(
+            f"{p.tag}NullWithinTen", _pct(1 - random_first_detection_survival(p.days, 10), 2)
+        )
+        macros.add(f"{p.tag}ZeroRecallUpper", _pct(1 - 0.05 ** (1 / p.campaigns)))
+        best, worst = p.budgets["M2a_pair_rarity"]["tie_range_first_detection"]
+        macros.add(f"{p.tag}PairRarityTieBest", _int(best))
+        macros.add(f"{p.tag}PairRarityTieWorst", _int(worst))
+        macros.add(
+            f"{p.tag}PairRarityTieBestNull",
+            _p(1 - random_first_detection_survival(p.days, best)),
+        )
+        macros.add(
+            f"{p.tag}PairRarityTieWorstNull",
+            _p(1 - random_first_detection_survival(p.days, worst)),
+        )
+        significant_floor = sum(c["significant"] and c["at_resolution_floor"] for c in p.pairs)
+        macros.add(f"{p.tag}PairsAtFloor", str(significant_floor))
+    for p in (harm, temp):
+        sizes: dict[int, int] = defaultdict(int)
+        per_day: dict[int, set[int]] = defaultdict(set)
+        for campaign, day, _ in p.ledger["M0a_random"]:
+            sizes[campaign] += 1
+            per_day[day].add(campaign)
+        busiest = sorted(per_day.items(), key=lambda kv: -len(kv[1]))[:3]
+        macros.add(f"{p.tag}CampaignSingletons", str(sum(n == 1 for n in sizes.values())))
+        macros.add(f"{p.tag}CampaignLargest", str(max(sizes.values())))
+        macros.add(
+            f"{p.tag}BusiestDays",
+            ", ".join(f"{day} ({len(c)})" for day, c in busiest),
+        )
+        macros.add(
+            f"{p.tag}BusiestDaysCampaigns",
+            str(len(set().union(*(c for _, c in busiest)))),
+        )
+    # Larroche (2026), Table 4: the harmonised LANL universe, 369,569,626 events, 702 malicious.
+    log = (RUN / "evaluate_harmonised.log").read_text(encoding="utf-8")
+    train = int(re.search(r"sample of \d+/(\d+) training rows", log).group(1))  # type: ignore[union-attr]
+    total = train + sum(n for n, _ in harm.days)
+    if (total, sum(k for _, k in harm.days)) != (LARROCHE_EVENTS, LARROCHE_MALICIOUS):
+        raise ValueError("The harmonised universe no longer equals Larroche's (2026) Table 4.")
+    macros.add("HarmUniverseEvents", _int(total))
+
+
+def _larroche_table(harm: Protocol) -> None:
+    """Event-level AUC and AP in percent on Larroche's (2026) universe: his Table 5, then ours."""
+    rows = [
+        f"{name} \\parencite{{larroche2026fair}} & {auc} & {auc_rep} & {ap} & {ap_rep} \\\\"
+        for name, (auc, auc_rep, ap, ap_rep) in LARROCHE_TABLE5.items()
+    ]
+    rows.append(r"\midrule")
+    for model in sorted(harm.non_trivial(), key=lambda m: -harm.metric(m, "auc_pr")):
+        rows.append(
+            f"{LABELS[model]} (this study) & {100 * harm.metric(model, 'roc_auc'):.2f} & & "
+            f"{100 * harm.metric(model, 'auc_pr'):.3f} & \\\\"
+        )
+    _write("table_larroche.tex", rows)
 
 
 def _split(macros: Macros, harm: Protocol) -> None:
@@ -623,6 +975,37 @@ def _euler(macros: Macros) -> None:
     evaluated = int(total.group(3)) - int(first.group(1))
     if {evaluated} != scored:
         raise ValueError("Loaded anomalous edges minus the unscored first snapshot != TP/TPR.")
+    # Columns of a run line: model, TPR, FPR, TP, FP, F1, AUC, AP, ...
+    run_auc = [float(r[6]) for r in runs]
+    run_ap = [float(r[7]) for r in runs]
+    for name, sample, published in (
+        ("Auc", run_auc, EULER_PUBLISHED["auc"]),
+        ("Ap", run_ap, EULER_PUBLISHED["ap"]),
+    ):
+        test = ttest_1samp(sample, published)
+        macros.add(f"EulerAuthors{name}T", f"{float(test.statistic):.1f}")
+        macros.add(
+            f"EulerAuthors{name}TP",
+            f"{float(test.pvalue):.3f}" if test.pvalue >= 0.001 else _sci(float(test.pvalue), 1),
+        )
+    tpr = float(values["mean"]["TPR"])
+    fpr = float(values["mean"]["FPR"])
+    precision = float(np.mean([float(r[3]) / (float(r[3]) + float(r[4])) for r in runs]))
+    macros.add("EulerAuthorsTpr", _pct(tpr))
+    macros.add("EulerAuthorsFpr", _pct(fpr, 3))
+    macros.add("EulerAuthorsPrecision", f"{precision:.4f}")
+    macros.add("EulerPublishedTpr", _pct(EULER_PUBLISHED["tpr"]))
+    macros.add("EulerPublishedFpr", _pct(EULER_PUBLISHED["fpr"], 3))
+    macros.add("EulerPublishedPrecision", f"{EULER_PUBLISHED['precision']:.4f}")
+    macros.add("EulerPublishedNodes", _int(EULER_PUBLISHED["nodes"]))
+    macros.add("EulerPublishedEvents", _int(EULER_PUBLISHED["events"]))
+    notes = (RUN / "REVIEW_NOTES.md").read_text(encoding="utf-8")
+    nodes = re.search(r"([\d,]+) nodes in its node map", notes)
+    kept = re.search(r'keeps lines containing "NTLM": ([\d,]+) events, ([\d,]+) without', notes)
+    assert nodes and kept
+    macros.add("EulerAuthorsNodes", nodes.group(1).replace(",", "{,}"))
+    macros.add("EulerAuthorsNtlmLines", kept.group(1).replace(",", "{,}"))
+    macros.add("EulerAuthorsNtlmNoLoops", kept.group(2).replace(",", "{,}"))
     macros.add("EulerAuthorsRuns", str(n))
     macros.add("EulerAuthorsAuc", f"{auc:.4f}")
     macros.add("EulerAuthorsAucSd", f"{auc_sd:.4f}")
@@ -923,11 +1306,16 @@ def main() -> None:
     for p in (harm, temp):
         _tie_macros(macros, p)
     _correlations(macros, harm, temp)
-    _results_table("table_results_harmonised.tex", harm)
-    _results_table("table_results_temporal.tex", temp)
+    _results_table(macros, "table_results_harmonised.tex", harm)
+    _results_table(macros, "table_results_temporal.tex", temp)
     _regime_table(macros, temp, temp_two)
-    _units_table(harm)
-    _units_table(temp)
+    for p in (harm, temp):
+        _units_table(macros, p)
+        _fixed_table(p)
+        _budgets_table(macros, p)
+        _intrusion_table(macros, p)
+    _misc(macros, harm, temp)
+    _larroche_table(harm)
     _fit_variance(macros, harm, temp)
     _split(macros, harm)
     _concentration(macros)
