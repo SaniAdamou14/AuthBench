@@ -1,35 +1,36 @@
 # M1 — heuristic rule engine (section 5.1). The real competitor, not a strawman.
+#
+# Descriptive only: `train_eval` builds M1 from `models.rules.RulesScorer` and tunes its
+# weights in `pipeline.tuning`; nothing here is read. It is kept to match the code.
 name: rules
 id: M1
 family: rules
-requires_labels: false
+# The rules are unsupervised; their weights are chosen on validation labels in the
+# temporal protocol (M1u keeps uniform weights and reads no label).
+requires_labels: true
 
 rules:
   - id: R1_new_pair
     mitre: T1078
-    enabled: true
   - id: R2_host_burst
     mitre: T1078
-    enabled: true
     percentile_threshold: 99.9
   - id: R3_fail_then_success
     mitre: T1110
-    enabled: true
   - id: R4_offhours
     mitre: T1078
-    enabled: true
   - id: R5_machine_account_anomaly
     mitre: T1550
-    enabled: true
   - id: R6_new_auth_type
     mitre: T1550
-    enabled: true
   - id: R7_lateral_chain
     mitre: T1021
-    enabled: true
     chain_window_minutes: 30
+  - id: R8_new_source
+    mitre: T1021
 
 weight_search:
-  method: random_search
-  n_trials: 200
+  # At most 20 candidates, the default (uniform) weights among them, scored by
+  # validation AUC-PR (`pipeline.tuning`).
+  max_candidates: 20
   seed: 42

@@ -168,7 +168,12 @@ of each protocol; the report's tables are generated from the same fields.
   campaigns and source rarity 50.6%, PCA 41.4% and the VAE 43.8%, against 4.3% for the random
   floor; at 500 events the same detectors reach 0.6%, 0.0%, 2.5% and 4.3%. A user-day budget
   covers more of a day (11,636 to 19,358 user-days per test day) and units carry no tie
-  bracket, which matters for M2a and M2c (limitation 14).
+  bracket, which matters for M2a and M2c (limitation 14). *Added after the run, 23 October
+  2026:* ranking the same user-days by the number of distinct destination computers of the
+  user that day, with no detector, reaches 56.8% at 500 and 30.2% at 50; random event scores
+  aggregated by their maximum reach 6.0%. Computed from the log by
+  `scripts/user_day_activity.py` into `diagnostics/user_days/`, checked against this run's day
+  sizes and positives by `scripts/paper_assets.py`.
 - **Fixed threshold.** Calibrated on the 41 harmonised training hours for 10 alerts a day, PCA
   raises 149 a day on average on the test and 8,222 on its worst day, the VAE 167 and 9,151,
   pair rarity 58,396 on average (its threshold falls inside a tie); HBOS raises 4. Calibrated on

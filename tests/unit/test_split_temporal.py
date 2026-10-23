@@ -49,6 +49,16 @@ def test_overlapping_split_raises_leakage_error() -> None:
         verify_temporal_order(train, leaky_val, test)
 
 
+def test_split_without_validation_is_checked_train_against_test() -> None:
+    events = _events([0, 1, 2, 3, 4, 5, 6])
+    train = events.filter(pl.col("day") <= 2)
+    verify_temporal_order(train, None, events.filter(pl.col("day") >= 3))  # must not raise
+    with pytest.raises(LeakageError):
+        verify_temporal_order(train, None, events.filter(pl.col("day") >= 2))
+    with pytest.raises(LeakageError):
+        verify_temporal_order(train, None, events.filter(pl.col("day") > 6))
+
+
 def test_empty_partition_raises_leakage_error() -> None:
     events = _events([0, 1, 2])
     train = get_train_split(events, CONFIG)

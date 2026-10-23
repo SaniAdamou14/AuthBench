@@ -1,3 +1,6 @@
+# Descriptive only: not read by `train_eval`, whose catalogue and tuning grids are in
+# `pipeline/train_eval.py` and `pipeline/tuning.py`. Only ae, vae and euler are read.
+
 name: stats
 id: M2a
 family: statistical

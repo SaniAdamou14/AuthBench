@@ -1,7 +1,13 @@
 .PHONY: install install-lanl install-all lint typecheck test demo report preflight clean
 
 VENV := .venv
-PY := py -3.11 -m uv run --python $(VENV)
+# uv through the Windows launcher where `uv` is often not on PATH, uv itself elsewhere.
+ifeq ($(OS),Windows_NT)
+UV ?= py -3.11 -m uv
+else
+UV ?= uv
+endif
+PY := $(UV) run --python $(VENV)
 
 # `--locked` everywhere below is load-bearing: it fails instead of silently
 # re-resolving if uv.lock and pyproject.toml disagree, which is what keeps
@@ -13,14 +19,14 @@ PY := py -3.11 -m uv run --python $(VENV)
 # included (CPU-only torch). NOT enough for `dvc repro`, which needs DVC itself
 # from the `tracking` extra: see install-lanl.
 install:
-	py -3.11 -m uv sync --extra classical --extra deep --extra graph --extra dev --locked --python 3.11
+	$(UV) sync --extra classical --extra deep --extra graph --extra dev --locked --python 3.11
 
 # What the real-dataset run needs: the catalog including the autoencoders, plus DVC and MLflow.
 install-lanl:
-	py -3.11 -m uv sync --extra classical --extra deep --extra tracking --extra dev --locked --python 3.11
+	$(UV) sync --extra classical --extra deep --extra tracking --extra dev --locked --python 3.11
 
 install-all:
-	py -3.11 -m uv sync --extra all --locked --python 3.11
+	$(UV) sync --extra all --locked --python 3.11
 
 lint:
 	$(PY) ruff check src tests scripts

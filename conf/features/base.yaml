@@ -31,10 +31,13 @@ history_warmup_days: 2
 # Events featurised and scored: all, remote_logon, or remote_logon_user (pipeline.build_features).
 universe: all
 
+# Every value under f1-f6 is what `features.incremental.featurize_day` implements;
+# `build_features` refuses any other (`SUPPORTED_FEATURES`), since the feature store
+# would otherwise change its hash and nothing else.
 f2_history:
   enabled: true
-  windows_hours: [1, 24, 168]  # 1h / 24h / 7d
-  entities: [src_user, src_computer, dst_computer]
+  windows_hours: [1, 24]  # what the detectors read; see features/history.py
+  entities: [src_user, dst_computer]
 
 f3_novelty:
   enabled: true

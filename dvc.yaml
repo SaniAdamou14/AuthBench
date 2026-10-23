@@ -83,6 +83,7 @@ stages:
       - reports/metrics_summary.json:
           cache: false
 
-# There is deliberately no `report` (latexmk) stage yet: reports/paper/ does
-# not exist, and a stage depending on a missing main.tex breaks `dvc repro`
-# for everyone at the last step. Add it back together with the paper source.
+# This pipeline describes the default two-week temporal configuration of params.yaml; it is
+# not how the paper's run was produced. That run is `scripts/run_lanl.sh` (both protocols,
+# deep models and Euler), recorded in reports/runs/<run>/RUN.md, and the paper is built from
+# its committed outputs by `scripts/paper_assets.py` and latexmk, outside DVC.

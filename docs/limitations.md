@@ -71,7 +71,12 @@ this summarizes.
     M2c, M0b) the unit results can reflect that order. On the full run, user-day recall
     changes the picture (Euler 51.2% and source rarity 50.6% of the harmonised campaigns at
     500 user-days a day, against 0.6% and 0.0% at 500 events), and the random floor itself
-    reaches 4.3%, because a user-day budget covers more of a day.
+    reaches 4.3%, because a user-day budget covers more of a day. That change is not
+    detection: ranking each day's users by the number of distinct computers they touched,
+    with no detector and no label, reaches 56.8% (`scripts/user_day_activity.py`, review
+    round 3), and a user's maximum score rises with its number of events, so a uniform
+    ranking of user-days is the wrong null; random event scores aggregated by their maximum
+    reach 6.0%.
 15. **Fitting variance is measured for the seeded classical models only.** M1, PCA,
     Isolation Forest, ECOD and HBOS are refitted with five seeds (`fit_variance.json`); on the
     harmonised protocol PCA's first detection ranges from 13 to 243 alerts a day. The

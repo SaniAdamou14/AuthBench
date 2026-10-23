@@ -17,6 +17,8 @@
 \sisetup{group-separator={,}, group-minimum-digits=4}
 \usepackage{threeparttable}
 \usepackage{float}
+% Floats stay within their section.
+\usepackage[section]{placeins}
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage[english]{babel}
@@ -53,7 +55,7 @@ with a LANL Case Study}
 \maketitle
 
 \begin{abstract}
-\noindent Security operations centres investigate a bounded number of alerts per day, yet anomaly detectors for authentication logs are mostly compared by threshold-free metrics. We present \AuthBench{}, an open harness that enforces its temporal split in code, ranks events, edge-hours and user-days within each day, gives every red-team campaign the daily budget at which it is first detected, and places each result against its exact distribution under a random ranking. On the LANL authentication log, under the protocol of \textcite{larroche2026fair}, whose event set we reproduce exactly, we evaluate thirteen detectors and read the same rankings at three levels. Per event, no detector detects a campaign within 10 alerts per day. Per intrusion, the autoencoder notices the attack on its first day at 100 alerts per day, but only because that day is partial; two other detectors notice it a week later at 50. Per user-day, a graph detector and a source-novelty score reach about half of the campaigns at 500 per day, against \HarmUnitNullFiveHundred{} for a random ranking, at a higher cost per alert. ROC-AUC tracks where most campaigns are found but not which detector finds the first, and that first detection depends on the fitting seed. Rerun on the same machine, the authors' Euler code reproduces its published AUC but not its average precision ($p = \EulerAuthorsApTP$ over five runs); we reconcile both test sets edge by edge. The labelled activity is one intrusion, mostly from one host: these results are a case study of one operation.
+\noindent Security operations centres investigate a bounded number of alerts per day, yet anomaly detectors for authentication logs are mostly compared by threshold-free metrics. We present \AuthBench{}, an open harness that checks the temporal order of its partitions, ranks events, edge-hours and user-days within each day, gives every red-team campaign the daily budget at which it is first detected, and sets each result against its distribution under a random ranking and against label-free rankings of the same units. On the LANL authentication log, under the protocol of \textcite{larroche2026fair}, whose event set we reproduce exactly, we evaluate ten detectors without reading a label. No detector places an event of any of the \HarmTestCampaigns{} red-team campaigns within 10 alerts per day, and the best detects \HarmVaeRecallFiveHundredCount{} of them within 500. The earliest detections of the operation rest on one fit or on a partial first test day. Ranked by user-day, Euler reaches \HarmEulerUserDayFiveHundred{} of the campaigns at 500 per day, but ranking users by how many computers they touched that day, with no detector, reaches \HarmBaselineDstUserDayFiveHundred{}: the coarser unit measures the fan-out of the compromised accounts. In this protocol, neither ROC-AUC nor AUC-PR orders the detectors by their campaign budgets; a campaign-weighted average precision does. The authors' Euler code, rerun on the same data, stays within \EulerAuthorsAucGap{} of its published AUC but below half its published average precision in all five runs; we reconcile both test sets edge by edge. The labelled activity is one intrusion, mostly from one host: these results are a case study of one operation.
 \end{abstract}
 
 % Table of contents on a page of its own, for the preprint; a venue's template replaces it.
@@ -66,14 +68,19 @@ with a LANL Case Study}
 
 An anomaly detector deployed in an enterprise network is consumed through an alert queue. Each day, analysts investigate the highest-ranked alerts until their capacity is exhausted, and the detector is useful only if an attack appears within that capacity. Interviews with SOC practitioners describe alert streams dominated by false positives \parencite{alahmadi2022}; automated triage has been proposed to combat the resulting alert fatigue \parencite{hassan2019nodoze}, and a lateral-movement detector evaluated on fifteen months of enterprise logins generated fewer than nine alerts per day \parencite{ho2021hopper}. The base-rate argument of \textcite{axelsson2000} explains the constraint: when attacks are rare, even a small false-positive rate produces an alert stream dominated by false alarms.
 
-Authentication logs are an extreme instance of this regime: in the harmonised test partition used here, the positive rate is $\HarmTestRate$. Detectors for such data are nevertheless often summarised by the area under the ROC curve (ROC-AUC), which averages the ranking over every operating point, including those no SOC could staff. That ROC-AUC is uninformative about the extreme left of the curve is the classical motivation for partial ROC areas \parencite{mcclish1989} and precision-recall analysis \parencite{davis2006,saito2015}, and it has been stated for the LANL data in particular \parencite{king2022euler}. Budget-based metrics have also been reported on LANL \parencite{larroche2021decades,garchery2020adsage,larroche2025ultralmd}, and harmonised re-evaluations of published detectors now exist \parencite{larroche2026fair,zhao2026gids,wang2025rr}. This paper does not claim the observation; it contributes a harness that makes the measurement reproducible and leak-free, and a case study whose limits are measured rather than assumed.
+Authentication logs are an extreme instance of this regime: in the harmonised test partition used here, the positive rate is $\HarmTestRate$. Detectors for such data are nevertheless often summarised by the area under the ROC curve (ROC-AUC), which averages the ranking over every operating point, including those no SOC could staff. That ROC-AUC is uninformative about the extreme left of the curve is the classical motivation for partial ROC areas \parencite{mcclish1989} and precision-recall analysis \parencite{davis2006,saito2015}, and it has been stated for the LANL data in particular \parencite{king2022euler}. Budget-based metrics have also been reported on LANL \parencite{larroche2021decades,garchery2020adsage,larroche2025ultralmd}, and harmonised re-evaluations of published detectors now exist \parencite{larroche2026fair,zhao2026gids,wang2025rr}. This paper does not claim the observation. It asks three questions of one dataset under one leak-free protocol:
+\begin{description}
+\item[RQ1] At what daily alert budget is the LANL red-team operation detected, campaign by campaign and as a whole, and how much of that budget is due to the detector rather than to chance, to the fitting seed, to where the test days are cut, or to the activity of the compromised accounts?
+\item[RQ2] Do threshold-free metrics order detectors as their budgeted detection does?
+\item[RQ3] Do Euler's published results reproduce from its released code and preprocessing?
+\end{description}
 
 Our contributions are:
 \begin{enumerate}
-\item \textbf{An open evaluation harness} (\cref{sec:protocol,sec:evaluation}). It enforces the temporal split by code and tests that every detector scores an event identically alone or among others; ranks events, edge-hours and user-days within each day with a stated, label-free tie order; gives every campaign its detection budget, hence the whole campaign-recall curve, and the exact distribution of the first-detection budget under a random ranking, for events and for user-days; and reports a paired account-level bootstrap, a bootstrap over source users, the variance of refitting with other seeds, a fixed-threshold deployment, and a staffing model for the budgets.
-\item \textbf{A case study on LANL} (\cref{sec:results}) of thirteen detectors under the protocol recommended by \textcite{larroche2026fair}, on exactly his event set, and under a day-based split with and without red-team events in training, read at the level of campaigns and of the intrusion as a whole.
+\item \textbf{An open evaluation harness} (\cref{sec:protocol,sec:evaluation}). It checks the temporal order of its partitions and tests that every detector scores an event identically alone or among others; ranks events, edge-hours and user-days within each day with a stated, label-free tie order; gives every campaign its detection budget, hence the whole campaign-recall curve, and the exact distribution of the first-detection budget under a random ranking; checks unit rankings against label-free activity rankings of the same units and a random null that respects how units aggregate events; and reports an account-level bootstrap, the variance of refitting with other seeds, a fixed-threshold deployment, and a staffing model for the budgets.
+\item \textbf{A case study on LANL} (\cref{sec:results}) of eleven detectors and two floors under the protocol recommended by \textcite{larroche2026fair}, on exactly his event set, and under a day-based split, read at the level of campaigns and of the intrusion as a whole.
 \item \textbf{A reproduction of Euler} (\cref{sec:euler}) with the authors' own code run beside our reimplementation, and an edge-by-edge reconciliation of the two test sets with the published counts.
-\item \textbf{Diagnostics that bound the case study} (\cref{sec:diagnostics,sec:circularity}): the concentration of the red-team events on one host, a rule-by-rule decomposition of the rule engine on LANL, and a control for circularity between a data generator and a rule.
+\item \textbf{Diagnostics that bound the case study} (\cref{sec:diagnostics,app:circularity}): the concentration of the red-team events on one host, a rule-by-rule decomposition of the rule engine on LANL, and a control for circularity between a data generator and a rule.
 \end{enumerate}
 
 \section{Related work}
@@ -86,22 +93,22 @@ Our contributions are:
 ROC-AUC is invariant to the class ratio, whereas precision is not; \textcite{davis2006} related the two curves, and \textcite{saito2015} showed empirically that the precision-recall plot is the more informative one on imbalanced data. Partial ROC areas restrict the analysis to low false-positive rates \parencite{mcclish1989}. None of these encodes a capacity per unit of time, which is what an alert budget imposes.
 
 \paragraph{Detection on the LANL data.}
-The LANL comprehensive cyber-security events data \parencite{kent2015dataset,kent2016chapter} pairs 58 days of enterprise authentication events with labelled red-team activity; its authentication graph is characterised by \textcite{kent2015authgraphs}. \textcite{turcotte2016} model users relative to peer groups by Poisson factorisation. \textcite{tuor2018} apply recurrent language models to log lines and report ROC-AUC together with the average percentile of malicious events in a daily ranking, which is not average precision; \textcite{brown2018} add attention mechanisms to that family. \textcite{bowman2020} learn node embeddings on the authentication graph, training on 40 days without reported malicious activity and testing on the 18 days with it, a split that is not chronological. \textcite{king2022euler,king2023euler} cast lateral-movement detection as temporal link prediction (Euler), train on the snapshots that precede the first anomalous edge, and note that ROC-AUC is not a good indicator of model quality on data as imbalanced as LANL. \textcite{xu2024argus} (Argus), \textcite{khoury2024jbeil} (Jbeil), \textcite{paudel2022pikachu} (Pikachu), \textcite{amin2019cadence} (CADENCE) and \textcite{gokstorp2024} (transformer sequence models) propose further detectors. Outside LANL, \textcite{siadati2017} detect structurally anomalous logins in an enterprise network.
+The LANL comprehensive cyber-security events data \parencite{kent2015dataset,kent2016chapter} pairs 58 days of enterprise authentication events with labelled red-team activity; its authentication graph is characterised by \textcite{kent2015authgraphs}. \textcite{turcotte2016} model users relative to peer groups by Poisson factorisation. \textcite{tuor2018} apply recurrent language models to log lines and report ROC-AUC together with the average percentile of malicious events in a daily ranking, which is not average precision; \textcite{brown2018} add attention mechanisms to that family. \textcite{bowman2020} learn node embeddings on the authentication graph, training on 40 days without reported malicious activity and testing on the 18 days with it, a split that is not chronological. \textcite{king2022euler,king2023euler} cast lateral-movement detection as temporal link prediction (Euler), train on the snapshots that precede the first anomalous edge, and note that ROC-AUC is not a good indicator of model quality on data as imbalanced as LANL. The same group's graph foundation model \parencite{king2026cybergfm} trains on a random 80/10/10 split of the benign LANL data, a temporal split being infeasible, in their words, because many hosts first appear during or after the attack; under that split they report an average precision of 0.0627 for Euler. \textcite{xu2024argus} (Argus), \textcite{khoury2024jbeil} (Jbeil), \textcite{paudel2022pikachu} (Pikachu), \textcite{amin2019cadence} (CADENCE) and \textcite{gokstorp2024} (transformer sequence models) propose further detectors. Outside LANL, \textcite{siadati2017} detect structurally anomalous logins in an enterprise network.
 
 \paragraph{Budgeted evaluation and re-evaluations.}
-Daily-budget recall was used by \textcite{tuor2017} on insider-threat data and adopted by \textcite{garchery2020adsage}, who report on LANL a normalised cumulative recall over budgets of investigated user-days (an area under the daily recall curve), training on their days 1--8 and testing on days 9--13 with system accounts removed, and find that a rule flagging previously unseen source computers performs on par with their graph-based detector. Their days are counted from one: their 50 training anomalies are the 50 red-team events of our days 0--7. \textcite{larroche2021decades} model local and remote LogOn events whose destination is a user account, together with process creations, train on 8 days and evaluate on the next 5, and report the share of red-team events detected when the top $B$ events of each day are investigated (DR-1K: 0.081 for DECADES, 0.093 for CADENCE). \textcite{larroche2025ultralmd} reports ROC-AUC, average precision and the recall obtained when the top $B$ edges of each hourly window are investigated; in his comparison, higher ROC-AUC does not imply higher budgeted recall. \textcite{larroche2026fair} harmonises the preprocessing and labelling of LANL and OpTC, recommends training on the first 41 hours and testing on all remote LogOn events of the rest, notes that NTLM-only filtering makes detection easier because the LANL lateral movements happen to use NTLM, and re-evaluates Euler, Argus and Pikachu at the event level: published average precision values do not survive (for Argus, 32.27 as reported against $0.09 \pm 0.04$, in percent). He also notes that the labelled LANL authentications are one intrusion, mostly from one source host, so that detecting some of them may be enough, and that the dataset should be used only for unsupervised methods. \textcite{zhao2026gids} decompose graph-based intrusion detectors into interchangeable stages, define a campaign detection rate (the share of campaigns with at least one flagged event), report its range across seeds (42.1 percentage points for Argus on LANL), and find that an encoder-free control ranks first by average precision on two of four datasets. \textcite{wang2025rr} and \textcite{boucek2025replication} re-run published graph-based intrusion and lateral-movement detectors.
+Daily-budget recall was used by \textcite{tuor2017} on insider-threat data and adopted by \textcite{garchery2020adsage}, who report on LANL a normalised cumulative recall over budgets of investigated user-days (an area under the daily recall curve), training on their days 1--8 and testing on days 9--13 with system accounts removed, and find that a rule flagging previously unseen source computers performs on par with their graph-based detector. Their days are counted from one: their 50 training anomalies are the 50 red-team events of our days 0--7. \textcite{larroche2021decades} model local and remote LogOn events whose destination is a user account, together with process creations, train on 8 days and evaluate on the next 5, and report the share of red-team events detected when the top $B$ events of each day are investigated (DR-1K: 0.081 for DECADES, 0.093 for CADENCE). \textcite{larroche2025ultralmd} reports ROC-AUC, average precision and the recall obtained when the top $B$ edges of each hourly window are investigated; in his comparison, higher ROC-AUC does not imply higher budgeted recall. \textcite{larroche2026fair} harmonises the preprocessing and labelling of LANL and OpTC, recommends training on the first 41 hours and testing on all remote LogOn events of the rest, notes that NTLM-only filtering makes detection easier because the LANL lateral movements happen to use NTLM, and re-evaluates Euler, Argus and Pikachu at the event level: published average precision values do not survive (for Argus, 32.27 as reported against $0.09 \pm 0.04$, in percent). He also notes that the labelled LANL authentications are one intrusion, mostly from one source host, so that detecting some of them may be enough, and that the dataset should be used only for unsupervised methods. \textcite{zhao2026gids} decompose graph-based intrusion detectors into interchangeable stages, define a campaign detection rate (the share of campaigns with at least one flagged event), report its range across seeds (42.1 percentage points for Argus on LANL), and find that an encoder-free control ranks first by average precision on two of four datasets. \textcite{wang2025rr} re-run the released code and preprocessed data of Euler, Argus and Pikachu on LANL and OpTC, find the LANL results more consistent than the OpTC ones, conclude that AUC alone cannot assess reproducibility, and trace unstable threshold-dependent metrics to a threshold set on a random 5\% validation sample; \textcite{boucek2025replication} replicate network-based lateral-movement detectors.
 
 \paragraph{Positioning.}
-\AuthBench{} reuses the event set of \textcite{larroche2026fair} and the campaign view of \textcite{zhao2026gids}, and adds what neither reports: daily alert budgets in three units with their exact random-ranking null, the first-detection budget of every campaign, the day on which the intrusion is first noticed at a given staffing, and the effect of the fitting seed and of a deployed threshold on these budgets. Its catalogue does not include Argus, Jbeil, UltraLMD++ or a sequence model; \cref{sec:comparison} places its numbers beside theirs on the same events.
+Much of what this paper does is not new. Budgeted recall on LANL was reported by \textcite{garchery2020adsage}, \textcite{larroche2021decades} and \textcite{larroche2025ultralmd}; chronological splits, campaign-level detection and seed variance by \textcite{zhao2026gids}; the harmonised event set, which \AuthBench{} reuses, by \textcite{larroche2026fair}; and a rerun of Euler's released code by \textcite{wang2025rr}. What \AuthBench{} adds is narrower: the exact random-ranking distribution of the first-detection budget and of the day on which the intrusion is first noticed; the budget of every campaign rather than recall at a few budgets; unit rankings checked against label-free activity rankings and an aggregation-aware null; a bit-exact test that every detector scores an event independently of the other events scored; a threshold fixed in advance; and an edge-by-edge reconciliation of the Euler test sets. Its catalogue does not include Argus, Jbeil, UltraLMD++, CyberGFM or a sequence model; \cref{sec:comparison} places its numbers beside theirs on the same events.
 
 \section{Data, labels and campaigns}
 \label{sec:data}
 
 \subsection{Source}
-We use the authentication log of the LANL comprehensive cyber-security events data \parencite{kent2015dataset}: 1{,}051{,}430{,}459 events over 58 days from one enterprise Windows Active Directory environment, with one-second timestamps from an arbitrary epoch. The official server refused connections when this run was prepared, so the files were taken from a public mirror; their compressed bytes differ from the official digests, and their content was verified partially: the total row count is the published one, and three of the 58 days have the row counts and order-independent content hashes of a conversion of the official files. Missing authentication and logon types are encoded as indicators. Failed authentications appear only for users who succeed at least once, so no conclusion is drawn about attacks on non-existent accounts.
+We use the authentication log of the LANL comprehensive cyber-security events data \parencite{kent2015dataset}: 1{,}051{,}430{,}459 events over 58 days from one enterprise Windows Active Directory environment, with one-second timestamps from an arbitrary epoch. The official server refused connections when this run was prepared, so the files were taken from a public mirror; their compressed bytes differ from the official digests, and their content was verified partially: the total row count is the published one, three of the 58 days have the row counts and order-independent content hashes of a conversion of the official files, and the harmonised universe built from them has exactly the event and positive counts that \textcite[Table~4]{larroche2026fair} reports for the official files (\cref{sec:split}). Missing authentication and logon types are encoded as indicators. Failed authentications appear only for users who succeed at least once, so no conclusion is drawn about attacks on non-existent accounts.
 
 \subsection{Labels and campaigns}
-The red-team file contains 749 lines, of which 34 are exact duplicates, leaving \RedTeamRows{} distinct red-team events. Authentication events are labelled malicious by an exact join on the four red-team fields: time, user (with domain), source computer and destination computer; \RedTeamUnmatched{} red-team events have no authentication event at the same second between the same computers and cannot be labelled by any pipeline (\cref{sec:euler}). Red-team activity spans days 1 to 29. We group red-team events into campaigns per user: consecutive events of the same user belong to one campaign when they are at most $g = 24$ hours apart, and campaigns are cut at partition boundaries. In the harmonised test, \HarmCampaignSingletons{} of the \HarmTestCampaigns{} campaigns hold a single event, the largest holds \HarmCampaignLargest{}, and \HarmBusiestDaysCampaigns{} touch the three busiest days (day and campaigns: \HarmBusiestDays{}).
+The red-team file contains 749 lines, of which 34 are exact duplicates, leaving \RedTeamRows{} distinct red-team events. Authentication events are labelled malicious by an exact join on the four red-team fields: time, user (with domain), source computer and destination computer; \RedTeamUnmatched{} red-team events have no authentication event at the same second between the same computers and cannot be labelled by any pipeline (\cref{sec:euler}), and \HarmDoublyLabelled{} matches two identical authentication events, so the \HarmTestPositives{} labelled events of the harmonised test come from \HarmPositivesFromRows{} red-team events. Red-team activity spans days 1 to 29. We group red-team events into campaigns per user: consecutive events of the same user belong to one campaign when they are at most $g = 24$ hours apart, and campaigns are cut at partition boundaries. In the harmonised test, \HarmCampaignSingletons{} of the \HarmTestCampaigns{} campaigns hold a single event, the largest holds \HarmCampaignLargest{}, and \HarmBusiestDaysCampaigns{} touch the three busiest days (day and campaigns: \HarmBusiestDays{}).
 
 \subsection{Concentration of the red-team activity}
 \label{sec:concentration}
@@ -134,7 +141,7 @@ Protocol & Partition & Period & Events & Positives & Campaigns & Positive rate \
 
 \subsection{Leakage control and row-locality}
 \label{sec:leakage}
-By leak-free we mean temporally leak-free: no label, fitted quantity or future event crosses a partition boundary. A guard raises an error unless the last training timestamp precedes the first validation timestamp and the last validation timestamp precedes the first test timestamp. A static architecture test fails if any module under \texttt{models/} or \texttt{features/} imports the only function that loads the test partition. Windowed features use causal primitives over $[t-w, t)$, and every quantity fitted for features or detectors (category frequencies, rule normalisations, empirical distributions, thresholds) is fitted on training data, or on validation for tuning.
+By leak-free we mean temporally leak-free: no label, fitted quantity or future event crosses a partition boundary. Partitions are half-open time ranges, which the configuration loader rejects if they are empty, overlap or are out of order, and each day of features is written to the partitions by those ranges; integration tests check that the ranges are refused when out of order and that the partitions written day by day equal each partition featurised whole. Detectors are fitted on the training partition (and tuned on validation); Euler also receives the unlabelled events of later partitions in time order, as a deployed detector would (\cref{sec:detectors}). A guard that raises an error unless every training timestamp precedes every validation timestamp, and every validation timestamp every test timestamp, ran in the run reported here only on the synthetic sample; it now also runs on the written partitions before any detector is fitted. Windowed features use causal primitives over $[t-w, t)$, and every quantity fitted for features or detectors (category frequencies, rule normalisations, empirical distributions, thresholds) is fitted on training data, or on validation for tuning.
 
 The test partition is scored one day at a time, so each detector must give an event the same score alone, in any chunk and in the whole partition. A unit test asserts this to the last bit for every detector, and every scored day re-checks it on the positives: a tolerance would hide a one-ULP difference that moves an event across a tie. Euler is causal at a coarser grain: an event is scored from the embeddings of the previous half hour, which include earlier test edges. One element remains retrospective within a day: the daily top-$k$ is computed from all the events of the day; \cref{sec:fixed} replaces it by a threshold fixed in advance.
 
@@ -147,7 +154,7 @@ Detectors that consume a feature vector receive 25 columns from four families (\
 \section{Detectors}
 \label{sec:detectors}
 
-\Cref{tab:detectors} summarises the catalogue. The vector-space detectors and the autoencoders are fitted on a seeded sample of at most \num{5000000} training events (all \HarmTrainEvents{} would fit in the harmonised protocol; the sample adds fitting variance, \cref{sec:variance}), Euler on every training edge; every test event is scored. In the temporal protocol, each detector with a hyperparameter to choose receives at most 20 candidates, its default among them, and keeps the one with the highest validation AUC-PR: M1's rule weights (\TuneCountRules{} candidates), PCA's retained variance (\TuneCountPca{}), Isolation Forest's forest and sample sizes (\TuneCountIForest{}) and HBOS's bins and tolerance (\TuneCountHbos{}), each grid being smaller than the budget. Those four temporal results are therefore informed by validation labels of the same operation; the autoencoders, ECOD, the rarity scores and Euler are not tuned, and the harmonised protocol reads no label. M1u reports M1's rules with uniform weights and no label. A next-destination sequence model was implemented but is excluded: it is batched and not row-local, which the day-by-day scorer refuses.
+\Cref{tab:detectors} summarises the catalogue: eleven detectors and two floors, of which ten detectors are distinct in the harmonised protocol, where M1 reduces to M1u. The vector-space detectors and the autoencoders are fitted on a seeded sample of at most \num{5000000} training events, a memory bound (fitting on every row of the day-based training partition would need several hundred gigabytes; in the harmonised protocol all \HarmTrainEvents{} could have been used; the sample adds fitting variance, \cref{sec:variance}), Euler on every training edge; every test event is scored. In the temporal protocol, each detector with a hyperparameter to choose receives at most 20 candidates, its default among them, and keeps the one with the highest validation AUC-PR: M1's rule weights (\TuneCountRules{} candidates), PCA's retained variance (\TuneCountPca{}), Isolation Forest's forest and sample sizes (\TuneCountIForest{}) and HBOS's bins and tolerance (\TuneCountHbos{}), each grid being smaller than the budget. Those four temporal results are therefore informed by validation labels of the same operation; the autoencoders, ECOD, the rarity scores and Euler are not tuned, and the harmonised protocol reads no label. M1u reports M1's rules with uniform weights and no label. A next-destination sequence model was implemented but is excluded: it is batched and not row-local, which the day-by-day scorer refuses.
 
 \begin{table}[t]
 \centering
@@ -201,16 +208,16 @@ Its median is \HarmNullFirstDetectionMedian{} alerts per day in the harmonised t
 
 \paragraph{Ties.} For coarse scores, which events enter $A(k)$ can depend on the tie order rather than the detector. We report $\Rcamp(k)$ under the stated arrival order with a bracket: the least favourable order (benign first within each tied group) and an achievable favourable one, with the number of tied events competing for the last places.
 
-\paragraph{Alert units.} Analysts rarely triage single events. Every run also ranks two coarser units per day: the \emph{edge-hour} (source computer, destination computer, hour) and the \emph{user-day} (source user). A unit takes the score of its highest event; equal units are ordered by their first event's time, then by key, which reads no label, and no tie bracket is computed for units. A campaign is detected at budget $k$ in a unit when one of its units ranks in the top $k$ of its day. Because two campaigns of one account are more than a day apart, a positive user-day belongs to exactly one campaign (\HarmPositiveUserDays{} in the harmonised test), so Eq.~2 applies to user-days with $N_d$ the day's user-days; the expected campaign recall of a random ranking follows by drawing, per day, a hypergeometric number of positive user-days into the top $k$. The positive edge-hours are not in the run outputs, so edge-hour results have no null. Units are fewer than events (between \HarmUserDaysMin{} and \HarmUserDaysMax{} user-days per harmonised test day), so the same $k$ covers a larger share of each day, and investigating a user-day costs more than dismissing one event.
+\paragraph{Alert units.} Analysts rarely triage single events. Every run also ranks two coarser units per day: the \emph{edge-hour} (source computer, destination computer, hour) and the \emph{user-day} (source user name, without its domain). A unit takes the score of its highest event; equal units are ordered by their first event's time, then by key, which reads no label, and no tie bracket is computed for units. A campaign is detected at budget $k$ in a unit when one of its units ranks in the top $k$ of its day. Campaigns are keyed by user and domain, user-days by user name alone, so a user-day can hold events of two campaigns when a user name appears under two domains: the harmonised test has \HarmPositiveUserDays{} positive user-days for \HarmPositiveUserDayPairs{} pairs of day and campaign. For user-days, Eq.~2 holds with $N_d$ the day's user-days and $p_d$ its positive user-days. A uniformly random ranking of units is not, however, what a detector that ignores labels produces: a unit scores the maximum of its events, so a user with more events that day ranks higher by construction. We therefore also simulate (\num{2000} draws) random event scores aggregated by their maximum, and rank the same units by four label-free counts of the user's activity that day: distinct destination computers, distinct source computers, events and failed authentications. These read no detector and no label; they are computed from the log after the run, by a script checked against the run's day sizes and positives (\cref{sec:reproducibility}). The positive edge-hours are not in the run outputs, so edge-hour results have no null. Units are fewer than events (between \HarmUserDaysMin{} and \HarmUserDaysMax{} user-days per harmonised test day), so the same $k$ covers a larger share of each day, and investigating a user-day costs more than dismissing one event.
 
-\paragraph{What a budget costs.} With 2.7 hours of triage per analyst and day \parencite{vectra2023} and 10 to 20 minutes per alert \parencite{li2026sheragent}, 10 alerts per day take \StaffTenLow{} to \StaffTenHigh{} analysts, 100 take \StaffHundredLow{} to \StaffHundredHigh{}, and 500 take \StaffFiveHundredLow{} to \StaffFiveHundredHigh{}, about a third of the alerts a typical SOC handles in a day across all its tools. Both inputs are weak (a vendor-commissioned survey and a self-reported preprint) and price every unit alike, but they place 10 alerts per day at one analyst and 500 at a team, not at equally plausible operating points; the low end agrees with the fewer than nine alerts per day of \textcite{ho2021hopper}.
+\paragraph{What a budget costs.} With 2.7 hours of triage per analyst and day \parencite{vectra2023} and 10 to 20 minutes per alert \parencite{li2026sheragent}, 10 alerts per day take \StaffTenLow{} to \StaffTenHigh{} analysts, 100 take \StaffHundredLow{} to \StaffHundredHigh{}, and 500 take \StaffFiveHundredLow{} to \StaffFiveHundredHigh{}, about a third of the alerts a typical SOC deals with in a day across all its tools (of \num{4484} received, two thirds are not dealt with). Both inputs are weak (a vendor-commissioned survey and a self-reported preprint) and price every unit alike, but they place 10 alerts per day at one analyst and 500 at a team, not at equally plausible operating points; the low end agrees with the fewer than nine alerts per day of \textcite{ho2021hopper}.
 
 \subsection{Threshold-free and low-false-positive-rate metrics}
 ROC-AUC averages the ranking over all operating points. The area under the precision-recall curve (AUC-PR), estimated by average precision over the test partition, weights each positive by the precision at its rank and is therefore dominated by the best-ranked positives; its campaign-weighted variant gives each campaign the same total weight. Recall at a false-positive rate of $10^{-4}$, computed over the whole test partition, concerns only the top of the ranking.
 
 \subsection{Uncertainty}
 \label{sec:uncertainty}
-Events of a campaign are dependent, and two campaigns of one account are not independent either, so we resample blocks \parencite{efron1993,field2007}: compromised accounts, each with all its red-team events, and individual benign events, drawn with replacement. Every detector shares the positive-block draws; each draws its benign multiplicities from its own score bins, which keeps the comparisons paired in the campaign component that carries the variance. Resamples without positives are discarded and redrawn. With $R = \num{10000}$ resamples, each detector's AUC-PR receives a BCa interval \parencite{efron1987} whose acceleration comes from the exact jackknife over every resampling unit, and each pairwise difference a percentile interval and the percentile-interval inversion statistic
+Events of a campaign are dependent, and two campaigns of one account are not independent either, so we resample blocks \parencite{efron1993,field2007}: compromised accounts, each with all its red-team events, and individual benign events, drawn with replacement. Every detector shares the positive-block draws; each draws its benign multiplicities from its own score bins, so the comparisons are paired in the campaign component that carries the variance and not in the benign one, which makes them conservative. The variation measured is that over the accounts of this one operation, not over intrusions. Resamples without positives are discarded and redrawn. With $R = \num{10000}$ resamples, each detector's AUC-PR receives a BCa interval \parencite{efron1987} whose acceleration comes from the exact jackknife over every resampling unit, and each pairwise difference a percentile interval and the percentile-interval inversion statistic
 \begin{equation}
 p = \min\!\left(1, \frac{2\,(t+1)}{R+1}\right), \qquad t = \min\bigl(\#\{\Delta^{*} \le 0\}, \#\{\Delta^{*} \ge 0\}\bigr),
 \end{equation}
@@ -220,7 +227,7 @@ Two variances escape this bootstrap. The benign events of one user are correlate
 
 \subsection{A fixed threshold}
 \label{sec:fixed}
-No SOC tool ranks a day after it ends. For each budget $k$, the threshold at which the calibration partition raised $k$ alerts per day on average is applied to the test partition, where the alert volume then varies from day to day. Calibration uses validation in the temporal protocol and training in the harmonised one; it reads volumes, never labels.
+No SOC tool ranks a day after it ends. For each budget $k$, the threshold at which the calibration partition raised $k$ alerts per calendar day it touches is applied to the test partition, where the alert volume then varies from day to day. Calibration uses validation in the temporal protocol and training in the harmonised one, whose 41 hours touch two calendar days, so its thresholds target about $1.17k$ alerts per 24 hours; it reads volumes, never labels.
 
 \section{Results}
 \label{sec:results}
@@ -231,12 +238,12 @@ No SOC tool ranks a day after it ends. For each budget $k$, the threshold at whi
 \centering
 \scriptsize
 \begin{threeparttable}
-\caption{Harmonised protocol (\HarmTestDays{} test days, \HarmTestCampaigns{} campaigns over \HarmTestAccounts{} accounts). R@$10^{-4}$: recall at a false-positive rate of $10^{-4}$. @50, @500: campaign recall at 50 and 500 alerts per day. $b^{*}$: first-detection budget, in alerts per day. Null: probability that a random ranking does at least as well; Holm: adjusted over the ten non-trivial detectors.}
+\caption{Harmonised protocol (\HarmTestDays{} test days, \HarmTestCampaigns{} campaigns over \HarmTestAccounts{} accounts). No detector detects more than a few campaigns within 500 events per day, and the highest ROC-AUC (HBOS) is not the earliest detection. CW-AP: campaign-weighted AP. R@$10^{-4}$: recall at a false-positive rate of $10^{-4}$. @50, @500: campaigns detected at 50 and 500 alerts per day, of \HarmTestCampaigns{}. $b^{*}$: first-detection budget, in alerts per day. Null: probability that a random ranking does at least as well; Holm: adjusted over the ten non-trivial detectors. AUC-PR intervals: \cref{app:aucpr}.}
 \label{tab:results-harmonised}
-\setlength{\tabcolsep}{1.5pt}
-\begin{tabular}{@{}lllrrrrrrr@{}}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrlllrrrrr@{}}
 \toprule
-Detector & AUC-PR & 95\% BCa interval & ROC-AUC & R@$10^{-4}$ & @50 & @500 & $b^{*}$ & Null & Holm \\
+Detector & ROC-AUC & AUC-PR & CW-AP & R@$10^{-4}$ & @50 & @500 & $b^{*}$ & Null & Holm \\
 \midrule
 \tablerows{generated/table_results_harmonised.tex}
 \bottomrule
@@ -251,12 +258,12 @@ Detector & AUC-PR & 95\% BCa interval & ROC-AUC & R@$10^{-4}$ & @50 & @500 & $b^
 \centering
 \scriptsize
 \begin{threeparttable}
-\caption{Temporal protocol, regime R1 (test days 11--13, \TempTestCampaigns{} campaigns over \TempTestAccounts{} accounts). Columns as in \cref{tab:results-harmonised}; Holm over the eleven non-trivial detectors.}
+\caption{Temporal protocol, regime R1 (test days 11--13, \TempTestCampaigns{} campaigns over \TempTestAccounts{} accounts). Columns as in \cref{tab:results-harmonised}, campaigns of \TempTestCampaigns{}; Holm over the eleven non-trivial detectors. The earliest detections are those of detectors tuned on labels of the same operation.}
 \label{tab:results-temporal}
-\setlength{\tabcolsep}{1.5pt}
-\begin{tabular}{@{}lllrrrrrrr@{}}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrlllrrrrr@{}}
 \toprule
-Detector & AUC-PR & 95\% BCa interval & ROC-AUC & R@$10^{-4}$ & @50 & @500 & $b^{*}$ & Null & Holm \\
+Detector & ROC-AUC & AUC-PR & CW-AP & R@$10^{-4}$ & @50 & @500 & $b^{*}$ & Null & Holm \\
 \midrule
 \tablerows{generated/table_results_temporal.tex}
 \bottomrule
@@ -270,24 +277,24 @@ Detector & AUC-PR & 95\% BCa interval & ROC-AUC & R@$10^{-4}$ & @50 & @500 & $b^
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{generated/figure_first_detection.pdf}
-\caption{First-detection budget against ROC-AUC (left) and AUC-PR with its 95\% BCa interval (right), harmonised protocol (top) and temporal protocol (bottom), for the non-floor detectors, one fit each. Dark band: central 95\% range of the first-detection budget under a random ranking, median dashed; light band: daily budgets of 1 to 500 alerts. Lower is better on the vertical axis. In the harmonised protocol M1 equals M1u.}
+\caption{First-detection budget against ROC-AUC (left) and AUC-PR with its 95\% BCa interval (right), harmonised protocol (top) and temporal protocol (bottom), for the non-floor detectors, one fit each, labelled by their codes (\cref{tab:detectors}). Neither metric orders the detectors by first detection: HBOS has the highest harmonised ROC-AUC and first detects at \HarmHbosFirstDetection{} alerts per day. Dark band: central 95\% range of the first-detection budget under a random ranking, median dashed; light band: daily budgets of 10 to 500 alerts. Lower is better on the vertical axis. In the harmonised protocol M1 equals M1u.}
 \label{fig:first-detection}
 \end{figure}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{generated/figure_campaign_recall.pdf}
-\caption{Campaign recall as a function of the daily budget in events, from each campaign's detection budget $b(c)$; arrival tie order, one fit per detector. Black: four detectors named in the text; grey: the other non-floor detectors; shaded: 10 to 500 alerts per day.}
+\caption{Campaign recall as a function of the daily budget in events, from each campaign's detection budget $b(c)$; arrival tie order, one fit per detector. Within 500 alerts per day every curve stays below a tenth of the campaigns, and for every detector half the campaigns need thousands of alerts per day or more. Black: four detectors named in the text; grey: the other non-floor detectors; dotted with a grey band: the mean and central 95\% range of a random ranking (\num{1000} simulations); shaded: 10 to 500 alerts per day.}
 \label{fig:recall}
 \end{figure}
 
 \subsection{Within 500 events per day}
 \label{sec:within}
-No detector detects a campaign at 10 alerts per day in either protocol. A random ranking would do so with probability \HarmNullWithinTen{} in the harmonised test, so this zero alone says little; with campaigns treated as independent it bounds recall at 10 below \HarmZeroRecallUpper{} (one-sided 95\%), a bound about this operation's accounts only. In the harmonised protocol, the best recall at 500 is \HarmVaeRecallFiveHundred{} (the VAE), and PCA, the VAE and the autoencoder are the only detectors to catch a campaign at 50 or 100. In the temporal protocol, PCA reaches \TempPcaRecallFiveHundred{} at 500 and M1, tuned on labels, catches campaigns from 50 alerts per day (\TempRulesRecallFifty{}, \TempRulesRecallHundred{} and \TempRulesRecallFiveHundred{} at 50, 100 and 500).
+No detector detects a campaign at 10 alerts per day in either protocol. A random ranking would do so with probability \HarmNullWithinTen{} in the harmonised test, so this zero alone says little; with campaigns treated as independent it bounds recall at 10 below \HarmZeroRecallUpper{} (one-sided 95\%), a bound about this operation's accounts only. In the harmonised protocol, the best recall at 500 is \HarmVaeRecallFiveHundred{} (\HarmVaeRecallFiveHundredCount{} of \HarmTestCampaigns{} campaigns, the VAE, fitted once), and PCA, the VAE and the autoencoder are the only detectors to catch a campaign at 50 or 100. In the temporal protocol, PCA reaches \TempPcaRecallFiveHundred{} at 500 and M1, tuned on labels, catches campaigns from 50 alerts per day (\TempRulesRecallFifty{}, \TempRulesRecallHundred{} and \TempRulesRecallFiveHundred{} at 50, 100 and 500).
 
 \subsection{When the intrusion is first noticed}
 \label{sec:intrusion}
-\Cref{tab:intrusion} reads the same rankings at the level of the operation: the first test day on which some red-team event is in the top $k$. In the harmonised protocol the attack starts on test day \HarmAttackFirstDay{}. At 100 alerts per day the autoencoder alerts on that day; at 500 so does Euler; PCA and the VAE first alert on day \HarmPcaIntrusionDayFifty{}, a week later, already at 50 alerts per day; pair rarity on day \HarmPairRarityIntrusionDayFiveHundred{} at 500; the five other non-trivial detectors never within 500. Each of these is unlikely under a random ranking (probabilities in parentheses), but the day-1 detections fall on the partial first day, where a daily budget is a larger share of the events: without it, the autoencoder's first detection moves from \HarmAutoencoderFirstDetection{} to \HarmAutoencoderFirstWithoutDayOne{} alerts per day and Euler's from \HarmEulerFirstDetection{} to \HarmEulerFirstWithoutDayOne{} (\cref{app:budgets}). In the temporal protocol, whose test starts mid-operation, M1 alerts on the first day with positives (day \TempAttackFirstDay{}) from 50 alerts per day, PCA and the autoencoder at 500 (\cref{app:intrusion}).
+\Cref{tab:intrusion} reads the same rankings at the level of the operation: the first test day on which some red-team event is in the top $k$. In the harmonised protocol the attack starts on test day \HarmAttackFirstDay{}. At 100 alerts per day the autoencoder alerts on that day; at 500 so does Euler; PCA and the VAE first alert on day \HarmPcaIntrusionDayFifty{}, a week later, already at 50 alerts per day; pair rarity on day \HarmPairRarityIntrusionDayFiveHundred{} at 500; the remaining five detectors place no red-team event in the top 500 of any day. Each of these is unlikely under a random ranking (probabilities in parentheses, not adjusted for the three budgets and ten detectors read), but none is established beyond one fit. PCA places a red-team event within 50 alerts in \HarmPcaFitWithinFifty{} of its \HarmFitSeeds{} fits (\cref{sec:variance}); the VAE, the autoencoder and Euler were fitted once. The day-1 detections also fall on the partial first day, where a daily budget is a larger share of the events: without it, the autoencoder's first detection moves from \HarmAutoencoderFirstDetection{} to \HarmAutoencoderFirstWithoutDayOne{} alerts per day and Euler's from \HarmEulerFirstDetection{} to \HarmEulerFirstWithoutDayOne{} (\cref{app:budgets}). Removing the day also removes its positives and its hours, which are those right after training, so the partial day is a plausible cause, not a demonstrated one. In the temporal protocol, whose test starts mid-operation, M1 alerts on the first day with positives (day \TempAttackFirstDay{}) from 50 alerts per day, PCA and the autoencoder at 500 (\cref{app:intrusion}).
 
 \begin{table}[t]
 \centering
@@ -310,20 +317,19 @@ In the harmonised protocol, PCA (\HarmPcaFirstDetection{} alerts per day), the V
 
 \subsection{Orderings induced by threshold-free metrics}
 \label{sec:orderings}
-\Cref{tab:correlations} compares, over the non-trivial detectors (\HarmNonTrivial{} harmonised, M1 being identical to M1u, and \TempNonTrivial{} temporal), the ordering induced by ROC-AUC and AUC-PR with the ordering by five summaries of the campaign budgets. The answer depends on the summary. ROC-AUC does not rank the detectors by first detection ($\rho = \HarmRhoRocAucFirst$ and $\TempRhoRocAucFirst$), but it tracks the middle of the curve: with the median campaign budget, $\rho = \HarmRhoRocAucMedian$ (harmonised) and $\TempRhoRocAucMedian$ (temporal, Holm-adjusted $p = \TempRhoRocAucMedianHolm$). AUC-PR behaves similarly with higher coefficients. With ten or eleven detectors, only correlations above about 0.65 can be distinguished from zero, so the first-detection coefficients are absence of evidence, not evidence of independence; removing one detector moves the harmonised ROC-AUC coefficient for first detection between \HarmRhoRocAucFirstLow{} and \HarmRhoRocAucFirstHigh{} (\cref{app:correlations}). The reading the data support is that a threshold-free metric describes where most campaigns are found, not how early the first is. Recall at a false-positive rate of $10^{-4}$ is zero for \TempRecallFprZeros{} of the eleven temporal detectors, so its agreement with first detection ($\rho = \TempRhoRecallFprFirst$) is mostly the agreement of the three with non-zero recall.
+\Cref{tab:correlations} compares, over the non-trivial detectors (\HarmNonTrivial{} harmonised, M1 being identical to M1u, and \TempNonTrivial{} temporal), the ordering induced by ROC-AUC, AUC-PR and the campaign-weighted AP with the ordering by five summaries of the campaign budgets, one fit per detector. In the harmonised protocol, which reads no label, neither ROC-AUC nor AUC-PR orders the detectors by any summary after the Holm adjustment: with the median campaign budget $\rho = \HarmRhoRocAucMedian$ (Holm $p = \HarmRhoRocAucMedianHolm$) and $\HarmRhoAucPrMedian$ ($p = \HarmRhoAucPrMedianHolm$). The campaign-weighted AP does ($\rho = \HarmRhoCwApMedian$, $p = \HarmRhoCwApMedianHolm$). In the temporal protocol ROC-AUC tracks the median budget ($\rho = \TempRhoRocAucMedian$, $p = \TempRhoRocAucMedianHolm$), with four of eleven detectors tuned on labels of the same operation. None of these agreements is surprising: ROC-AUC is the mean normalised rank of the positives and the median budget a quantile of the same ranks, and a campaign-weighted AP weights campaigns as the budget summaries do. No metric orders the detectors by first detection in either protocol ($\rho = \HarmRhoRocAucFirst$ and $\TempRhoRocAucFirst$ for ROC-AUC). With ten or eleven detectors, only correlations above about 0.65 can be distinguished from zero, and a first detection from one fit is itself noisy (\cref{sec:variance}), which biases $\rho$ towards zero; these coefficients are absence of evidence, not evidence of independence, and removing one detector moves the harmonised ROC-AUC coefficient for first detection between \HarmRhoRocAucFirstLow{} and \HarmRhoRocAucFirstHigh{} (\cref{app:correlations}). Recall at a false-positive rate of $10^{-4}$ is zero for \TempRecallFprZeros{} of the eleven temporal detectors, so its agreement with first detection ($\rho = \TempRhoRecallFprFirst$) is mostly the agreement of the three with non-zero recall.
 
 \begin{table}[t]
 \centering
-\small
+\footnotesize
 \begin{threeparttable}
-\caption{Spearman correlation between ROC-AUC or AUC-PR and each campaign-budget summary (oriented so that a positive $\rho$ means agreement), over the non-trivial detectors, with Holm-adjusted Monte Carlo permutation $p$-values over the family of \CorrelationFamily{} tests per protocol (\PermutationCount{} permutations).}
+\caption{Spearman correlation between each threshold-free metric and each campaign-budget summary (oriented so that a positive $\rho$ means agreement), over the non-trivial detectors, with the Holm-adjusted Monte Carlo permutation $p$-value in parentheses, over the family of \CorrelationFamily{} tests per protocol (\PermutationCount{} permutations); bold below 0.05. In the label-free protocol only the campaign-weighted AP orders the detectors by their campaign budgets, and no metric by first detection.}
 \label{tab:correlations}
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}lrrrrrrrr@{}}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lllllll@{}}
 \toprule
-& \multicolumn{4}{c}{Harmonised} & \multicolumn{4}{c}{Temporal} \\
-& \multicolumn{2}{c}{ROC-AUC} & \multicolumn{2}{c}{AUC-PR} & \multicolumn{2}{c}{ROC-AUC} & \multicolumn{2}{c}{AUC-PR} \\
-Summary & $\rho$ & Holm & $\rho$ & Holm & $\rho$ & Holm & $\rho$ & Holm \\
+& \multicolumn{3}{c}{Harmonised} & \multicolumn{3}{c}{Temporal} \\
+Summary & ROC-AUC & AUC-PR & CW-AP & ROC-AUC & AUC-PR & CW-AP \\
 \midrule
 \tablerows{generated/table_correlations.tex}
 \bottomrule
@@ -333,13 +339,15 @@ Summary & $\rho$ & Holm & $\rho$ & Holm & $\rho$ & Holm & $\rho$ & Holm \\
 
 \subsection{Alert units}
 \label{sec:units}
-\Cref{tab:units} ranks the harmonised test in edge-hours and user-days. At 500 user-days per day, Euler reaches \HarmEulerUserDayFiveHundred{} of the campaigns and source rarity \HarmSourceRarityUserDayFiveHundred{}, PCA \HarmPcaUserDayFiveHundred{} and the VAE \HarmVaeUserDayFiveHundred{}, against \HarmUnitNullFiveHundred{} expected from a random ranking (95\% range \HarmUnitNullFiveHundredLow{} to \HarmUnitNullFiveHundredHigh{}); the always-fail floor reaches \HarmAlwaysFailUserDayFiveHundred{}. The first detections in user-days are another matter: a random ranking's median is \HarmUnitNullFirstMedian{} user-days, and none of the detectors' user-day first detections is below 5\% under it (Euler and source rarity at \HarmEulerUserDayFirst{}, probability \HarmEulerUserDayNullP{}). Euler and source rarity therefore rank the compromised users' days high without placing any of them at the very top. Two cautions apply. A user-day budget of 500 covers a larger share of a day than 500 events and costs more to investigate; and units carry no tie bracket, which matters for coarse scores such as M2a and M2c, whose top tier is shared by many events (\cref{sec:ties-results}). In the temporal protocol (\cref{app:units}) the shift is smaller: at 500 user-days PCA and Euler reach \TempPcaUserDayFiveHundred{} and \TempEulerUserDayFiveHundred{}, against \TempUnitNullFiveHundred{} expected.
+\Cref{tab:units} ranks the harmonised test in edge-hours and user-days. At 500 user-days per day, Euler reaches \HarmEulerUserDayFiveHundred{} of the campaigns and source rarity \HarmSourceRarityUserDayFiveHundred{}, PCA \HarmPcaUserDayFiveHundred{} and the VAE \HarmVaeUserDayFiveHundred{}. Against a uniformly random ranking of user-days (\HarmUnitNullFiveHundred{}) this looks like a large effect, but that null is not the right one: random event scores aggregated by their maximum reach \HarmSizeNullFiveHundred{} (95\% range \HarmSizeNullFiveHundredLow{} to \HarmSizeNullFiveHundredHigh{}), and the two floors fall inside it (M0a \HarmRandomUserDayFiveHundred{}, M0b \HarmAlwaysFailUserDayFiveHundred{}). Against it every detector but M1u still stands out at 500 user-days; their first detections in user-days do not (Euler and source rarity at \HarmEulerUserDayFirst{}, probability \HarmEulerUserDaySizeNullP{}).
+
+The decisive comparison is with rankings that read no detector. Ranking each day's users by the number of distinct destination computers they reached that day detects \HarmBaselineDstUserDayFiveHundred{} of the campaigns at 500 user-days (\HarmBaselineDstUserDayFiveHundredCount{} of \HarmTestCampaigns{}) and \HarmBaselineDstUserDayFifty{} at 50, against \HarmEulerUserDayFiveHundred{} and \HarmEulerUserDayFifty{} for Euler; by distinct source computers, \HarmBaselineSrcUserDayFiveHundred{} and \HarmBaselineSrcUserDayFifty{}. No detector exceeds the best of these rankings at either budget, and their first detections, at \HarmBaselineSrcUserDayFirst{} and \HarmBaselineDstUserDayFirst{} user-days, are the earliest in the table. Counting events instead reaches only \HarmBaselineEventsUserDayFiveHundred{}, below most detectors: what ranks the compromised users' days high is how many computers they touch, which the detectors pick up partly and a count picks up better. Source rarity is partly such a count by construction: for a user's first event from a source, its score is $\log(n+1)$ with $n$ the user's events before that day, so its maximum over a user-day ranks the users with a new source by their past activity. The temporal protocol (\cref{app:units}) shows the same: the destination and source counts reach \TempBaselineDstUserDayFiveHundred{} and \TempBaselineSrcUserDayFiveHundred{} at 500 user-days, every detector at most \TempPcaUserDayFiveHundred{}. A user-day budget of 500 also covers a larger share of a day than 500 events, costs more to investigate, and carries no tie bracket.
 
 \begin{table}[t]
 \centering
 \footnotesize
 \begin{threeparttable}
-\caption{Harmonised protocol in three alert units. Campaign recall at 500 events, 500 edge-hours, 50 and 500 user-days per day; $b^{*}$ in user-days and the probability that a random ranking does at least as well. Last row: expected recall and median $b^{*}$ of a random ranking of user-days.}
+\caption{Harmonised protocol in three alert units. Ranking user-days by how many computers the user touched that day, with no detector and no label, detects more campaigns than any detector. Campaign recall at 500 events, 500 edge-hours, 50 and 500 user-days per day; $b^{*}$ in user-days and the probability that random event scores, aggregated by their maximum, do at least as well. Middle rows: user-days ranked by a count of the user's activity that day. Last rows: expected recall and median $b^{*}$ of a uniformly random ranking of user-days and of random event scores aggregated by their maximum.}
 \label{tab:units}
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}lrrrrrr@{}}
@@ -371,32 +379,18 @@ Detector & mean & max & recall & mean & max & recall \\
 \tablerows{generated/table_fixed_harm.tex}
 \bottomrule
 \end{tabular}
+\begin{tablenotes}\footnotesize
+\item Pair rarity's thresholds fall inside a tie of new pairs, so its recall is that of tens of thousands of alerts a day, not of the target volume.
+\end{tablenotes}
 \end{threeparttable}
 \end{table}
 
 \subsection{Regimes}
 \Cref{tab:regimes} lists the temporal detectors whose AUC-PR or first detection moves by more than 1\% when the \TempTrainPositives{} training red-team events are removed from the fitted rows (R2); the other \RegimeUnchanged{} do not. Isolation Forest's and HBOS's changes lie within their own seed ranges (\cref{tab:fit-variance}), and removing rows also changes the seeded training sample, so R2 is partly another fit. The autoencoder's first detection moves from \TempAutoencoderFirstDetection{} to \TempTwoAutoencoderFirstDetection{} and Euler's from \TempEulerFirstDetection{} to \TempTwoEulerFirstDetection{}, but their seed variance is unknown; no effect of the red-team training events can be separated from fitting noise.
 
-\begin{table}[t]
-\centering
-\small
-\begin{threeparttable}
-\caption{Temporal protocol: detectors whose AUC-PR or first-detection budget changes by more than 1\% between R1 (red-team events in the fitted rows) and R2 (removed).}
-\label{tab:regimes}
-\begin{tabular}{@{}lllrrrr@{}}
-\toprule
-& \multicolumn{2}{c}{AUC-PR} & \multicolumn{2}{c}{ROC-AUC} & \multicolumn{2}{c}{$b^{*}$} \\
-Detector & R1 & R2 & R1 & R2 & R1 & R2 \\
-\midrule
-\tablerows{generated/table_regimes.tex}
-\bottomrule
-\end{tabular}
-\end{threeparttable}
-\end{table}
-
 \subsection{What the test bootstrap does not see}
 \label{sec:variance}
-\Cref{tab:fit-variance} refits the seeded detectors with five seeds. In the harmonised protocol, PCA's first detection ranges from \HarmPcaFitFirstMin{} to \HarmPcaFitFirstMax{} alerts per day (median \HarmPcaFitFirstMedian{}), its null probability up to \HarmPcaFitNullMax{}, and its AUC-PR varies by a factor of almost four; Isolation Forest's first detection from \HarmIForestFitFirstMin{} to \HarmIForestFitFirstMax{}. PCA's position as the earliest harmonised detector is a property of one fit. In the temporal protocol, where tuning retained less variance, PCA's first detection stays between \TempPcaFitFirstMin{} and \TempPcaFitFirstMax{}, while Isolation Forest's spans \TempIForestFitFirstMin{} to \TempIForestFitFirstMax{}. With source users as the resampling unit, \HarmUserClusterSignificant{} of the 78 pairwise AUC-PR differences remain significant in the harmonised protocol (against \HarmPairsSignificant{} with benign events as singletons) and \TempUserClusterSignificant{} in the temporal one (against \TempPairsSignificant{}); the pairs that lose significance mostly involve source rarity or ECOD, and include Euler against pair rarity and PCA against the autoencoder, and the intervals of \cref{tab:results-harmonised,tab:results-temporal} should be read as lower bounds on uncertainty.
+\Cref{tab:fit-variance} refits the seeded detectors with five seeds. In the harmonised protocol, PCA's first detection ranges from \HarmPcaFitFirstMin{} to \HarmPcaFitFirstMax{} alerts per day (median \HarmPcaFitFirstMedian{}), its null probability up to \HarmPcaFitNullMax{}, and its AUC-PR varies by a factor of almost four; Isolation Forest's first detection from \HarmIForestFitFirstMin{} to \HarmIForestFitFirstMax{}. PCA's position as the earliest harmonised detector is a property of one fit. Within PCA the two summaries also part ways: its two fits with the lowest AUC-PR, the reported one first, give its two earliest first detections. The autoencoders and Euler, which carry the other early detections, were fitted once, so their spread is unknown. In the temporal protocol, where tuning retained less variance, PCA's first detection stays between \TempPcaFitFirstMin{} and \TempPcaFitFirstMax{}, while Isolation Forest's spans \TempIForestFitFirstMin{} to \TempIForestFitFirstMax{}. With source users as the resampling unit, \HarmUserClusterSignificant{} of the 78 pairwise AUC-PR differences remain significant in the harmonised protocol (against \HarmPairsSignificant{} with benign events as singletons) and \TempUserClusterSignificant{} in the temporal one (against \TempPairsSignificant{}); the pairs that lose significance mostly involve source rarity or ECOD, and include Euler against pair rarity and PCA against the autoencoder, so the AUC-PR intervals (\cref{app:aucpr}) understate the uncertainty.
 
 \begin{table}[t]
 \centering
@@ -417,7 +411,7 @@ Protocol & Detector & AUC-PR & $b^{*}$ & Null & @500 \\
 
 \subsection{Ties and campaign definition}
 \label{sec:ties-results}
-Pair rarity anchors its denominator to the start of the day, so equally new pairs tie: in the harmonised protocol \HarmPairRarityContenders{} events compete for the last places of the 500-alert budget over the test days. Under arrival order its campaign recall is the one reported; the most favourable order would give \HarmPairRarityBracketTen{} at 10 alerts per day and \HarmPairRarityBracketFiveHundred{} at 500 (temporal: \TempPairRarityBracketTen{} and \TempPairRarityBracketFiveHundred{}), and its first detection ranges from \HarmPairRarityTieBest{} to \HarmPairRarityTieWorst{} across tie orders (null probability from \HarmPairRarityTieBestNull{} to \HarmPairRarityTieWorstNull{}). That end of the bracket needs an oracle among tens of thousands of tied events, so it bounds what the tie hides rather than measuring the detector: M2a's result is a property of its score's resolution. Regrouping the harmonised positives into campaigns at 1, 6, 24 and 72 hours gives \HarmGapCampaignsOne{}, \HarmGapCampaignsSix{}, \HarmGapCampaignsTwentyFour{} and \HarmGapCampaignsSeventyTwo{} campaigns (temporal: \TempGapCampaignsOne{}, \TempGapCampaignsSix{}, \TempGapCampaignsTwentyFour{}, \TempGapCampaignsSeventyTwo{}); campaign recall depends on a threshold that the data do not fix, whereas the first detection and the intrusion-level day do not. The regrouping sees only the partition's positives, which is why it gives \HarmGapCampaignsTwentyFour{} rather than \HarmTestCampaigns{} campaigns at 24 hours.
+Pair rarity anchors its denominator to the start of the day, so equally new pairs tie: in the harmonised protocol \HarmPairRarityContenders{} events compete for the last places of the 500-alert budget over the test days. Under arrival order its campaign recall is the one reported; the most favourable order would give \HarmPairRarityBracketTen{} at 10 alerts per day and \HarmPairRarityBracketFiveHundred{} at 500 (temporal: \TempPairRarityBracketTen{} and \TempPairRarityBracketFiveHundred{}), and its first detection ranges from \HarmPairRarityTieBest{} to \HarmPairRarityTieWorst{} across tie orders (null probability from \HarmPairRarityTieBestNull{} to \HarmPairRarityTieWorstNull{}). That end of the bracket needs an oracle among tens of thousands of tied events, so it bounds what the tie hides rather than measuring the detector: M2a's result is a property of its score's resolution. Regrouping the harmonised positives into campaigns at 1, 6, 24 and 72 hours gives \HarmGapCampaignsOne{}, \HarmGapCampaignsSix{}, \HarmGapCampaignsTwentyFour{} and \HarmGapCampaignsSeventyTwo{} campaigns (temporal: \TempGapCampaignsOne{}, \TempGapCampaignsSix{}, \TempGapCampaignsTwentyFour{}, \TempGapCampaignsSeventyTwo{}); campaign recall depends on a threshold that the data do not fix, whereas the first detection and the intrusion-level day do not. This regrouping, like the account bootstrap, keys accounts by user name without the domain, which merges a few accounts that share a name; that, not the gap, is why it gives \HarmGapCampaignsTwentyFour{} rather than \HarmTestCampaigns{} campaigns at 24 hours (by user and domain it gives \HarmRegroupByAccount{}).
 
 \section{Diagnostics}
 \label{sec:diagnostics}
@@ -440,14 +434,14 @@ Rule & Temporal & Harmonised \\
 \end{threeparttable}
 \end{table}
 
-\paragraph{The source side.} \TopHost{} is the source of \RedTeamTopHostShare{} of the red-team events. The catalogue now describes the source computer (M2c and rule R8, and the F3 relations), and source rarity ranks the compromised users' days high (\cref{sec:units}), in line with the source-side rule of \textcite{garchery2020adsage}; this was added after the earlier version's results were seen (\cref{sec:leakage}). At the event level it does not (first detection at \HarmSourceRarityFirstDetection{} alerts per day in the harmonised protocol).
+\paragraph{The source side.} \TopHost{} is the source of \RedTeamTopHostShare{} of the red-team events. All but \HarmCampaignsOffTopHost{} of the \HarmTestCampaigns{} harmonised campaigns hold only events from it. The catalogue now describes the source computer (M2c and rule R8, and the F3 relations), added after the earlier version's results were seen (\cref{sec:leakage}). Source rarity ranks the compromised users' days high, in line with the source-side rule of \textcite{garchery2020adsage}, but a count of the distinct sources a user authenticates from that day ranks them as high or higher (\cref{sec:units}); at the event level it does not rank them high (first detection at \HarmSourceRarityFirstDetection{} alerts per day in the harmonised protocol).
 
 \section{Euler: reproduction and reconciliation}
 \label{sec:euler}
 
 \paragraph{Fidelity check.} We ran our reimplementation under the paper's own protocol: training before the first red-team event, edges scored per 30-minute snapshot, and edge-level AUC and average precision (AP) compared with table VI of \textcite{king2022euler} (GCN with GRU, link prediction: AUC \EulerPublishedAuc{}, AP \EulerPublishedAp{}, TPR \EulerPublishedTpr{}, FPR \EulerPublishedFpr{}, precision \EulerPublishedPrecision{}). \Cref{tab:euler} gives four configurations over five seeds each: all events; NTLM authentications only, as the authors' loader keeps, a filter that \textcite{larroche2026fair} notes makes detection easier because the LANL lateral movements use NTLM; that subset with the authors' node vocabulary (every computer has its own identifier, including those first seen after training); and with their default learning rate and patience. None reaches the published values. The vocabulary configuration drops to AUC \EulerFidNtlmVocabularyAuc{}, although the authors' code uses the same vocabulary, so some component of the reimplementation interacts badly with untrained node rows; we have not isolated which.
 
-\paragraph{The authors' code.} We then ran the authors' code (\texttt{iHeartGraph/Euler}, commit \texttt{b6ab8fd}), edited only where its instructions ask for paths, with the dependencies listed in its \texttt{requirements.txt} (added in November 2023, after the paper) installed with pip rather than conda, on the same machine and data, with 4 workers as the paper states (its script defaults to 8), five repetitions. The code sets no random seed. It reproduces the published AUC closely (\EulerAuthorsAuc{} $\pm$ \EulerAuthorsAucSd{}; one-sample $t = \EulerAuthorsAucT$, $p = \EulerAuthorsAucTP$) but not the published AP: \EulerAuthorsAp{} $\pm$ \EulerAuthorsApSd{}, between \EulerAuthorsApMin{} and \EulerAuthorsApMax{} over the five runs ($t = \EulerAuthorsApT$, $p = \EulerAuthorsApTP$); its TPR (\EulerAuthorsTpr{}), FPR (\EulerAuthorsFpr{}) and precision (\EulerAuthorsPrecision{}) also fall short of the published row. What was not reproduced is the released code with its released preprocessing in that environment, not necessarily the published run: the released preprocessing keeps \EulerAuthorsNtlmLines{} NTLM lines (\EulerAuthorsNtlmNoLoops{} without self-loops) and \EulerAuthorsNodes{} nodes, against \EulerPublishedEvents{} events and \EulerPublishedNodes{} nodes in the paper's table V. At this prevalence a few positives decide AP: the four anomalous edges the released pipeline loses (below), if the published run scored them near the top, could account for most of the gap. The authors also compute AP on float32 scores, which saturate at the top of the ranking, and on a differently aligned edge set; we have not measured either effect.
+\paragraph{The authors' code.} We then ran the authors' code (\texttt{iHeartGraph/Euler}, commit \texttt{b6ab8fd}), edited only where its instructions ask for paths, with the dependencies listed in its \texttt{requirements.txt} (added in November 2023, after the paper) installed with pip rather than conda, on the same machine and data, with 4 workers as the paper states (its script defaults to 8), five repetitions. The code sets no random seed. Its AUC stays close to the published one: \EulerAuthorsAuc{} $\pm$ \EulerAuthorsAucSd{}, every run between \EulerAuthorsAucMin{} and \EulerAuthorsAucMax{}, below the published \EulerPublishedAuc{} by \EulerAuthorsAucGap{} on average, a gap five runs cannot tell from zero. Its AP does not: \EulerAuthorsAp{} $\pm$ \EulerAuthorsApSd{}, every run between \EulerAuthorsApMin{} and \EulerAuthorsApMax{}, less than half the published \EulerPublishedAp{}, which lies above the 95\% prediction interval for one further run ([\EulerAuthorsApLogPredLow{}, \EulerAuthorsApLogPredHigh{}] on the log scale, [\EulerAuthorsApPredLow{}, \EulerAuthorsApPredHigh{}] on the raw one). The published AP is one number of unknown spread, and the five runs share one environment, so this says that the released code in this environment does not reach it, not by how much the published run could vary. Its TPR (\EulerAuthorsTpr{}), FPR (\EulerAuthorsFpr{}) and precision (\EulerAuthorsPrecision{}) also fall short of the published row. \textcite{wang2025rr} reran the same released code and preprocessed data on LANL; they report its results only in a figure, and trace unstable threshold-dependent metrics to a threshold set on a random 5\% validation sample. The Euler AP of 0.0627 that \textcite{king2026cybergfm} report comes from a random split of LANL and is not comparable with either run. What was not reproduced is the released code with its released preprocessing in that environment, not necessarily the published run: the released preprocessing keeps \EulerAuthorsNtlmLines{} NTLM lines (\EulerAuthorsNtlmNoLoops{} without self-loops) and \EulerAuthorsNodes{} nodes, against \EulerPublishedEvents{} events and \EulerPublishedNodes{} nodes in the paper's table V. At this prevalence a few positives decide AP: the four anomalous edges the released pipeline loses (below), if the published run scored them near the top, could account for most of the gap. The authors also compute AP on float32 scores, which saturate at the top of the ranking, and on a differently aligned edge set; we have not measured either effect.
 
 \paragraph{Undocumented choices.} The authors' code differs from the paper in ways the paper does not describe, and our reimplementation follows the paper where it is explicit: edge weights $\sigma(\lfloor C/\Sigma \rfloor)$ instead of the paper's standardised $\sigma((C - \mu)/\Sigma)$, which gives most edges the weight 0.5; identity node features without the paper's node-type vector; ten negative samples per edge, drawn among non-edges; early stopping on the sum of validation AUC and AP; dropout 0.25 with edge dropout keeping 20\% of edges; one optimiser step per epoch over the whole training sequence; and the last 5\% of pre-attack time held out to set the threshold and the initial state of the test. Choices of ours where the paper is silent: as many negatives as edges, early stopping on a held-out loss, ReLU after the first layer (from the code), dropout 0.1, learning rate 0.01, truncated back-propagation over one day, and one shared node for computers unseen in training. Two deviations are ours and unintended: the second layer's bias is added before propagation, so it is scaled by node degree, and a self-loop is added to every node even where the graph already has one. Which of these differences closes the gap is not tested here.
 
@@ -470,9 +464,15 @@ Configuration & Events & Test edges (anomalous) & AUC & AP \\
 
 \paragraph{The test sets, edge by edge.} Recounted in our snapshot alignment (multiples of 30 minutes), the authors' prepared files give exactly our NTLM test set: \EulerTestEdges{} edges, of which \EulerOurAlignmentAnomalous{} anomalous plus the first red-team event, which their preprocessing skips as if it were a header line and labels benign. Their loader aligns snapshots on the start of the test instead, which gives \EulerTheirAlignmentEdges{} edges and \EulerTheirAnomalous{} anomalous ones, \EulerPublishedAnomalous{} with the skipped line, the count of the paper's table V; it drops the \EulerTheirLastSnapshot{} edges of the last, partial snapshot. Their predictor never scores the first test snapshot, which holds \EulerAuthorsFirstSnapshot{} anomalous edges, so \EulerAuthorsEvaluated{} anomalous edges are evaluated in every repetition. Every count in this paragraph was recomputed with the authors' own loader or from their files. The two implementations therefore read the same test events; their scored edge sets differ by alignment and by those four edges.
 
-\section{Comparison with published results}
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Comparison with published results}
 \label{sec:comparison}
-\Cref{tab:larroche} places our detectors beside the event-level re-evaluation of \textcite{larroche2026fair}, on the same \HarmUniverseEvents{} events and \HarmTestPositives{} positives. Our Euler reimplementation reaches a lower ROC-AUC than his runs of the authors' Euler (link detection, not prediction) and of Argus, and an average precision between theirs; every detector in either set ranks the red team with an AP below 0.1\%. \Cref{tab:comparison} lists published budgeted results, which differ from ours in universe, unit and split and are not comparable across rows. The user-day unit brings our numbers closest to those of \textcite{garchery2020adsage}, whose source-side rule we include: like them, we find that a source-novelty score detects a substantial share of the campaigns at budgets of hundreds of user-days per day, a result that should be read with the cautions of \cref{sec:units}.
+\Cref{tab:larroche} places our detectors beside the event-level re-evaluation of \textcite{larroche2026fair}, on the same \HarmUniverseEvents{} events and \HarmTestPositives{} positives. Our Euler reimplementation, fitted once, reaches a lower ROC-AUC than his ten runs of the authors' Euler (link detection, not prediction) and of Argus, and an average precision between their means; every detector in either set ranks the red team with an AP below 0.1\%. \Cref{tab:comparison} lists published budgeted results, which differ from ours in universe, unit and split and are not comparable across rows. The user-day unit brings our numbers closest to those of \textcite{garchery2020adsage}, who found that a rule flagging unseen source computers performs on par with their graph-based detector. We find one step more: in the same unit, a count of the distinct computers a user touches that day does as well as or better than every detector in the catalogue, so budgeted user-day recall on LANL measures above all the fan-out of the compromised accounts.
+
+\subsection{What the case study suggests}
+For an evaluation, three practices follow, each cheap. Compare every result with its distribution under a random ranking rather than with one random floor, and read the earliest detections with their seeds and day boundaries: the best of \cref{tab:results-harmonised} hold for one fit of five or fall on a partial day. Put a label-free count of the same units beside any detector ranked in coarser units, and a null that aggregates as the units do: without them, a fan-out count would have passed for detection. And report a detector's spread over fitting seeds before its rank. For a SOC, the case study is a warning rather than a recipe: no detector here would surface this operation within the alerts one analyst can triage in a day, a threshold set on 41 hours of training overshoots by an order of magnitude for weeks, and the cheapest signal of the compromised accounts, how many computers they touched, needs no model at all. For LANL as a benchmark, a single operation from one host, whose accounts fan out widely, rewards whatever ranks fan-out, which is one more reason to evaluate on a dataset with several intrusions.
 
 \begin{table}[t]
 \centering
@@ -503,66 +503,44 @@ Work & Universe and split & Unit and statistic & Reported result \\
 \textcite{larroche2021decades} & local and remote LogOn events to user accounts, and process creations; train 8 days, test next 5 & red-team events detected at $B$ events per day & DR-1K = 0.081 (DECADES), 0.093 (CADENCE) \\
 \textcite{garchery2020adsage} & authentications without system accounts; their days 1--8 train, 9--13 test & normalised cumulative recall over user-day budgets & CR-1000 = 0.254 for the \enquote{known source pc} rule, 0.255 for ADSAGE \\
 \textcite{larroche2025ultralmd} & remote authentication edges scored, network flows as context; hourly windows & lateral-movement edges in the top $B$ per hour & Rec@10 = 0.1788 (UltraLMD++, after removing duplicate lateral-movement edges) \\
-This case study, harmonised & remote LogOn; train hours 0--41, test 41--1392 & campaigns detected at $k$ events or user-days per day & events: none at 10, \HarmVaeRecallFiveHundred{} at 500 (M4b); user-days: \HarmEulerUserDayFiveHundred{} (M5c) and \HarmSourceRarityUserDayFiveHundred{} (M2c) at 500 \\
+This case study, harmonised & remote LogOn; train hours 0--41, test 41--1392 & campaigns detected at $k$ events or user-days per day & events: none at 10, \HarmVaeRecallFiveHundred{} at 500 (M4b); user-days at 500: \HarmEulerUserDayFiveHundred{} (M5c), \HarmSourceRarityUserDayFiveHundred{} (M2c), \HarmBaselineDstUserDayFiveHundred{} for a count of distinct destinations \\
 \bottomrule
 \end{tabular}
-\end{threeparttable}
-\end{table}
-
-\section{A control for circularity}
-\label{sec:circularity}
-
-Before the LANL runs, the protocol was exercised on a synthetic sample whose generator emits each campaign as a chain: a user authenticates from $A$ to $B$, then from $B$ to $C$. On that sample, the rule engine detects all four test campaigns at 10 alerts per day. A decomposition by rule (\cref{tab:rules}) explains why: rule R7, which tests whether a user's previous destination equals the current source within 30 minutes, is the generator's own predicate; it separates malicious from benign events by a factor of \DemoRSevenRatio{} and receives a calibrated weight of \DemoRSevenWeight{}. On LANL, the same rule ranks the red team at or below chance (\cref{tab:rules-lanl}). A synthetic sample written by the author of the rules cannot distinguish a good heuristic from one informed by the generator.
-
-\begin{table}[t]
-\centering
-\small
-\begin{threeparttable}
-\caption{Rule-level discrimination on the synthetic sample: mean raw rule score on benign and malicious events, their ratio, and the weight calibrated on validation.}
-\label{tab:rules}
-\begin{tabular}{@{}lrrrr@{}}
-\toprule
-Rule & Benign & Malicious & Ratio & Weight \\
-\midrule
-\tablerows{generated/table_rules_demo.tex}
-\bottomrule
-\end{tabular}
-\begin{tablenotes}\footnotesize
-\item A ratio of 0.0 means the rule never fired on a malicious event.
-\end{tablenotes}
 \end{threeparttable}
 \end{table}
 
 \section{Threats to validity}
 \label{sec:threats}
 
-\paragraph{One operation, one dataset.} The labelled activity is one intrusion, mostly from one host (\cref{sec:concentration}), in one dataset. The bootstrap resamples the accounts of that operation; generalisation to other intrusions is not established, and every $p$-value should be read as stability under resampling of those accounts. A second dataset with several intrusions is needed before any claim about detectors in general.
+\paragraph{One operation, one dataset.} The labelled activity is one intrusion, mostly from one host (\cref{sec:concentration}), in one dataset. The bootstrap resamples the accounts of that operation; generalisation to other intrusions is not established, and every $p$-value should be read as stability under resampling of those accounts. A second dataset with several intrusions is needed before any claim about detectors in general. The obvious one is OpTC, which \textcite{larroche2026fair} harmonises with the same policy; it was not attempted in this version because the harness reads only LANL's file format, and an adapter for OpTC's host event records is the first item of the next one.
 
-\paragraph{Catalogue.} Argus, Jbeil, UltraLMD++, the authors' Euler and any sequence model are absent from the harness; our Euler is a reimplementation that stays below the authors' code on its own protocol (\cref{sec:euler}). The conclusions are about this catalogue.
+\paragraph{Analytic flexibility.} Eleven detectors and two floors, three units, four budgets, two protocols, five summaries and the partial first day make many cells, and Holm is applied within a few families only: across detectors for the first detection, across pairs for AUC-PR, across metrics and summaries for the correlations. The intrusion-level probabilities are unadjusted. No endpoint was declared before the run, so the results are exploratory; a second dataset should be run with its endpoints fixed in advance, for instance campaign recall at 100 events per day and the first day noticed at that budget.
+
+\paragraph{Catalogue.} Argus, Jbeil, UltraLMD++, CyberGFM, the authors' Euler and any sequence model are absent from the harness; our Euler is a reimplementation that stays below the authors' code on its own protocol (\cref{sec:euler}). The conclusions are about this catalogue.
 
 \paragraph{Labels, tuning and design.} In the temporal protocol, four detectors are tuned on validation labels of the same operation, which \textcite{larroche2026fair} advises against, and the autoencoders, ECOD and Euler are not tuned; the harmonised protocol, which reads no label, is the label-free evidence. Some catalogue and unit choices were made after an earlier version's results on the same operation were seen (\cref{sec:leakage}).
 
 \paragraph{Fitting variance.} Five seeds change some first-detection budgets by an order of magnitude (\cref{sec:variance}); the autoencoders and Euler were fitted once, so their position may move as much. Five draws also understate the spread of a sixth.
 
-\paragraph{Units, ties, days and budgets.} Unit rankings carry no tie bracket and units are priced like events; only M2a and M0b have event-level brackets of non-zero width. The harmonised first test day is partial (\cref{sec:intrusion}). The staffing model behind the budgets rests on weak inputs, and the fixed-threshold variant shows that a top-$k$ budget is an idealisation.
+\paragraph{Units, ties, days and budgets.} Unit rankings carry no tie bracket and units are priced like events; only M2a and M0b have event-level brackets of non-zero width. User-days are keyed by user name and campaigns by user and domain (\cref{sec:evaluation}); the activity rankings and the aggregation-aware null were computed after the run, from the log rather than from the run's scores, and checked against it. The harmonised first test day is partial (\cref{sec:intrusion}). The staffing model behind the budgets rests on weak inputs, and the fixed-threshold variant shows that a top-$k$ budget is an idealisation.
 
 \paragraph{Features.} For a user's first event, the deviation from the user's typical hour is set to zero, the most typical value. The temporal training partition begins at day 0 without history, while validation and test have a warm-up.
 
-\paragraph{Campaign definition and rule mapping.} Campaign recall depends on the grouping threshold (\cref{sec:ties-results}) and counts each compromised account of the operation as a campaign. The ATT\&CK techniques attached to the rules (\cref{app:rules}) express design intent and are not validated against ground truth.
+\paragraph{Campaign definition and rule mapping.} Campaign recall depends on the grouping threshold (\cref{sec:ties-results}) and counts each episode of a compromised account (events at most 24 hours apart) as a campaign, so the \HarmTestCampaigns{} harmonised campaigns are episodes of \HarmTestAccounts{} accounts of one operation, not independent attacks; \textcite{zhao2026gids} use the word for attack campaigns. The ATT\&CK techniques attached to the rules (\cref{app:rules}) express design intent and are not validated against ground truth.
 
-\paragraph{External validity.} One enterprise network observed in 2015, before widespread multi-factor authentication; labels are a partial ground truth; the red team did not attempt to evade these detectors; and the raw files come from a mirror whose content was verified on three of 58 days and in total.
+\paragraph{External validity.} One enterprise network observed in 2015, before widespread multi-factor authentication; labels are a partial ground truth; the red team did not attempt to evade these detectors; and the raw files come from a mirror whose content was verified on three of 58 days, in total, and through the exact harmonised event set.
 
 \section{Scope of the claims}
 \label{sec:scope}
-For these detectors, universes and protocols, on one network and one operation: no campaign is detected within 10 events per day and at most a tenth within 500; at 100 events per day one detector notices the intrusion on its first, partial day; ROC-AUC tracks where most campaigns are found but did not indicate which detector finds the first; and in user-days a graph detector and a source-novelty score reach about half of the campaigns at 500 per day, against a few percent for a random ranking. The results do not show that ROC-AUC fails to predict budgeted detection in general, that any detector family is better than another beyond this operation, or that Euler's published average precision is wrong: they show that its released code and preprocessing, in the released environment, do not reach it on this data.
+For these detectors, universes and protocols, on one network and one operation: no campaign is detected within 10 events per day and at most a tenth within 500; the earliest detections of the operation rest on one fit or on a partial first day; in the label-free protocol neither ROC-AUC nor AUC-PR orders the detectors by their campaign budgets, while a campaign-weighted AP does; and in user-days no detector ranks the compromised accounts above a count of the computers they touch. The results do not show that ROC-AUC fails to predict budgeted detection in general, that any detector family is better than another beyond this operation, that fan-out would dominate on another intrusion, or that Euler's published average precision is wrong: they show that its released code and preprocessing, in the released environment, do not reach it on this data.
 
 \section{Reproducibility}
 \label{sec:reproducibility}
-The code, configuration and run outputs are public at \url{https://github.com/SaniAdamou14/AuthBench} \parencite{authbenchsoftware}; the first version of this report is archived \parencite{authbenchpreprint}. Continuous integration runs linting, strict type checking and the test suite on every change, regenerates the synthetic results byte for byte, and regenerates every number and table of this report from the committed run outputs, failing if one differs; the generator also checks the run against itself and against the published counts it quotes. The evaluations were produced by the code at commit \texttt{bd833eb}, the Euler fidelity configurations by commit \texttt{6c12582}, and the authors' code at its commit \texttt{b6ab8fd}, on a rented machine with 16 virtual CPUs and 61\,GB of memory, in \RunHours{} hours from start to the last evaluation and about 17 hours of machine time in all; the authors' code needed about 36\,GiB. Outputs, logs, the authors' Euler results and every recount quoted in \cref{sec:euler} are committed under \texttt{reports/runs/20261022T102638Z}, but the Euler fidelity runs and the authors' code were driven by separate scripts with machine-specific paths and are not yet one command. Fitting and resampling are seeded, except in the authors' code.
+The code, configuration and run outputs are public at \url{https://github.com/SaniAdamou14/AuthBench} \parencite{authbenchsoftware}; the first version of this report is archived \parencite{authbenchpreprint}. Continuous integration runs linting, strict type checking and the test suite on every change, regenerates the synthetic results byte for byte, and regenerates every number and table of this report from the committed run outputs, failing if one differs; the generator also checks the run against itself and against the published counts it quotes. The evaluations were produced by the code at commit \texttt{bd833eb}, the Euler fidelity configurations by commit \texttt{6c12582}, and the authors' code at its commit \texttt{b6ab8fd}, on a rented machine with 16 virtual CPUs and 61\,GB of memory, in \RunHours{} hours from start to the last evaluation and about 17 hours of machine time in all; the authors' code needed about 36\,GiB. Outputs, logs, the authors' Euler results and every recount quoted in \cref{sec:euler} are committed under \texttt{reports/runs/20261022T102638Z}, but the Euler fidelity runs and the authors' code were driven by separate scripts with machine-specific paths and are not yet one command; the run script itself exited with an error because its first Euler fidelity step was killed for lack of memory, that step was rerun separately and the run summary written by hand, and the DVC pipeline in the repository describes an earlier, smaller configuration. The user-day activity behind the label-free rankings and the aggregation-aware null (\cref{sec:units}) was computed after the run by \texttt{scripts/user\_day\_activity.py}, from the same log streamed from the same mirror and parsed by the pipeline's own functions; it is committed with the run outputs, and the generator checks it against the run's events, user-days and positives on every day. Fitting and resampling are seeded, except in the authors' code.
 
 \section{Conclusion}
 \label{sec:conclusion}
-Under a leak-free protocol and at the event level, none of thirteen detectors detects a campaign of the LANL red team within 10 alerts per day. Read at the level of the intrusion, one detector notices it on its first day at 100 alerts per day, and two others a week later at 50. ROC-AUC tracks where most campaigns are found but not which detector finds the first; that first detection depends on the fitting seed and on how the test days are cut, and a threshold calibrated on 41 hours does not hold for eight weeks. In user-days, a graph detector and a source-novelty score reach half of the campaigns at 500 per day. The authors' Euler code, with its released preprocessing, does not reach its published average precision. Because the labelled activity is one operation, these findings describe one case; the harness is meant to make the next case, on a second dataset and with the detectors this catalogue lacks, cheap to evaluate.
+\emph{RQ1.} Under a temporally leak-free protocol that reads no label, no detector of this catalogue places a red-team event of any campaign within 10 alerts per day, and the best detects \HarmVaeRecallFiveHundredCount{} of \HarmTestCampaigns{} campaigns within 500. The operation as a whole is noticed earlier, on its first, partial day at 100 alerts per day by the autoencoder and a week later at 50 by PCA and the VAE, but each of these rests on one fit or on that partial day, and a threshold calibrated on 41 hours overshoots its target for eight weeks. In user-days, half the campaigns are within 500 per day for the best detectors, and slightly more for a label-free count of the computers each user touched that day: the coarser unit measures the fan-out of the compromised accounts rather than the detectors. \emph{RQ2.} In the label-free protocol, ROC-AUC and AUC-PR do not order the detectors by their campaign budgets after adjustment, a campaign-weighted AP does, and no metric orders them by first detection; with ten detectors, these are statements about this set. \emph{RQ3.} The authors' Euler code, with its released preprocessing and on the same events, stays close to its published AUC and below half its published average precision in every run. Because the labelled activity is one operation, these findings describe one case; the harness, with its nulls and label-free baselines, is meant to make the next case, on a second dataset and with the detectors this catalogue lacks, cheap to evaluate.
 
 \section*{Ethics and data statement}
 \addcontentsline{toc}{section}{Ethics and data statement}
@@ -632,6 +610,8 @@ Each rule's raw signal is mapped to $[0, 1]$ by its empirical CDF on a seeded sa
 \centering
 \footnotesize
 \setlength{\tabcolsep}{4pt}
+\caption{Every correlation of the family behind \cref{tab:correlations}: Monte Carlo permutation $p$-values with \PermutationCount{} permutations; Holm over the \CorrelationFamily{} tests of each protocol. \enquote{Leave one out} is the range of $\rho$ when any single detector is removed.}
+\label{tab:correlations-full}
 \begin{tabular}{@{}lllrlrr@{}}
 \toprule
 Protocol & Metric & Summary & $\rho$ & Leave one out & $p$ & Holm \\
@@ -640,28 +620,53 @@ Protocol & Metric & Summary & $\rho$ & Leave one out & $p$ & Holm \\
 \bottomrule
 \end{tabular}
 \end{table}
-Monte Carlo permutation $p$-values with \PermutationCount{} permutations; Holm over the \CorrelationFamily{} tests of each protocol. \enquote{Leave one out} is the range of $\rho$ when any single detector is removed. The detectors are a convenience set, several sharing features, so the permutation test checks exchangeability within this set, not a population of detectors.
+The detectors are a convenience set, several sharing features, so the permutation test checks exchangeability within this set, not a population of detectors.
+
+\section{AUC-PR with its bootstrap intervals}
+\label{app:aucpr}
+\begin{table}[H]
+\centering
+\footnotesize
+\caption{AUC-PR and its 95\% BCa interval from the account-block bootstrap (\cref{sec:uncertainty}), harmonised (top) and temporal (bottom) protocols.}
+\label{tab:aucpr}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Harmonised & AUC-PR & 95\% BCa interval \\
+\midrule
+\tablerows{generated/table_aucpr_harmonised.tex}
+\midrule
+Temporal & & \\
+\midrule
+\tablerows{generated/table_aucpr_temporal.tex}
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Campaign budgets and the partial first day}
 \label{app:budgets}
 \begin{table}[H]
 \centering
-\footnotesize
-\begin{tabular}{@{}llrrrr@{}}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\caption{Harmonised protocol: the second and third smallest campaign budgets (the smallest, $b^{*}$, is in \cref{tab:results-harmonised}), the 10\% quantile and the median of $b(c)$ with its account-bootstrap interval, campaign recall at 500 alerts per day with its account-bootstrap interval, and the first detection without the partial first test day (hours 41 to 47) with its null probability.}
+\label{tab:budgets-harm}
+\begin{tabular}{@{}llrllrr@{}}
 \toprule
-Detector & Three smallest $b(c)$ & 10\% quantile & Median & $b^{*}$ without day 1 & Null \\
+Detector & Next two $b(c)$ & 10\% & Median [95\%] & @500 [95\%] & $b^{*}$ w/o day 1 & Null \\
 \midrule
 \tablerows{generated/table_budgets_harm.tex}
 \bottomrule
 \end{tabular}
 \end{table}
-Harmonised protocol; the last two columns ignore the partial first test day (hours 41 to 47). Temporal protocol:
 \begin{table}[H]
 \centering
-\footnotesize
-\begin{tabular}{@{}llrr@{}}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\caption{Temporal protocol: columns as in \cref{tab:budgets-harm}, without the partial-day columns.}
+\label{tab:budgets-temp}
+\begin{tabular}{@{}llrll@{}}
 \toprule
-Detector & Three smallest $b(c)$ & 10\% quantile & Median \\
+Detector & Next two $b(c)$ & 10\% & Median [95\%] & @500 [95\%] \\
 \midrule
 \tablerows{generated/table_budgets_temp.tex}
 \bottomrule
@@ -673,6 +678,8 @@ Detector & Three smallest $b(c)$ & 10\% quantile & Median \\
 \begin{table}[H]
 \centering
 \small
+\caption{Temporal protocol: first test day on which some red-team event is in the top $k$, with the probability that a random ranking does so by that day; the test starts on day 11, which holds no positive.}
+\label{tab:intrusion-temp}
 \begin{tabular}{@{}lrrr@{}}
 \toprule
 Detector & $k = 50$ & $k = 100$ & $k = 500$ \\
@@ -681,14 +688,15 @@ Detector & $k = 50$ & $k = 100$ & $k = 500$ \\
 \bottomrule
 \end{tabular}
 \end{table}
-First test day on which some red-team event is in the top $k$, with the probability that a random ranking does so by that day; the test starts on day 11, which holds no positive.
 
-\section{Alert units and fixed thresholds, temporal protocol}
+\section{Alert units, fixed thresholds and regimes, temporal protocol}
 \label{app:units}
 \begin{table}[H]
 \centering
 \footnotesize
 \setlength{\tabcolsep}{4pt}
+\caption{Temporal protocol in three alert units, with the label-free activity rankings and the two random nulls; columns as in \cref{tab:units}. A test day has between \TempUserDaysMin{} and \TempUserDaysMax{} user-days.}
+\label{tab:units-temp}
 \begin{tabular}{@{}lrrrrrr@{}}
 \toprule
 & Events & Edge-hours & \multicolumn{4}{c}{User-days} \\
@@ -701,6 +709,8 @@ Detector & @500 & @500 & @50 & @500 & $b^{*}$ & Null \\
 \begin{table}[H]
 \centering
 \footnotesize
+\caption{Temporal protocol with a threshold calibrated on validation for 10 and for 500 alerts per day; columns as in \cref{tab:fixed}.}
+\label{tab:fixed-temp}
 \begin{tabular}{@{}lrrrrrr@{}}
 \toprule
 & \multicolumn{3}{c}{Target 10/day} & \multicolumn{3}{c}{Target 500/day} \\
@@ -710,7 +720,20 @@ Detector & mean & max & recall & mean & max & recall \\
 \bottomrule
 \end{tabular}
 \end{table}
-Thresholds are calibrated on validation. A test day has between \TempUserDaysMin{} and \TempUserDaysMax{} user-days.
+\begin{table}[H]
+\centering
+\small
+\caption{Temporal protocol: detectors whose AUC-PR or first-detection budget changes by more than 1\% between R1 (red-team events in the fitted rows) and R2 (removed).}
+\label{tab:regimes}
+\begin{tabular}{@{}lllrrrr@{}}
+\toprule
+& \multicolumn{2}{c}{AUC-PR} & \multicolumn{2}{c}{ROC-AUC} & \multicolumn{2}{c}{$b^{*}$} \\
+Detector & R1 & R2 & R1 & R2 & R1 & R2 \\
+\midrule
+\tablerows{generated/table_regimes.tex}
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Earlier code on the same temporal partitions}
 \label{app:earlier}
@@ -719,6 +742,8 @@ The previous version of this report evaluated \WideModels{} detectors on the sam
 \centering
 \footnotesize
 \setlength{\tabcolsep}{4pt}
+\caption{The temporal protocol under the code of September 2026 and of October 2026.}
+\label{tab:earlier}
 \begin{tabular}{@{}lllrrrr@{}}
 \toprule
 & \multicolumn{2}{c}{AUC-PR} & \multicolumn{2}{c}{ROC-AUC} & \multicolumn{2}{c}{$b^{*}$} \\
@@ -727,6 +752,30 @@ Detector & September & October & September & October & September & October \\
 \tablerows{generated/table_earlier.tex}
 \bottomrule
 \end{tabular}
+\end{table}
+
+\section{A control for circularity}
+\label{app:circularity}
+
+Before the LANL runs, the protocol was exercised on a synthetic sample whose generator emits each campaign as a chain: a user authenticates from $A$ to $B$, then from $B$ to $C$. On that sample, the rule engine detects all four test campaigns at 10 alerts per day. A decomposition by rule (\cref{tab:rules}) explains why: rule R7, which tests whether a user's previous destination equals the current source within 30 minutes, is the generator's own predicate; it separates malicious from benign events by a factor of \DemoRSevenRatio{} and receives a calibrated weight of \DemoRSevenWeight{}. On LANL, the same rule ranks the red team at or below chance (\cref{tab:rules-lanl}). A synthetic sample written by the author of the rules cannot distinguish a good heuristic from one informed by the generator.
+
+\begin{table}[H]
+\centering
+\small
+\begin{threeparttable}
+\caption{Rule-level discrimination on the synthetic sample: mean raw rule score on benign and malicious events, their ratio, and the weight calibrated on validation.}
+\label{tab:rules}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Rule & Benign & Malicious & Ratio & Weight \\
+\midrule
+\tablerows{generated/table_rules_demo.tex}
+\bottomrule
+\end{tabular}
+\begin{tablenotes}\footnotesize
+\item A ratio of 0.0 means the rule never fired on a malicious event.
+\end{tablenotes}
+\end{threeparttable}
 \end{table}
 
 \end{document}

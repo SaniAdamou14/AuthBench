@@ -54,8 +54,13 @@ def get_test_split(data: pl.LazyFrame, config: TemporalSplitConfig) -> pl.LazyFr
     return data.filter(pl.col("day").is_between(lo, hi))
 
 
-def verify_temporal_order(train: pl.LazyFrame, val: pl.LazyFrame, test: pl.LazyFrame) -> None:
+def verify_temporal_order(
+    train: pl.LazyFrame, val: pl.LazyFrame | None, test: pl.LazyFrame
+) -> None:
     """US-107: `max(train.time) < min(val.time)` and `max(val.time) < min(test.time)`.
+
+    `val=None` is a protocol without a validation partition (the harmonised one), where the
+    condition is `max(train.time) < min(test.time)`.
 
     Those two, and deliberately not the four-term chain this docstring used to
     claim (`train.max < val.min < val.max < test.min`). The middle link,
@@ -69,6 +74,16 @@ def verify_temporal_order(train: pl.LazyFrame, val: pl.LazyFrame, test: pl.LazyF
     Raises `LeakageError` rather than returning a bool — a leakage check that
     can be silently ignored is worse than none.
     """
+    if val is None:
+        train_max = train.select(pl.col("time").max()).collect().item()
+        test_min = test.select(pl.col("time").min()).collect().item()
+        if train_max is None or test_min is None:
+            raise LeakageError("Train or test is empty — cannot verify temporal order.")
+        if not (train_max < test_min):
+            raise LeakageError(
+                f"Train/test leakage: train max time {train_max} >= test min time {test_min}."
+            )
+        return
     train_max = train.select(pl.col("time").max()).collect().item()
     val_min = val.select(pl.col("time").min()).collect().item()
     val_max = val.select(pl.col("time").max()).collect().item()

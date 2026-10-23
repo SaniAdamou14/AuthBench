@@ -1,7 +1,8 @@
 # AuthBench
 
-**What does published anomaly-detection performance become under a realistic
-alert budget?** A leak-free, budget-constrained benchmark on the LANL
+**At what daily alert budget does an authentication anomaly detector find an
+intrusion, and how much of that is the detector?** A temporally leak-free,
+budget-constrained evaluation harness, with a case study on the LANL
 Comprehensive Multi-Source Cyber-Security Events dataset.
 
 [![CI](https://github.com/SaniAdamou14/AuthBench/actions/workflows/ci.yml/badge.svg)](https://github.com/SaniAdamou14/AuthBench/actions/workflows/ci.yml)
@@ -31,8 +32,8 @@ source [`reports/paper/main.tex`](reports/paper/main.tex), built on the full LAN
 
 ## The result
 
-The full LANL run of 22 October 2026 evaluates thirteen detectors (floors,
-rules with and without labels, rarity scores, PCA, three outlier detectors, two
+The full LANL run of 22 October 2026 evaluates eleven detectors and two floors
+(rules with and without labels, rarity scores, PCA, three outlier detectors, two
 autoencoders and Euler) on all 58 days, under two protocols. Provenance, every
 number and every caveat:
 [`reports/runs/20261022T102638Z/RUN.md`](reports/runs/20261022T102638Z/RUN.md).
@@ -52,40 +53,48 @@ LANL event set of Larroche (2026, Table 4).
 | M0b always-fail *(floor)* | 1.95e-6 [1.38e-6, 3.20e-6] | 0.498 | 0.0% | 7.4% | 20,636 | 0.876 |
 | M1u rules, uniform (= M1 here) | 1.16e-6 [8.35e-7, 1.78e-6] | 0.244 | 0.0% | 0.0% | 41,065 | 0.984 |
 | M2a pair rarity | 4.21e-4 [2.59e-4, 8.78e-4] | 0.949 | 1.2% | 21.6% | 405 | 0.040 |
-| M2c source rarity | 1.58e-5 [1.08e-5, 2.83e-5] | 0.926 | 0.0% | **50.6%** | 3,737 | 0.314 |
+| M2c source rarity | 1.58e-5 [1.08e-5, 2.83e-5] | 0.926 | 0.0% | 50.6% | 3,737 | 0.314 |
 | M2b PCA | 1.23e-5 [7.83e-6, 1.78e-5] | 0.888 | 2.5% | 41.4% | **20** | **0.002** |
 | M3a Isolation Forest | 7.37e-5 [4.43e-5, 1.31e-4] | 0.957 | 0.0% | 16.0% | 718 | 0.070 |
 | M3b HBOS | 5.92e-5 [4.20e-5, 9.21e-5] | **0.979** | 0.0% | 13.0% | 1,262 | 0.120 |
 | M3c ECOD | 1.71e-4 [1.07e-4, 3.60e-4] | 0.972 | 0.0% | 29.0% | 1,691 | 0.157 |
 | M4a autoencoder | 3.94e-5 [2.55e-5, 6.85e-5] | 0.935 | 1.9% | 37.7% | 59 | 0.006 |
 | M4b VAE | 5.53e-5 [3.52e-5, 9.50e-5] | 0.959 | **4.3%** | 43.8% | 27 | 0.003 |
-| M5c Euler | **7.19e-4** [4.75e-4, 1.24e-3] | 0.961 | 0.6% | **51.2%** | 203 | 0.020 |
+| M5c Euler | **7.19e-4** [4.75e-4, 1.24e-3] | 0.961 | 0.6% | 51.2% | 203 | 0.020 |
+| *Most distinct destinations that day (no detector, no label)* | | | | **56.8%** | | |
 
 - **No detector catches a campaign at 10 alerts a day**, in either protocol.
   At 500 events a day the best is 4.3% of the campaigns (harmonised, VAE) and
   9.6% (temporal, PCA, tuned on validation labels).
 - **Read at the level of the intrusion**, the autoencoder alerts on the attack's
-  first test day at 100 alerts a day, and PCA and the VAE a week later at 50.
-  That first day is partial (hours 41 to 47): without it the autoencoder's first
-  detection moves from 59 to 528 alerts a day.
-- **ROC-AUC tracks the bulk of the campaign-recall curve, not its leading edge**:
-  Spearman ρ with the median campaign budget is 0.55 (harmonised) and 0.91
-  (temporal), with the first detection 0.03 and 0.15. With ten or eleven
-  detectors, the latter is absence of evidence, not independence.
+  first test day at 100 alerts a day, and PCA and the VAE a week later at 50,
+  but none of these is established beyond one fit: PCA does so in 2 of its 5
+  fits, the others were fitted once, and the first day is partial (hours 41 to
+  47): without it the autoencoder's first detection moves from 59 to 528.
+- **Threshold-free metrics and budgets**: in the harmonised protocol, which reads
+  no label, neither ROC-AUC (ρ = 0.55 with the median campaign budget, Holm
+  p = 0.734) nor AUC-PR (0.79, p = 0.100) orders the detectors by their
+  campaign budgets; a campaign-weighted AP does (0.93, p = 0.005). No metric
+  orders them by first detection; with ten detectors, that is absence of
+  evidence, not independence.
 - **Another seed is another result**: PCA's harmonised first detection ranges
   from 13 to 243 alerts a day over five fitting seeds (median 137); the
   autoencoders and Euler were fitted once.
-- **Units**: ranked as user-days, Euler and source rarity reach about half of
-  the campaigns at 500 a day, against 3.0% expected from a random ranking (exact
-  null). Their user-day first detections are not distinguishable from random, a
-  user-day costs more to investigate than an event, and source rarity was added
-  after an earlier look at the same operation.
+- **Units measure fan-out**: ranked as user-days, Euler and source rarity reach
+  about half of the campaigns at 500 a day, but ranking each day's users by how
+  many distinct computers they touched, with no detector and no label, reaches
+  56.8% (30.2% at 50 a day, against 13.6% for Euler). No detector beats that
+  count. Against random event scores aggregated by their maximum (6.0% at 500)
+  most detectors still stand out; against a uniform ranking of user-days (3.0%)
+  everything does, which is why that null was the wrong one. Computed after the
+  run by `scripts/user_day_activity.py`.
 - **A threshold fixed on the 41 training hours does not hold**: calibrated for
   10 alerts a day, PCA raises 149 a day on average on the test, 8,222 on its
   worst day.
 - **Euler**: the authors' own code, rerun on the same machine with its released
-  preprocessing, reproduces its published AUC (0.9879 against 0.9906) but not
-  its average precision (0.0058 against 0.0155, p < 0.001 over five runs).
+  preprocessing, stays within 0.003 of its published AUC (0.9879 against 0.9906)
+  and below half its published average precision in all five runs (at most
+  0.0080 against 0.0155).
   AuthBench's reimplementation reaches 0.9570 and 0.0027 on the same test
   events, and the test sets are reconciled edge by edge with the paper's counts.
 
@@ -159,7 +168,7 @@ M0a's 79 is one draw of that distribution, not a threshold.
 **The source side matters even here.** Adding the user-source and
 source-destination relations to the design matrix (F3, 22 October 2026) moved
 PCA's first detection from 114 alerts a day to 4. This is a synthetic sample;
-the LANL runs predate the change.
+the LANL run of 22 October 2026 includes these relations.
 
 16 of the 36 pairwise comparisons are significant after Holm-Bonferroni, all 16
 on the resolution floor (`Holm-adjusted p ≤ 0.0072` against 0.05); see

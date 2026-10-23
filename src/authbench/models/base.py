@@ -26,12 +26,13 @@ class AnomalyScorer(Protocol):
     #: at a time instead of materializing hundreds of millions of rows as a
     #: float64 matrix.
     #:
-    #: It is False for M1, and the distinction is not a technicality: R6 asks
-    #: "has this user ever used this auth type *before*?" and R7 asks "did this
-    #: user's previous event end where this one starts?". Chunking those by day
-    #: would reset both at every midnight — R6 would call an auth type new once
-    #: a day, R7 would lose every chain crossing a day boundary — and the
-    #: scores would still look completely plausible.
+    #: The distinction is not a technicality. M1's R6 asks "has this user ever
+    #: used this auth type *before*?" and R7 "did this user's previous event end
+    #: where this one starts?". Computed inside the scorer, chunk by chunk, both
+    #: would reset at every midnight — R6 would call an auth type new once a day,
+    #: R7 would lose every chain crossing a day boundary — and the scores would
+    #: still look plausible. M1 is row-local because both come precomputed from
+    #: features whose state is carried across days (`models.rules`).
     scores_row_locally: bool
 
     def fit(self, train: pl.LazyFrame) -> None:
