@@ -13,7 +13,7 @@ source [`reports/paper/main.tex`](reports/paper/main.tex), built on the full LAN
 22 October 2026; version 1 is archived at
 [doi.org/10.5281/zenodo.23159768](https://doi.org/10.5281/zenodo.23159768).
 **Code, all versions:** [doi.org/10.5281/zenodo.23183807](https://doi.org/10.5281/zenodo.23183807)
-(release v2.0.0 accompanies report version 2; v1.0.0 is
+(release v2.0.0, [10.5281/zenodo.23588281](https://doi.org/10.5281/zenodo.23588281), accompanies report version 2; v1.0.0 is
 [10.5281/zenodo.23183808](https://doi.org/10.5281/zenodo.23183808)).
 
 > A SOC cannot triage more than a few dozen alerts per day per analyst. Most
@@ -595,7 +595,7 @@ its output.
 the GitHub-Zenodo integration: all versions under
 [10.5281/zenodo.23183807](https://doi.org/10.5281/zenodo.23183807), `v1.0.0` as
 [10.5281/zenodo.23183808](https://doi.org/10.5281/zenodo.23183808), `v2.0.0` with
-report version 2. `.zenodo.json` sets the archive's metadata (author ORCID,
+report version 2 as [10.5281/zenodo.23588281](https://doi.org/10.5281/zenodo.23588281). `.zenodo.json` sets the archive's metadata (author ORCID,
 licence, keywords, the link to the report). `CITATION.cff` carries both identifiers, and
 GitHub's "Cite this repository" button reads from it directly.
 

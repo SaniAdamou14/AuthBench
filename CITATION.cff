@@ -25,6 +25,9 @@ identifiers:
     value: "10.5281/zenodo.23183807"
     description: "Software archive, all versions (resolves to the latest)"
   - type: doi
+    value: "10.5281/zenodo.23588281"
+    description: "Software archive for v2.0.0"
+  - type: doi
     value: "10.5281/zenodo.23183808"
     description: "Software archive for v1.0.0"
 authors:
