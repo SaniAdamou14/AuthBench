@@ -20,7 +20,7 @@
 \usepackage[style=apa,backend=biber,uniquename=init,maxcitenames=2]{biblatex}
 \addbibresource{references.bib}
 \usepackage[hidelinks]{hyperref}
-\hypersetup{pdftitle={ROC-AUC Did Not Reflect Top-of-Queue Detection: A Leak-Free, Alert-Budget Case Study of Authentication Anomaly Detectors on the LANL Data},
+\hypersetup{pdftitle={Detection Under an Alert Budget: A Leak-Free Case Study of Authentication Anomaly Detectors on the LANL Data, with a Reproduction of Euler},
   pdfauthor={Mahamane Sani Adamou Mahamane}, pdfsubject={AuthBench report, version 2},
   pdfkeywords={anomaly detection, authentication logs, alert budget, LANL, evaluation, reproducibility}}
 \usepackage[capitalise,noabbrev]{cleveref}
@@ -34,16 +34,16 @@
 \newcommand{\Rcamp}{R_{\mathrm{camp}}}
 \newcommand{\Rev}{R_{\mathrm{ev}}}
 
-\title{ROC-AUC Did Not Reflect Top-of-Queue Detection:\\
-A Leak-Free, Alert-Budget Case Study of\\
-Authentication Anomaly Detectors on the LANL Data}
+\title{Detection Under an Alert Budget:\\
+A Leak-Free Case Study of Authentication Anomaly Detectors\\
+on the LANL Data, with a Reproduction of Euler}
 
 \author{Mahamane Sani Adamou Mahamane\\[2pt]
 \small University of the People\\
 \small \href{mailto:saniadamou778@gmail.com}{\texttt{saniadamou778@gmail.com}}\\
 \small ORCID \href{https://orcid.org/0009-0001-5561-753X}{0009-0001-5561-753X}}
 
-\date{October 2026\\ \small Version 2: revised after review round 1 and evaluated on the full LANL data. Code and run outputs: \url{https://github.com/SaniAdamou14/AuthBench}}
+\date{October 2026}
 
 \begin{document}
 \maketitle
@@ -487,7 +487,7 @@ For these detectors, universes and protocols, on one network and one operation: 
 
 \section{Reproducibility}
 \label{sec:reproducibility}
-The code, configuration and run outputs are public \parencite{authbenchsoftware}; the first version of this report is archived \parencite{authbenchpreprint}. Continuous integration runs linting, strict type checking and the test suite on every change, regenerates the synthetic results byte for byte, and regenerates every number, table and figure of this report from the committed run outputs, failing if a number or table differs. The evaluated run was produced by the code at commit \texttt{bd833eb} on a rented machine with 16 virtual CPUs and 61\,GB of memory in \RunHours{} hours from start to the last evaluation; its outputs, logs, the authors' Euler results and every recount quoted in \cref{sec:euler} are committed under \texttt{reports/runs/20261022T102638Z}. Fitting and resampling are seeded.
+The code, configuration and run outputs are public at \url{https://github.com/SaniAdamou14/AuthBench} \parencite{authbenchsoftware}; the first version of this report is archived \parencite{authbenchpreprint}. Continuous integration runs linting, strict type checking and the test suite on every change, regenerates the synthetic results byte for byte, and regenerates every number, table and figure of this report from the committed run outputs, failing if a number or table differs. The evaluated run was produced by the code at commit \texttt{bd833eb} on a rented machine with 16 virtual CPUs and 61\,GB of memory in \RunHours{} hours from start to the last evaluation; its outputs, logs, the authors' Euler results and every recount quoted in \cref{sec:euler} are committed under \texttt{reports/runs/20261022T102638Z}. Fitting and resampling are seeded.
 
 \section{Conclusion}
 \label{sec:conclusion}
