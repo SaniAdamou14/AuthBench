@@ -1,0 +1,70 @@
+{
+  "source_sha256": "6bbc0c7dff64e476efb08fef260822b058fd09d44d17ec488a16e80474d1e532",
+  "distinct_rows": 715,
+  "all": {
+    "events": 715,
+    "accounts": 104,
+    "source_computers": 4,
+    "top_sources": [
+      {
+        "src_computer": "C17693",
+        "events": 683,
+        "share": 0.9552447552447553
+      },
+      {
+        "src_computer": "C19932",
+        "events": 19,
+        "share": 0.026573426573426574
+      },
+      {
+        "src_computer": "C22409",
+        "events": 10,
+        "share": 0.013986013986013986
+      }
+    ]
+  },
+  "harmonised_test": {
+    "events": 715,
+    "accounts": 104,
+    "source_computers": 4,
+    "top_sources": [
+      {
+        "src_computer": "C17693",
+        "events": 683,
+        "share": 0.9552447552447553
+      },
+      {
+        "src_computer": "C19932",
+        "events": 19,
+        "share": 0.026573426573426574
+      },
+      {
+        "src_computer": "C22409",
+        "events": 10,
+        "share": 0.013986013986013986
+      }
+    ]
+  },
+  "temporal_test": {
+    "events": 284,
+    "accounts": 50,
+    "source_computers": 3,
+    "top_sources": [
+      {
+        "src_computer": "C17693",
+        "events": 277,
+        "share": 0.9753521126760564
+      },
+      {
+        "src_computer": "C22409",
+        "events": 5,
+        "share": 0.017605633802816902
+      },
+      {
+        "src_computer": "C19932",
+        "events": 2,
+        "share": 0.007042253521126761
+      }
+    ]
+  }
+}

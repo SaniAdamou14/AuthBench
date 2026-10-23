@@ -25,8 +25,10 @@ Boundaries live in `conf/split/temporal.yaml`, expressed in 0-indexed `day = tim
 | Test | 11–13 | 54,690,768 | 282 | 52 |
 
 Each partition also reads `history_warmup_days: 2` days before its first day,
-featurised but never written, so its first events have a past. This is the
-evaluated configuration (`reports/lanl/wider_window_results/`). The first LANL
+featurised but never written, so its first events have a past. This was the
+evaluated configuration of September 2026 (`reports/lanl/wider_window_results/`); since
+23 October 2026 the report is built on the full run `reports/runs/20261022T102638Z/`, which
+evaluates this split and `harmonised` with the current code. The first LANL
 run used one day per partition (train 5, validation 8, test 12) without warm-up,
 because an 8 GB machine could not hold more; it is kept in `reports/lanl/RUN.md`.
 
@@ -172,6 +174,11 @@ five non-trivial models; AUC-PR: 0.70). The best ROC-AUC (M2a, 0.941) is third
 operationally and the worst (M1, 0.563) first. With five models these coefficients are
 descriptive: "decoupled", not "anti-correlated", is the claim the data support.
 
+**Update, 23 October 2026.** The full run (`reports/runs/20261022T102638Z/`) measures the same
+decoupling with more detectors: Spearman 0.03 (harmonised, ten non-trivial detectors) and 0.15
+(temporal, eleven) between ROC-AUC and the budget for first detection, with Monte Carlo
+permutation p-values of 0.95 and 0.67; recall at FPR 1e-4 tracks it best (0.54 and 0.75).
+
 ## Uncertainty and pairwise comparisons (US-128)
 
 `stats_tests.paired_campaign_bootstrap` runs **one** block-bootstrap resampling pass and
@@ -269,7 +276,8 @@ rank by the size of the frame being scored, so an event's M1 score depended on t
 events, across the three test days. M1 now scores each rule on an empirical CDF fitted on the
 last training day (`normalization_days`, seeded sample of at most 2,000,000 events), and R6 and
 R7 are stored features, so M1 is row-local. The LANL results in `reports/lanl/` predate the
-change; the next run uses the fitted normalisation.
+change; the full run of 22 October 2026 (`reports/runs/20261022T102638Z/`) uses the fitted
+normalisation.
 
 ## Euler, reimplemented (S6-09)
 
@@ -294,6 +302,17 @@ and row-locality). `scripts/euler_fidelity.py` reruns it under the paper's own p
 authentication event, training before the first red-team event, edges scored per snapshot, and
 writes the edge-level AUC and AP beside the published 0.9906 and 0.0155 (table VI, GCN + GRU,
 link prediction). That check needs the whole dataset and is part of the rented run.
+
+**Result, 22 October 2026** (`reports/runs/20261022T102638Z/RUN.md`, "Euler"). Over five seeds
+the reimplementation reaches AUC 0.9570 and AP 0.0027 on the NTLM authentications the authors'
+loader keeps. The authors' own code, run on the same machine and data, reaches AUC 0.9879 and
+AP 0.0058 over five repetitions: it reproduces the published AUC, not the published AP. Both
+test sets were reconciled edge by edge: they hold the same 14,400,984 edges in AuthBench's
+snapshot alignment, and the published 518 anomalous edges and the 514 the authors' code
+evaluates follow from its snapshot alignment, a skipped first red-team line and an unscored
+first snapshot. Choices of their code that the paper does not state and this reimplementation
+does not copy: ten negative samples per edge, early stopping on validation AUC plus AP,
+dropout 0.25 with DropEdge 0.8, one optimiser step per epoch.
 
 ## Alert units and what a budget costs (S6-29)
 

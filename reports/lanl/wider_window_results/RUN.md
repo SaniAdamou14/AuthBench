@@ -1,5 +1,11 @@
 # LANL run, wider window with warm-up (15 September 2026)
 
+> **Superseded as the report's basis (23 October 2026).** Version 2 of the report is now built
+> on the full run of 22 October 2026 ([`../../runs/20261022T102638Z/RUN.md`](../../runs/20261022T102638Z/RUN.md)),
+> which evaluates the same temporal partitions with the current code and thirteen detectors,
+> and Larroche's harmonised protocol. This file is kept unchanged below; the report's appendix
+> compares the two runs on these partitions.
+
 The evaluated configuration of the report (`reports/paper/main.tex`, version 2). It supersedes
 the single-day run of [`../RUN.md`](../RUN.md) as the primary result: it gives every partition a
 real past (two warm-up days) and tests on more campaigns. The single-day run is kept, unchanged,

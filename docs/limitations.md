@@ -37,7 +37,10 @@ this summarizes.
    (84.0% of training and 98.1% of validation positives too; `split_summary.json`). The
    labelled LANL activity is a single simulated intrusion (Larroche, arXiv 2607.29390).
    Campaigns are the bootstrap's resampling unit, so every interval describes variability
-   across the accounts and phases of one operation, not across intrusions.
+   across the accounts and phases of one operation, not across intrusions. On the whole
+   red-team file, 683 of the 715 distinct events (95.5%) start from C17693 and only four
+   source computers appear (`reports/runs/20261022T102638Z/diagnostics/redteam_concentration.json`,
+   23 October 2026).
 10. **Unequal access to labels.** In the published runs M1's weights were calibrated on
     validation labels and no other model read them. Since 22 October 2026 every tunable model
     gets the same budget of candidates on validation and M1u reports the rules without labels;
@@ -46,7 +49,8 @@ this summarizes.
     on the test distribution. So did M1 in the published LANL runs (rank normalisation over the
     three test days); its normalisation is fitted on training data since 22 October 2026.
     Since the same day ECOD is fitted on training data too, and every model is row-local to
-    the last bit (`methodology.md`); ECOD was excluded from both published LANL runs.
+    the last bit (`methodology.md`); ECOD was excluded from both published LANL runs. The full
+    run of 22 October 2026 uses the fitted versions and evaluates ECOD.
 12. **Novelty is relative to the window read.** The F3 `*_is_new` and `*_rarity` features
     count earlier events of the partition plus its warm-up, not the whole history. In the
     published LANL runs the rarity denominator grew with every event, so within a day pair
@@ -62,6 +66,22 @@ this summarizes.
     on how many alerts a day the first detection could need, not as a two-sided interval; the
     percentile bootstrap of an extreme is not
     consistent. The quantile budgets and the log-area are not affected in this way.
+14. **Alert units carry no tie bracket.** Edge-hours and user-days take their highest event's
+    score, and equal units are ordered by their first event's time. For coarse scores (M2a,
+    M2c, M0b) the unit results can reflect that order. On the full run, user-day recall
+    changes the picture (Euler 51.2% and source rarity 50.6% of the harmonised campaigns at
+    500 user-days a day, against 0.6% and 0.0% at 500 events), and the random floor itself
+    reaches 4.3%, because a user-day budget covers more of a day.
+15. **Fitting variance is measured for the seeded classical models only.** M1, PCA,
+    Isolation Forest, ECOD and HBOS are refitted with five seeds (`fit_variance.json`); on the
+    harmonised protocol PCA's first detection ranges from 13 to 243 alerts a day. The
+    autoencoders and Euler are fitted once, and may move as much.
+16. **Thresholds fitted on a short window do not transfer.** With the harmonised protocol's
+    41 training hours, a threshold calibrated for 10 alerts a day raises 149 a day on average
+    on the test for PCA (8,222 on its worst day); the daily top-k hides that by construction.
+17. **Euler is a partial reproduction.** On the authors' protocol the reimplementation stays
+    about 3 points of AUC and half the AP below the authors' own code on identical test edges;
+    their code contains training choices the paper does not state, which are not ported.
 
 ## Metrics deliberately not used as primary
 
