@@ -92,9 +92,13 @@ LANL event set of Larroche (2026, Table 4).
   10 alerts a day, PCA raises 149 a day on average on the test, 8,222 on its
   worst day.
 - **Euler**: the authors' own code, rerun on the same machine with its released
-  preprocessing, stays within 0.003 of its published AUC (0.9879 against 0.9906)
-  and below half its published average precision in all five runs (at most
-  0.0080 against 0.0155).
+  preprocessing and the defaults of its run script (hidden sizes 32 and 16,
+  learning rate 0.005), stays within 0.003 of its published AUC (0.9879 against
+  0.9906) and below half its published average precision in all five runs (at
+  most 0.0080 against 0.0155). Its first author answered on 23 October 2026: the
+  published row is a mean of five runs and probably used hidden sizes 64 and 32
+  with a learning rate of 0.01. That configuration has not been run yet, so the
+  AP gap is a result about the released defaults, not about the published run.
   AuthBench's reimplementation reaches 0.9570 and 0.0027 on the same test
   events, and the test sets are reconciled edge by edge with the paper's counts.
 
