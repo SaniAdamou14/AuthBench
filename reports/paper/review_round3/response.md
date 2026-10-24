@@ -59,7 +59,7 @@ the reason).
 | M3 Abstract and conclusion overclaim | Addressed: rewritten around the robust results; the conclusion answers three stated research questions | Abstract, Sections 1, 14 |
 | M4 Seeds for the detectors behind the headlines | Phase B; within-PCA contrast added (its two fits with the lowest AUC-PR give its two earliest detections, checked by the generator) | Section 7.8 |
 | M5 Catalogue lacks the state of the art | Phase B; README tagline no longer claims "published performance" | README, Section 11 |
-| M6 Euler diagnosis | Partly: test replaced (R2 M5), R+R and CyberGFM discussed. Authors contacted on 23 October 2026 (configuration of Table VI, hidden sizes raised in their issue #7, permission for the path edits and logs); their answer pending. Float32 and alignment measurements: Phase B | Section 9, ethics statement |
+| M6 Euler diagnosis | Partly: test replaced (R2 M5), R+R and CyberGFM discussed. Authors contacted on 23 October 2026; the first author answered the same day (see below), and Section 9, the abstract, the scope and the conclusion now state that our runs used the released defaults, not the configuration indicated for the published row. Float32 and alignment measurements: Phase B | Section 9, ethics statement |
 | M7 Not confirmatory | Addressed in the text (exploratory, endpoints for the next dataset) | Section 11 |
 | minor: title "Temporally Leak-Free" | Declined for now: the row-locality test is what neither close work does, and the title is that of the archived software release | |
 | minor: M2a fixed-threshold recall | Addressed (table note) | Table 8 |
@@ -107,5 +107,24 @@ the reason).
    unit tie brackets and host-stratified unit results can be computed.
 5. Intervals for every budget summary and unit; cost per detected campaign.
 6. A detector registry; one command for the whole run; per-day content hashes of all 58 days.
-7. Euler's authors were written to on 23 October 2026: report their answer, rerun their code
-   with any configuration they give, and withdraw the path edits if they object.
+7. Rerun the authors' Euler code with the configuration its first author indicated (hidden and
+   embedding sizes 64 and 32, learning rate 0.01), five runs, on the released preprocessing and on
+   the `acm` branch; about two hours of machine time per configuration on the machine of the run.
+
+## Euler's authors (answer of 23 October 2026)
+
+The first author replied six hours after the request (summary and quotes in
+`references_log.md`, with his permission to summarise): Table VI is a mean of five runs; the
+published row probably used hidden sizes [64, 32] and a learning rate of 0.01; the released
+preprocessing is most likely the one used, but the repository was often behind the machines that
+ran it, and the `acm` branch may be more recent; the code is open source and may be redistributed.
+
+Checked against the run: our five runs of the authors' code used the defaults of `run.py`
+(`hidden=32, zdim=16, lr=0.005`, from `results.txt`), so they differ from that configuration in
+two settings. Changes: the generator reads that configuration and, the published value now being
+a mean of five runs, compares our mean of five with it through a 95% confidence interval (the
+published AP lies above it; the published AUC inside it) and fails if that stops holding; Section 9
+gains a paragraph with the answer; the abstract, scope, conclusion (RQ3) and README say that the AP
+gap concerns the released defaults and that the authors' configuration remains to be run (Phase B,
+item 7); the ethics statement reports the permission. R2's question 1 (single run or mean) is
+answered: a mean of five, spread not reported, so a Welch test is still not possible.
