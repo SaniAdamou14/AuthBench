@@ -5,10 +5,11 @@ abstract: >-
   An open harness that evaluates authentication anomaly detectors under a temporally
   leak-free protocol and daily alert budgets: it ranks events, edge-hours and user-days
   within each day, gives every red-team campaign the daily budget at which it is first
-  detected, and places each result against its exact distribution under a random ranking.
+  detected, and sets each result against its exact distribution under a random ranking and
+  against label-free activity rankings of the same units.
 type: software
-version: 2.0.0
-date-released: 2026-10-23
+version: 2.1.0
+date-released: 2026-10-24
 url: https://github.com/SaniAdamou14/AuthBench
 repository-code: https://github.com/SaniAdamou14/AuthBench
 license: Apache-2.0

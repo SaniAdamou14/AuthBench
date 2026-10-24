@@ -17,11 +17,12 @@ source [`reports/paper/main.tex`](reports/paper/main.tex), built on the full LAN
 (release v2.0.0, [10.5281/zenodo.23588281](https://doi.org/10.5281/zenodo.23588281), accompanies report version 2; v1.0.0 is
 [10.5281/zenodo.23183808](https://doi.org/10.5281/zenodo.23183808)).
 
-> A SOC cannot triage more than a few dozen alerts per day per analyst. Most
-> published anomaly-detection results are reported at operating points no
-> analyst could ever use. AuthBench does not propose a new model: it
-> measures, under a strictly temporal, leak-free protocol and a realistic
-> daily alert budget, what survives.
+> A SOC cannot triage more than a few dozen alerts per day per analyst, yet
+> anomaly detectors for authentication logs are mostly compared by
+> threshold-free metrics, which average over operating points no analyst could
+> staff. AuthBench does not propose a new model: it measures, under a
+> temporally leak-free protocol and a daily alert budget, what a detector finds
+> and how much of it is due to the detector.
 
 > **Correction notice (21 October 2026).** Version 1 of the report contains two
 > errors. It attributes "87.0 average precision" to Tuor et al. (2018), whose
