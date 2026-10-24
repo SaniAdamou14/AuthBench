@@ -28,7 +28,7 @@
       "scheme": "doi"
     },
     {
-      "identifier": "https://github.com/SaniAdamou14/AuthBench/tree/v2.0.0",
+      "identifier": "https://github.com/SaniAdamou14/AuthBench/tree/v2.1.0",
       "relation": "isSupplementTo",
       "resource_type": "software",
       "scheme": "url"
