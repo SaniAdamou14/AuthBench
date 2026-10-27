@@ -6,12 +6,12 @@ budget-constrained evaluation harness, with a case study on the LANL
 Comprehensive Multi-Source Cyber-Security Events dataset.
 
 [![CI](https://github.com/SaniAdamou14/AuthBench/actions/workflows/ci.yml/badge.svg)](https://github.com/SaniAdamou14/AuthBench/actions/workflows/ci.yml)
-[![Paper DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23159767.svg)](https://doi.org/10.5281/zenodo.23159767)
+[![Paper DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23687498.svg)](https://doi.org/10.5281/zenodo.23687498)
 [![Software DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23183807.svg)](https://doi.org/10.5281/zenodo.23183807)
 
-**Report, version 2:** [PDF](https://saniadamou14.github.io/assets/authbench-paper.pdf)
-(Zenodo DOI pending: publishing the new version is blocked by a Zenodo issue,
-[zenodo/zenodo-rdm#1501](https://github.com/zenodo/zenodo-rdm/issues/1501)),
+**Report, version 2:** [doi.org/10.5281/zenodo.23687498](https://doi.org/10.5281/zenodo.23687498)
+(a separate record, because a Zenodo issue,
+[zenodo/zenodo-rdm#1501](https://github.com/zenodo/zenodo-rdm/issues/1501), blocks new versions of version 1's record),
 source [`reports/paper/main.tex`](reports/paper/main.tex), built on the full LANL run of
 22 October 2026; version 1 is archived at
 [doi.org/10.5281/zenodo.23159768](https://doi.org/10.5281/zenodo.23159768).
@@ -603,9 +603,8 @@ in commit `c0099e9`.
 packaging). Version 1 is published as a preprint on Zenodo, DOI
 [10.5281/zenodo.23159768](https://doi.org/10.5281/zenodo.23159768); version 2,
 rewritten on the full run of 22 October 2026 after three rounds of simulated
-review (see its AI use disclosure), is available as a
-[PDF](https://saniadamou14.github.io/assets/authbench-paper.pdf) while its
-Zenodo DOI is pending, and arXiv submission in `cs.CR` awaits an endorsement. There is still deliberately no
+review (see its AI use disclosure), is
+[10.5281/zenodo.23687498](https://doi.org/10.5281/zenodo.23687498), and arXiv submission in `cs.CR` awaits an endorsement. There is still deliberately no
 `report` stage in `dvc.yaml`: LaTeX compilation is not part of the
 reproducible pipeline `dvc repro` runs, only of the write-up built on top of
 its output.
