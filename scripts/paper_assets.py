@@ -24,6 +24,7 @@ from typing import Any
 import matplotlib
 import matplotlib.ticker
 import numpy as np
+import polars as pl
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
@@ -31,6 +32,7 @@ from scipy.stats import rankdata  # noqa: E402
 from scipy.stats import t as student_t  # noqa: E402
 
 from authbench.evaluate.budget import (  # noqa: E402
+    best_tie_campaign_recall,
     random_first_detection_quantile,
     random_first_detection_survival,
 )
@@ -1371,9 +1373,14 @@ def _demo_rules(macros: Macros) -> None:
 
 def _tie_macros(macros: Macros, p: Protocol) -> None:
     operational = p.models["M2a_pair_rarity"]["operational"]
-    brackets = operational["campaign_recall_tie_bracket"]
-    macros.add(f"{p.tag}PairRarityBracketTen", _pct(brackets[0][1]))
-    macros.add(f"{p.tag}PairRarityBracketFiveHundred", _pct(brackets[-1][1]))
+    # From the ledger: the run's stored upper ends predate `best_tie_campaign_recall`.
+    positives = pl.read_csv(p.tables / "positives_ledger.csv").filter(
+        pl.col("model") == "M2a_pair_rarity"
+    )
+    macros.add(f"{p.tag}PairRarityBracketTen", _pct(best_tie_campaign_recall(positives, 10)))
+    macros.add(
+        f"{p.tag}PairRarityBracketFiveHundred", _pct(best_tie_campaign_recall(positives, 500))
+    )
     macros.add(
         f"{p.tag}PairRarityContenders", _int(operational["tie_exposure"][-1]["n_contenders"])
     )

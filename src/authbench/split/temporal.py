@@ -1,8 +1,8 @@
 """Strict temporal train/val/test split with a mechanical anti-leakage guard.
 
 The split boundaries live in `conf/split/temporal.yaml`, never hard-coded.
-`get_test_split` is the one function allowed to load the test partition; an
-automated architecture test (`tests/unit/test_no_test_leakage.py`) fails the
+`get_test_split` selects the test partition from a labeled frame; an automated
+architecture test (`tests/unit/test_no_test_leakage.py`) fails the
 build if any module under `authbench.models` or `authbench.features` imports
 it — training code must never see the test set, by construction, not by
 discipline alone.

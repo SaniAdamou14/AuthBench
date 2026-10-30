@@ -537,9 +537,9 @@ Three changes, in `evaluate/budget.py`:
   and what an analyst working a shift does. Label-free, total, and stated:
   `ALERT_ORDER_TIE_BREAK`.
 - `campaign_recall_bracket` reports what the tie could have cost or bought. The
-  low end is exact; the high end is achievable. A zero-width bracket certifies
-  that the tie-break decided nothing, which is the case for every model here
-  except M0b.
+  low end puts benign events first, the minimum when they fill the places left;
+  the high end is the exact maximum over tie orders. A continuous score has no
+  ties, so its bracket has zero width.
 - `tie_exposure` publishes the slots and the contenders per budget, so the
   bracket's width has a stated cause.
 

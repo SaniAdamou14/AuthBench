@@ -66,6 +66,17 @@ def _bootstrap(n_resamples: int = 200, seed: int = 7):
     return paired_campaign_bootstrap(_statistics(_scored()), n_resamples=n_resamples, seed=seed)
 
 
+def test_campaigns_of_one_account_form_one_block() -> None:
+    statistics = _statistics(_scored())
+    by_campaign = paired_campaign_bootstrap(statistics, n_resamples=50)
+    by_account = paired_campaign_bootstrap(
+        statistics, n_resamples=50, block_of={1: "alice", 2: "alice"}
+    )
+
+    assert by_campaign.n_campaign_blocks == 2
+    assert by_account.n_campaign_blocks == 1
+
+
 def test_every_model_is_evaluated_on_the_same_resamples() -> None:
     """Two models with identical scores must produce an identical resample
     distribution. If each model drew its own resamples they would differ.
