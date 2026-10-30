@@ -38,7 +38,8 @@ source [`reports/paper/main.tex`](reports/paper/main.tex), built on the full LAN
 
 The full LANL run of 22 October 2026 evaluates eleven detectors and two floors
 (rules with and without labels, rarity scores, PCA, three outlier detectors, two
-autoencoders and Euler) on all 58 days, under two protocols. Provenance, every
+autoencoders and Euler) on all 58 days, under two protocols; ten of the detectors
+are distinct in the harmonised protocol below, where M1 reduces to M1u. Provenance, every
 number and every caveat:
 [`reports/runs/20261022T102638Z/RUN.md`](reports/runs/20261022T102638Z/RUN.md).
 
@@ -264,7 +265,7 @@ M0/M1/M2/M3 → evaluation, and writes to `reports/demo/`:
 | `reports/demo/tables/demo_results.json` | every metric, per model |
 | `reports/demo/tables/pairwise_comparisons.json` | pairwise AUC-PR tests, Holm-Bonferroni corrected |
 | `reports/demo/tables/campaign_summary.csv` | one row per red-team campaign |
-| `reports/demo/tables/rule_discrimination.csv` | per-rule separation and calibrated weight, before aggregation (US-118) |
+| `reports/demo/tables/rule_discrimination.csv` | per-rule separation and calibrated weight, before aggregation |
 | `reports/demo/figures/campaign_recall_vs_budget.png` | the headline figure |
 | `reports/demo/data_quality.json` | null rates, cardinalities, counted drops |
 
@@ -412,8 +413,32 @@ frequency tables (`features.event.fit_frequency_encoding`). Refitting either
 per split is a leak that no downstream check catches: it just makes the
 numbers better. `tests/unit/test_frequency_encoding.py` holds that line.
 
-Full design rationale: [`AuthBench_Specification.md`](AuthBench_Specification.md).
 Implemented protocol: [`docs/methodology.md`](docs/methodology.md).
+
+## Reading the code
+
+Where to look to check a claim, in the order the data flows. Paths are under
+`src/authbench/` unless they start with `conf/`, `scripts/` or `tests/`. Every
+module with code opens with a docstring that says why it exists, and the tests in the
+last column hold the property on every push.
+
+| To check | Read | Held by |
+|---|---|---|
+| A red-team event is matched on its exact time, user, domain, source and destination | `label/redteam_join.py` (`label_auth_events`) | `tests/unit/test_redteam_join.py` |
+| Larroche's protocol: train on hours 0-41, test on 41-1392, history from day 0, remote LogOn only | `conf/split/harmonised.yaml`; `pipeline/build_features.py` (`universe_filter`, `split_ranges`, `build_store`) | `tests/integration/test_build_store.py` |
+| That event set is exactly Larroche (2026, Table 4): 369,569,626 events, 702 positives | `scripts/paper_assets.py` (`LARROCHE_EVENTS`, `LARROCHE_MALICIOUS`): it refuses to build the report otherwise | the CI step that regenerates the report numbers |
+| No partition sees a later one | `split/temporal.py` (`verify_temporal_order`), called by `pipeline/train_eval.py` on the partitions as written | `tests/unit/test_split_temporal.py`; `tests/unit/test_no_test_leakage.py` (no module under `models/` or `features/` may import the test loader) |
+| What is fitted is fitted on the training range alone (night window, frequency tables) | `pipeline/build_features.py` (`main`), `features/temporal.py`, `features/event.py` | `tests/unit/test_frequency_encoding.py` |
+| Features read only earlier events, day by day with carried state | `features/incremental.py` (`featurize_day`), the families F1 to F4 in `features/` | `tests/unit/test_causality.py`, `tests/unit/test_incremental.py` |
+| The contract every detector satisfies, and the catalogue | `models/base.py` (`AnomalyScorer`), `pipeline/train_eval.py` (`build_model_catalog`) | `tests/unit/test_row_locality.py` |
+| The daily alert budget, ties and first detection, as readable whole-frame definitions | `evaluate/budget.py` | `tests/unit/test_budget.py`, `tests/unit/test_budget_metrics.py` |
+| The same metrics as computed on LANL, one day at a time | `evaluate/statistics.py` (`SplitAccumulator`), fed by `pipeline/train_eval.py` (`score_split`) | `tests/unit/test_statistics.py`, which checks each one against `evaluate/budget.py` and scikit-learn |
+| Confidence intervals, and when the report may say "outperforms" | `evaluate/stats_tests.py` | `tests/unit/test_paired_bootstrap.py` |
+| Every number, table and figure of the report | `scripts/paper_assets.py`, from `reports/runs/20261022T102638Z/` | CI regenerates `reports/paper/generated/` and fails on any difference |
+
+The report's run was produced by `scripts/run_lanl.sh`, not by `dvc repro`
+(see the end of `dvc.yaml`); its commit, machine, data source and logs are in
+[`reports/runs/20261022T102638Z/RUN.md`](reports/runs/20261022T102638Z/RUN.md).
 
 ## Saying "outperforms" only when it is earned
 
