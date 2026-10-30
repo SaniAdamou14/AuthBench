@@ -1,11 +1,11 @@
 [project]
 name = "authbench"
-version = "0.1.0"
+version = "2.1.0"
 description = "AuthBench — leak-free, alert-budget-constrained benchmark for authentication-log anomaly detection"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
 license = { text = "Apache-2.0" }
-authors = [{ name = "AuthBench" }]
+authors = [{ name = "Mahamane Sani Adamou Mahamane" }]
 
 dependencies = [
     "polars>=1.9,<2.0",
