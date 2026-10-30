@@ -1,6 +1,6 @@
-"""Per-event feature attribution (US-130, `authbench[explain]` extra).
+"""Per-event feature attribution (`authbench[explain]` extra).
 
-Contribution sources differ by model family, exactly as the spec requires:
+Contribution sources differ by model family:
 tree-based models (IForest, ECOD, HBOS, PCA-adjacent) get SHAP values;
 autoencoders get per-dimension reconstruction error (the most informative
 proxy for "what looked wrong" without a differentiable attribution method);
@@ -58,6 +58,6 @@ def reconstruction_error_contributions(
     x_row: np.ndarray, x_reconstructed_row: np.ndarray
 ) -> np.ndarray:
     """Per-dimension squared reconstruction error — the autoencoder-family
-    proxy for feature contribution (spec section 7, US-130).
+    proxy for feature contribution.
     """
     return np.asarray((x_row - x_reconstructed_row) ** 2)

@@ -1,4 +1,4 @@
-"""Exact-quadruplet labeling and campaign grouping (US-105, US-106).
+"""Exact-quadruplet labeling and campaign grouping.
 
 The join key is (`time`, `src_user`, `src_domain`, `src_computer`,
 `dst_computer`) — matching the redteam quadruplet (`time`, `user`, `domain`,
@@ -71,7 +71,7 @@ def group_into_campaigns(redteam: pl.LazyFrame, gap_hours: float = 24.0) -> pl.L
     columns: `campaign_id` (a dense integer, unique across all users) and
     `user_at_domain` (for joining back).
 
-    This grouping has no canonical version in the literature (section 4.2) —
+    This grouping has no canonical version in the literature —
     the gap threshold is a first-class, published, sensitivity-tested
     parameter, never a hidden constant.
     """
@@ -116,7 +116,7 @@ def group_into_campaigns(redteam: pl.LazyFrame, gap_hours: float = 24.0) -> pl.L
 def attach_campaign_id(labeled_auth: pl.LazyFrame, campaigns: pl.LazyFrame) -> pl.LazyFrame:
     """Join `campaign_id` onto malicious auth events via the same exact quadruplet.
 
-    Benign events get a null `campaign_id`. This is what US-106's evaluation
+    Benign events get a null `campaign_id`. This is what the campaign-level evaluation
     (recall *per campaign*, not per event) and the event→campaign CSV artifact
     are built on.
     """
@@ -138,7 +138,7 @@ def attach_campaign_id(labeled_auth: pl.LazyFrame, campaigns: pl.LazyFrame) -> p
 
 
 def campaign_summary(campaigns: pl.LazyFrame) -> pl.DataFrame:
-    """Per-campaign duration and event count — published as a reusable artifact (US-106)."""
+    """Per-campaign duration and event count — published as a reusable artifact."""
     return (
         campaigns.group_by("campaign_id")
         .agg(

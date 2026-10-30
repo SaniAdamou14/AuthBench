@@ -1,4 +1,4 @@
-"""The one shared causal-window primitive (US-108).
+"""The one shared causal-window primitive.
 
 Every windowed feature in F2/F3/F5 goes through this module. No feature
 module is allowed to write its own ad hoc rolling aggregation — that

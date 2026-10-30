@@ -1,4 +1,4 @@
-"""Time-to-detection per campaign (US-127)."""
+"""Time-to-detection per campaign."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ def time_to_detection(
 
     Campaigns never detected at this budget are counted in
     `n_never_detected` and excluded from `detected_delay_seconds` — never
-    silently dropped from the denominator (US-127 acceptance criterion).
+    silently dropped from the denominator.
     """
     campaign_events = frame.filter(pl.col("campaign_id").is_not_null())
     first_event_time = campaign_events.group_by("campaign_id").agg(

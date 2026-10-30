@@ -1,4 +1,4 @@
-"""US-107: mechanical guarantee that no `models/` or `features/` module can
+"""Mechanical guarantee that no `models/` or `features/` module can
 import the test-partition loader. This is an architecture test, not a
 convention — it must fail loudly if the import ever appears.
 """
@@ -46,5 +46,5 @@ def test_no_module_under_models_or_features_imports_test_loader() -> None:
 
     assert not offenders, (
         f"{FORBIDDEN_NAME} referenced under models/ or features/: {offenders}. "
-        "Training/feature code must never see the test partition (US-107)."
+        "Training/feature code must never see the test partition."
     )

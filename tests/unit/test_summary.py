@@ -52,7 +52,7 @@ def test_a_perfect_ranking_detects_every_campaign_at_budget_one() -> None:
 
 
 def test_undetected_campaigns_are_counted_never_folded_into_the_delays() -> None:
-    """US-127: a campaign that is never alerted must not silently leave the
+    """A campaign that is never alerted must not silently leave the
     denominator, and must not contribute a delay of zero either.
     """
     evaluation = _evaluate([0.1, 0.9, 0.8, 0.1, 0.9, 0.8])

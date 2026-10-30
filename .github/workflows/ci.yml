@@ -53,12 +53,12 @@ jobs:
             --include="src/authbench/evaluate/*,src/authbench/features/*,src/authbench/ingest/*,src/authbench/models/*" \
             --fail-under=85
 
-      - name: "Full pipeline on demo sample (US-103, NFR-04: must finish well under 5 minutes)"
+      - name: "Full pipeline on demo sample (must finish well under 5 minutes)"
         run: |
           .venv/bin/python -m authbench.cli demo
         timeout-minutes: 5
 
-      # NFR-02, asserted rather than claimed. `reports/demo/` is committed
+      # Bit-identical reruns, asserted rather than claimed. `reports/demo/` is committed
       # output; the step above has just rewritten it from scratch with pinned
       # seeds. If a single number moved, the run is not reproducible and the
       # committed results are not the ones this code produces.

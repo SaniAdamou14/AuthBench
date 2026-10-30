@@ -104,7 +104,7 @@ console = Console()
 
 # The demo's own evaluation knobs. The full pipeline reads these from
 # `conf/eval/default.yaml`; the demo is a fixed, self-contained smoke test
-# with a five-minute CI ceiling (NFR-04), so it pins smaller values rather
+# with a five-minute CI ceiling, so it pins smaller values rather
 # than pulling in the Hydra config it does not otherwise need.
 # Enough to resolve a p-value below Holm's strictest threshold for the demo
 # catalog's 7 models (21 pairs → 0.05/21 = 0.00238; 2/(1000+1) = 0.00200).
@@ -223,7 +223,7 @@ def data_download(
         help="Only these files, by key in conf/dataset/<dataset>.yaml (e.g. --file redteam). Default: all.",
     ),
 ) -> None:
-    """US-101: resumable, checksum-verified download of the raw LANL files.
+    """Resumable, checksum-verified download of the raw LANL files.
 
     LANL gates the raw files behind a click-through data-use form rather than
     a stable static URL (`ingest.download.fetch_lanl_fence_token`); `email`
@@ -240,7 +240,7 @@ def data_download(
     # data-use gate is touched, because a re-run with nothing to fetch should
     # not depend on LANL being up, and should not need an email address at all.
     # `dvc repro` re-runs this stage every time the pipeline is rebuilt, and
-    # US-101's promise is that doing so downloads nothing.
+    # the promise is that doing so downloads nothing.
     wanted = list(files or cfg.fence.filenames)
     unknown = sorted(set(wanted) - set(cfg.fence.filenames))
     if unknown:
@@ -316,13 +316,13 @@ def data_to_parquet(
         "holding any is refused: leftover parts would mix two conversions.",
     ),
 ) -> None:
-    """US-102: stream raw text into day-partitioned, ZSTD-compressed Parquet.
+    """Stream raw text into day-partitioned, ZSTD-compressed Parquet.
 
     The row-count target comes from `conf/dataset/<dataset>.yaml` rather than
     from the caller. A published constant repeated in `dvc.yaml`, in the
     README and in a shell history is a constant that will eventually
     disagree with itself, and the whole point of the check is that it is the
-    published figure (US-102).
+    published figure.
     """
     day_window = parse_day_range(days)
 
@@ -481,7 +481,7 @@ def preflight(
 
 @data_app.command("generate-demo")
 def data_generate_demo(out_dir: Path = typer.Option(Path("data/demo"))) -> None:
-    """US-103: (re)generate the versioned synthetic demo sample."""
+    """(Re)generate the versioned synthetic demo sample."""
     import subprocess
     import sys
 
@@ -499,7 +499,7 @@ def demo(
         "see reports/demo/RUN.md.",
     ),
 ) -> None:
-    """US-103 acceptance criterion: run the full pipeline on the demo sample
+    """Run the full pipeline on the demo sample
     end to end (ingest -> clean -> label -> split -> features F1-F4 ->
     M0/M1/M2 -> evaluate -> tables) and print a results summary.
 
@@ -615,8 +615,8 @@ def demo(
     # One block-bootstrap resampling pass serves every model: the
     # per-model CIs and the pairwise differences then come from the same
     # sampling distribution. Fewer resamples than the full pipeline's 1000 —
-    # the demo is a smoke test under a five-minute CI ceiling (NFR-04).
-    # S6-25: thresholds giving each budget's daily volume on validation, applied unchanged to test.
+    # the demo is a smoke test under a five-minute CI ceiling.
+    # Thresholds giving each budget's daily volume on validation, applied unchanged to test.
     val_scored = val_feat.select(EVAL_COLUMNS).with_columns(
         pl.Series(score_column(m.name), m.score(val_feat.lazy())) for m in models
     )
@@ -767,7 +767,7 @@ def demo(
     console.print(f"[yellow]{ROC_AUC_WARNING}[/]")
     console.print(f"Figure: {figure_path}")
 
-    # US-128: the comparison is only allowed to say "outperforms" on the
+    # The comparison is only allowed to say "outperforms" on the
     # significant branch, and on three campaigns almost nothing is. Printing
     # the significant ones plus a count of the rest is the honest summary.
     console.print("\n[bold]Pairwise AUC-PR comparisons[/] (Holm-Bonferroni, alpha=0.05):")

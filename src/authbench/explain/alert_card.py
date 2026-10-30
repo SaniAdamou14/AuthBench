@@ -1,4 +1,4 @@
-"""Human-readable alert cards (US-130) — what a SOC analyst reads instead of model internals."""
+"""Human-readable alert cards — what a SOC analyst reads instead of model internals."""
 
 from __future__ import annotations
 

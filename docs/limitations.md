@@ -1,7 +1,6 @@
 # Limitations and threats to validity
 
-Stated here deliberately, ahead of any reviewer — see spec section 11 for the full discussion
-this summarizes.
+Stated here deliberately, ahead of any reviewer.
 
 1. **Temporal leakage** is the dominant pitfall in this literature. Mitigated by
    `authbench.split.temporal` (mechanical `LeakageError` guard) and
@@ -20,7 +19,7 @@ this summarizes.
    support any claim about real insider behavior.
 6. **Campaign-grouping sensitivity.** Campaign-level recall depends on the grouping gap
    threshold (`campaign_gap_hours`). The sensitivity of campaign count to this threshold is a
-   required, non-decorative analysis (US-106). Since 22 October 2026 every run writes
+   required, non-decorative analysis. Since 22 October 2026 every run writes
    `campaign_gap_sensitivity.json`: campaigns regrouped per account at 1, 6, 24 and 72 hours
    from the positives ledger, with the campaign count and each model's recall at every budget,
    first detection, median budget and log-area. Regrouping sees only the split's positives, so a

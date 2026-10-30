@@ -1,5 +1,5 @@
 # Matches conf/dataset/demo.yaml's 14-day period with the same 30/40/58-style
-# proportions as the real LANL split (spec section 6.1): ~52% train, ~17%
+# proportions as the real LANL split: ~52% train, ~17%
 # val, ~31% test.
 name: demo_temporal
 mode: temporal

@@ -1,4 +1,4 @@
-"""One resampling pass, shared by every model (US-128).
+"""One resampling pass, shared by every model.
 
 The point of `paired_campaign_bootstrap` is that all models see the *same*
 resample. That is what makes the pairwise differences paired — the

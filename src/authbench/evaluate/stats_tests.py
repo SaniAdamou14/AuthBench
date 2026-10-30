@@ -1,4 +1,4 @@
-"""Statistical uncertainty: a paired block bootstrap with Holm-Bonferroni correction (US-128).
+"""Statistical uncertainty: a paired block bootstrap with Holm-Bonferroni correction.
 
 With 715 positives concentrated in a handful of campaigns, treating
 individual events as independent draws grossly underestimates variance.
@@ -173,7 +173,7 @@ class PairedBootstrap:
 
     def comparisons(self, metric_name: str, *, alpha: float = 0.05) -> list[PairwiseComparison]:
         """Every pairwise comparison, Holm-Bonferroni corrected across the
-        whole family (US-128).
+        whole family.
 
         The p-value is the two-sided percentile-bootstrap p-value for
         H0: Δ = 0 — twice the smaller tail mass of the resampled difference,
@@ -567,7 +567,7 @@ def render_p_value(comparison: PairwiseComparison) -> str:
 
 
 def render_comparison_sentence(comparison: PairwiseComparison) -> str:
-    """US-128: the generator must refuse the word "outperforms" whenever the
+    """The generator must refuse the word "outperforms" whenever the
     gap is not significant at the corrected threshold. Structurally enforced
     here — "outperforms" only appears on the `significant` branch.
     """
@@ -625,7 +625,7 @@ def cluster_bootstrap(
     chunk: int = 256,
     max_attempts_factor: int = 20,
 ) -> PairedBootstrap:
-    """Sensitivity analysis: resample source users, every event of a user moving with it (S6-24).
+    """Sensitivity analysis: resample source users, every event of a user moving with it.
 
     Benign events of one user are correlated, which the singleton benign blocks of
     `paired_campaign_bootstrap` ignore. Here the units are the users of the split; a

@@ -1,4 +1,4 @@
-"""Streaming conversion of raw LANL text logs into day-partitioned ZSTD Parquet (US-102).
+"""Streaming conversion of raw LANL text logs into day-partitioned ZSTD Parquet.
 
 The source is read as a sequence of **bounded byte blocks, each cut on a line
 boundary**, decompressed on the fly by `gzip` when needed. Peak memory is then
@@ -7,7 +7,7 @@ compressed and ~65 GB expanded, and any reader that materializes the
 decompressed text before parsing it is unusable on a machine with 16 GB of
 RAM. Polars' own CSV readers decide that for us and are not contractually
 bounded here, so the blocking is done explicitly and the guarantee is ours
-(NFR-01: no stage exceeds 8 GB RSS).
+(no stage exceeds 8 GB RSS).
 
 Each block is parsed, cleaned (`parse.clean.clean_auth`) and written to
 `out_dir/day=<D>/part-<NNNNNN>.parquet` immediately, so the raw file is read
@@ -138,7 +138,7 @@ def _parse_block(block: bytes) -> pl.DataFrame:
     strict integer schema would abort the whole multi-hour conversion on a
     single malformed timestamp in 1.05 billion rows; a non-strict cast turns
     it into a null, which `clean_auth` already drops *and counts* under
-    `null_time` — the reconciliation US-102 checks stays exact either way.
+    `null_time`: the row-count reconciliation stays exact either way.
     """
     frame = pl.read_csv(
         block,
@@ -202,7 +202,7 @@ def to_parquet_partitioned(
     quarter of the disk and, because `auth.txt` is written in time order, only
     about a quarter of the reading. Rows outside the window are counted in
     `n_rows_out_of_range`, never in `drop_counts` — they are excluded, not
-    rejected, and conflating the two would corrupt US-102's reconciliation.
+    rejected, and conflating the two would corrupt the row-count reconciliation.
 
     `overwrite=True` deletes the `day=*` partitions already in `out_dir` before
     writing; without it an `out_dir` holding any is refused (see the module
@@ -314,7 +314,7 @@ class PartialConversionError(ValueError):
 
 
 def verify_row_count(report: ConversionReport, expected_rows: int) -> None:
-    """US-102: converted row count must match the published LANL total exactly
+    """Converted row count must match the published LANL total exactly
     (after accounting for explicitly-counted drops), or the pipeline aborts.
 
     A day-restricted run is refused rather than reconciled. It read part of the
@@ -338,5 +338,5 @@ def verify_row_count(report: ConversionReport, expected_rows: int) -> None:
         raise ValueError(
             f"Row count mismatch: {accounted_for} accounted for "
             f"({report.n_rows_out} kept + {report.drop_counts.total} dropped), "
-            f"expected {expected_rows}. Aborting — see US-102."
+            f"expected {expected_rows}. Aborting."
         )

@@ -4,7 +4,7 @@ Days are read, labelled and featurised one at a time (`features.incremental`),
 so memory is bounded by a day and its predecessor whatever the length of the
 run. Each partition is written as one Parquet file per day under
 `<feature store>/<split>/`, and the store's version is a hash of the feature
-configuration (US-115).
+configuration.
 
 Partitions are half-open time ranges, given in days or in hours. History is
 either `window` (each partition is featurised from its own first day minus
@@ -56,7 +56,7 @@ SPLITS = ("train", "val", "test")
 
 
 def feature_store_version(features_cfg: DictConfig) -> str:
-    """US-115: a hash of the feature configuration, so changing any feature
+    """A hash of the feature configuration, so changing any feature
     parameter invalidates the cache and is traceable in every MLflow run.
     """
     canonical = json.dumps(OmegaConf.to_container(features_cfg, resolve=True), sort_keys=True)

@@ -1,4 +1,4 @@
-"""M4c: LSTM next-destination model over the F6 sequences (US-122).
+"""M4c: LSTM next-destination model over the F6 sequences.
 
 The score is the surprise of the event's actual destination given the user's
 prior context, `-log p(dst_code | sequence_dst)`. Codes come from the

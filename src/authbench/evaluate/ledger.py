@@ -237,7 +237,7 @@ def gap_sensitivity(
     budgets: list[int],
     k_max: int,
 ) -> list[dict[str, object]]:
-    """Campaign count and each model's budget summary when campaigns are regrouped at each gap (S6-07)."""
+    """Campaign count and each model's budget summary when campaigns are regrouped at each gap."""
     models = ledger["model"].unique(maintain_order=True).to_list()
     reference = ledger.filter(pl.col("model") == models[0])
     result = []

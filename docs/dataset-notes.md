@@ -1,6 +1,6 @@
 # Dataset notes
 
-## LANL quirks handled explicitly (spec section 2.1)
+## LANL quirks handled explicitly
 
 | Quirk | Where it's handled |
 |---|---|
@@ -10,13 +10,13 @@
 | Machine accounts (`$` suffix) are most of the volume | `parse.clean.is_machine_account`, flagged via `src_user_is_machine` / `dst_user_is_machine`, never dropped or coerced |
 | Label join must be on the full quadruplet | `label.redteam_join.label_auth_events` joins on `(time, user, domain, src_computer, dst_computer)`, never on time alone |
 
-## Positive rate sanity check (US-105)
+## Positive rate sanity check
 
 `conf/dataset/lanl.yaml`'s `positive_rate_bounds: [5.0e-7, 1.0e-6]` is checked against the actual
 labeling output; the pipeline aborts if the observed rate falls outside this range, since a
 looser join silently inflates the positive count.
 
-## Campaign grouping (US-106, spec section 4.2)
+## Campaign grouping
 
 The 749 raw red-team rows (**715** after deduplication — 34 exact duplicates, measured on the
 file rather than taken from the widely-repeated secondary figure of 737) are not 715 independent
@@ -30,4 +30,4 @@ threshold must be reported, not treated as a fixed constant (see `docs/limitatio
 Published figures for r4.2's malicious user count disagree across papers (70/1000 vs. 30 × 3
 scenarios). Whichever labeling procedure is used here should be documented precisely and the
 resulting count reconciled against both published figures — a small but genuine reproducibility
-contribution (spec section 2.2).
+contribution.

@@ -1,4 +1,4 @@
-"""Resumable, checksum-verified download of the LANL source files (US-101).
+"""Resumable, checksum-verified download of the LANL source files.
 
 Uses HTTP Range requests to resume after interruption, and refuses to
 re-download a file whose SHA-256 already matches the recorded value.
@@ -161,7 +161,7 @@ def fetch_lanl_fence_token(
     a usage statement returns a token used to build the real file URLs
     (`{LANL_FENCE_BASE}/data-fence/{token}/cyber1/<file>`). There is no
     stable, permanent URL for the raw files — the site changed from the
-    plain static URLs the original spec assumed.
+    plain static URLs it once served.
     """
     session = session or requests.Session()
     response = session.get(
@@ -320,9 +320,9 @@ def download_with_resume(
     exists, and verifying `expected_sha256` on completion.
 
     If `dest` already exists and its checksum matches `expected_sha256`,
-    nothing is downloaded (US-101: "relancer la commande ... ne retélécharge
-    rien"). A dropped connection mid-transfer (`_TRANSIENT_ERRORS` — common on
-    a multi-GB download) is retried up to `max_retries` times, each retry
+    nothing is downloaded, so rerunning the command is free. A dropped
+    connection mid-transfer (`_TRANSIENT_ERRORS` — common on a multi-GB
+    download) is retried up to `max_retries` times, each retry
     resuming from the partially-written file's current size rather than
     starting over.
     """
@@ -360,8 +360,7 @@ def download_with_resume(
     final_hash = sha256_of(dest)
     if expected_sha256 is not None and final_hash != expected_sha256:
         raise ChecksumMismatchError(
-            f"{dest.name}: expected sha256={expected_sha256}, got {final_hash}. "
-            "Pipeline aborted — see US-101."
+            f"{dest.name}: expected sha256={expected_sha256}, got {final_hash}. Pipeline aborted."
         )
 
     return DownloadResult(dest, final_hash, total_bytes_downloaded, resumed=resumed, skipped=False)

@@ -1,4 +1,4 @@
-"""The full per-model evaluation record (US-125 to US-127).
+"""The full per-model evaluation record.
 
 One place assembles every metric a model is reported on, so `authbench demo`
 and the DVC `train_eval` stage cannot drift into reporting different things.
@@ -31,7 +31,7 @@ from authbench.evaluate.stats_tests import BootstrapResult, PairedBootstrap, Pai
 
 logger = logging.getLogger(__name__)
 
-# The only columns evaluation reads from a scored day (NFR-01).
+# The only columns evaluation reads from a scored day.
 EVAL_COLUMNS = [
     "event_id",
     "time",
@@ -60,7 +60,7 @@ class TimeToDetectionSummary:
 
     Campaigns never detected at this budget keep their own count and stay out
     of the delay statistics — never folded into the denominator as if they
-    had been detected instantly (US-127).
+    had been detected instantly.
     """
 
     budget: int
@@ -125,9 +125,9 @@ class ModelEvaluation:
     recall_at_fixed_fpr: dict[float, float] = field(default_factory=dict)
     score_resolution: ScoreResolution | None = None
     auc_pr_campaign_weighted: float | None = None
-    #: The same budgets as thresholds fixed on the calibration partition (S6-25).
+    #: The same budgets as thresholds fixed on the calibration partition.
     fixed_threshold: list[dict[str, object]] = field(default_factory=list)
-    #: The budgets counted in edge-hours and user-days rather than events (S6-29).
+    #: The budgets counted in edge-hours and user-days rather than events.
     alert_units: dict[str, dict[str, object]] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, object]:
@@ -237,7 +237,7 @@ PAIRWISE_METHODS = ("paired_bootstrap",)
 def pairwise_comparisons(
     bootstrap: PairedBootstrap, *, method: str = "paired_bootstrap", alpha: float = 0.05
 ) -> list[PairwiseComparison]:
-    """Pairwise AUC-PR comparisons across the whole model family (US-128).
+    """Pairwise AUC-PR comparisons across the whole model family.
 
     The paired campaign bootstrap is the only test: it reuses the resampling pass that
     produced the per-model intervals and respects campaign-level dependence. The

@@ -22,13 +22,13 @@ bootstrap:
   seed: 42
 
 # Every tunable model (M1's rule weights, PCA, Isolation Forest, HBOS) gets the same
-# number of candidates, its default among them, chosen on validation AUC-PR (S6-11).
+# number of candidates, its default among them, chosen on validation AUC-PR.
 tuning:
   n_configs: 20
   seed: 42
 
 # Seeded models (M1, PCA, Isolation Forest, ECOD, HBOS) refitted with each seed, their tuned
-# configuration fixed, to measure the variance the fit adds (S6-24). Reported regime only.
+# configuration fixed, to measure the variance the fit adds. Reported regime only.
 fit_variance:
   seeds: [42, 7, 13, 21, 99]
 
@@ -54,7 +54,7 @@ ledger:
   k_max: 10000           # upper end of the log-budget area
   n_resamples: 10000     # bootstrap over accounts
   n_simulations: 10000   # random-ranking null
-  # Campaigns regrouped at each gap from the ledger (S6-07); 24 is the dataset's own.
+  # Campaigns regrouped at each gap from the ledger; 24 is the dataset's own.
   campaign_gap_hours: [1, 6, 24, 72]
   confidence: 0.95
   seed: 42

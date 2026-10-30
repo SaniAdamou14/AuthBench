@@ -1,4 +1,4 @@
-"""Strict temporal train/val/test split with a mechanical anti-leakage guard (US-107).
+"""Strict temporal train/val/test split with a mechanical anti-leakage guard.
 
 The split boundaries live in `conf/split/temporal.yaml`, never hard-coded.
 `get_test_split` is the one function allowed to load the test partition; an
@@ -57,7 +57,7 @@ def get_test_split(data: pl.LazyFrame, config: TemporalSplitConfig) -> pl.LazyFr
 def verify_temporal_order(
     train: pl.LazyFrame, val: pl.LazyFrame | None, test: pl.LazyFrame
 ) -> None:
-    """US-107: `max(train.time) < min(val.time)` and `max(val.time) < min(test.time)`.
+    """`max(train.time) < min(val.time)` and `max(val.time) < min(test.time)`.
 
     `val=None` is a protocol without a validation partition (the harmonised one), where the
     condition is `max(train.time) < min(test.time)`.
@@ -107,7 +107,7 @@ def random_ablation_split(
     val_fraction: float,
     seed: int,
 ) -> tuple[pl.LazyFrame, pl.LazyFrame, pl.LazyFrame]:
-    """Random (leaky) split — ablation only (section 6.5, RQ2). Never used for
+    """Random (leaky) split — ablation only (RQ2). Never used for
     headline results. Callers must surface `conf/split/random_ablation.yaml`'s
     warning message whenever this is invoked.
     """

@@ -1,12 +1,11 @@
-"""M5 — graph-based anomaly scores (US-123/US-124, `authbench[graph]` extra).
+"""M5 — graph-based anomaly scores (`authbench[graph]` extra).
 
 M5a scores the node2vec embedding of the acting user (from
 `features.graph.attach_graph_features`, rebuilt per trailing 7-day window —
 never on the full period) with an Isolation Forest. This is the model that
 answers RQ3: does the graph carry signal independent of F2/F3?
 
-M5b (GNN link prediction) is `Could`-priority in the spec (section 5, 21
-points, "only if time permits") and is stubbed with a clear `NotImplementedError`
+M5b (GNN link prediction) is optional and is stubbed with a clear `NotImplementedError`
 rather than a fake implementation — an honest gap beats a decorative one.
 """
 
@@ -49,10 +48,9 @@ class Node2VecIsolationForestScorer(BaseAnomalyScorer):
 
 
 class GNNLinkPredictionScorer(BaseAnomalyScorer):
-    """M5b — GNN-based link prediction (spec: Could, 21 points, optional).
+    """M5b — GNN-based link prediction (optional).
 
-    Not implemented: this stage is explicitly conditional on schedule in the
-    spec ("seulement si le temps le permet"). Left as a clearly-marked gap
+    Not implemented. Left as a clearly-marked gap
     rather than a shallow implementation that would misrepresent M5b as
     measured when it is not.
     """
@@ -62,9 +60,8 @@ class GNNLinkPredictionScorer(BaseAnomalyScorer):
 
     def fit(self, train: pl.LazyFrame) -> None:
         raise NotImplementedError(
-            "M5b is out of scope for the current sprint (spec section 5: Could, "
-            "'seulement si le temps le permet'). Implement with PyTorch Geometric "
-            "if S7/S8 schedule allows."
+            "M5b (GNN link prediction) is not implemented; it is an optional model. "
+            "Implement it with PyTorch Geometric."
         )
 
     def score(self, data: pl.LazyFrame) -> pl.Series:

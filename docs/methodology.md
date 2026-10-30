@@ -1,6 +1,5 @@
 # Methodology
 
-Full rationale lives in [`AuthBench_Specification.md`](../AuthBench_Specification.md).
 This document summarizes the protocol actually implemented in `src/authbench/`.
 
 ## Pipeline
@@ -10,11 +9,11 @@ ingest -> parse/clean -> label -> split -> features -> models -> evaluate -> rep
 ```
 
 Each stage is a pure function over Polars `LazyFrame`s (see `authbench.models.base.AnomalyScorer`
-for the model contract). No stage re-reads raw data more than once (NFR-01), and no stage after
+for the model contract). No stage re-reads raw data more than once, and no stage after
 `split` can reach the test partition except through `authbench.split.temporal.get_test_split` —
 enforced by `tests/unit/test_no_test_leakage.py`.
 
-## Temporal split (US-107)
+## Temporal split
 
 Boundaries live in `conf/split/temporal.yaml`, expressed in 0-indexed `day = time // 86400`:
 
@@ -49,7 +48,7 @@ against. `conf/split/harmonised.yaml` combines hour bounds, cumulative history a
 the remote LogOn universe to reproduce the protocol of Larroche (2026); it has no
 validation partition, so M1 keeps uniform rule weights there.
 
-**Why not the spec's split.** The spec's own split (train 1–30, validation 31–40,
+**Why not the split first planned.** The split in the project's initial design (train 1–30, validation 31–40,
 test 41–58, i.e. 0–29 / 30–39 / 40–57 here) cannot be run at all: the red team stops at
 day 29, so it puts every one of the 749 red-team events in train and leaves validation and
 test with none. Every ranking metric would be undefined and M1's weight calibration would
@@ -66,7 +65,7 @@ events, positives, campaigns and the source hosts of the positives.
 `authbench.split.temporal.verify_temporal_order` raises `LeakageError` unless
 `max(train.time) < min(val.time)` and `max(val.time) < min(test.time)`.
 
-## Causal features (US-108)
+## Causal features
 
 All windowed features (F2 history, F3 novelty, F5 graph) go through
 `authbench.features.causal`, which provides two primitives:
@@ -90,7 +89,7 @@ tie instead of being ordered by their time. The user-source relation is the "kno
 pc" signal of Garchery and Granitzer (2020); M2c scores it alone and M1's rule R8 flags its
 first occurrences. The published LANL runs predate the source relations and the day anchor.
 
-## Fitted quantities (US-107, US-109, US-112)
+## Fitted quantities
 
 Two things in the feature pipeline are learned rather than computed row-locally, and both are
 fitted on the **training split only**, then applied unchanged to validation and test:
@@ -107,9 +106,9 @@ encoding as a required argument rather than an optional one; a protocol that dep
 caller remembering a keyword is not a protocol.
 `tests/unit/test_frequency_encoding.py` is the regression guard.
 
-## Two training regimes (section 6.2)
+## Two training regimes
 
-Implemented on 22 October 2026 (S6-10); the published LANL runs used R1 only.
+Implemented on 22 October 2026; the published LANL runs used R1 only.
 `split.regimes` lists the regimes `train_eval` runs, each with a fresh catalog:
 
 - **R1 (unsupervised)**: red-team events inside the training window are left in, the realistic
@@ -126,7 +125,7 @@ the harmonised split (`conf/split/harmonised.yaml`) training ends at hour 41, be
 event (t = 150,885 s, hour 41.9, the boundary Euler uses), so the two regimes coincide and only
 R1 is run.
 
-## Evaluation (US-125 to US-128)
+## Evaluation
 
 `authbench.evaluate.summary.evaluate_model` assembles every reported metric, and both the
 `train_eval` stage and `authbench demo` go through it — so the two cannot drift into
@@ -179,7 +178,7 @@ decoupling with more detectors: Spearman 0.03 (harmonised, ten non-trivial detec
 (temporal, eleven) between ROC-AUC and the budget for first detection, with Monte Carlo
 permutation p-values of 0.95 and 0.67; recall at FPR 1e-4 tracks it best (0.54 and 0.75).
 
-## Uncertainty and pairwise comparisons (US-128)
+## Uncertainty and pairwise comparisons
 
 `stats_tests.paired_campaign_bootstrap` runs **one** block-bootstrap resampling pass and
 evaluates every model on each resample. That single pass yields both the per-model CIs and
@@ -187,7 +186,7 @@ every pairwise difference, which means the intervals and the comparisons come fr
 sampling distribution, and each difference is paired: campaign-composition noise cancels
 between two models rather than being counted twice.
 
-**Blocks, interval and Monte Carlo error (S6-23, 22 October 2026).** The resampling is a block
+**Blocks, interval and Monte Carlo error (22 October 2026).** The resampling is a block
 bootstrap over one pooled set of blocks, not a stratified one: the number of positive blocks in
 a resample varies, as the number of attacks in another sample would. Earlier text called it
 "campaign-stratified", which was inaccurate.
@@ -285,7 +284,7 @@ R7 are stored features, so M1 is row-local. The LANL results in `reports/lanl/` 
 change; the full run of 22 October 2026 (`reports/runs/20261022T102638Z/`) uses the fitted
 normalisation.
 
-## Euler, reimplemented (S6-09)
+## Euler, reimplemented
 
 `models/euler.py` (M5c, `runtime.euler: true`) reimplements Euler (King and Huang, 2022), the
 most cited deep detector on LANL, because its code carries no licence. Taken from the paper
@@ -329,7 +328,7 @@ first snapshot. Choices of their code that the paper does not state and this rei
 does not copy: ten negative samples per edge, early stopping on validation AUC plus AP,
 dropout 0.25 with DropEdge 0.8, one optimiser step per epoch.
 
-## Alert units and what a budget costs (S6-29)
+## Alert units and what a budget costs
 
 **Units.** An analyst does not triage events one by one. Besides events, every run ranks two
 coarser units per day (`statistics.UNITS`, `operational.alert_units`): the **edge-hour**
@@ -355,7 +354,7 @@ At 10 to 20 minutes, 10 alerts a day is 0.6 to 1.2 analysts, 100 is 6 to 12, and
 62, a third of everything a typical SOC handles in a day. The benchmark's budgets therefore
 span one analyst to a whole team; they are not a menu of equally plausible operating points.
 
-## Two variances the test bootstrap does not see (S6-24)
+## Two variances the test bootstrap does not see
 
 **The fit.** A bootstrap over the test split holds the fitted models fixed. Isolation Forest grows
 a random forest, the vector-space models fit on a seeded sample of at most 5 million rows, and M1
@@ -374,7 +373,7 @@ the benign events per (user, benign bin), accumulated by day and tested equal to
 weighted average precision with per-event user weights. On the demo it changes the intervals
 little and the significance verdicts not at all (16 of 36 either way).
 
-## A fixed threshold instead of a daily top-k (S6-25)
+## A fixed threshold instead of a daily top-k
 
 The alert budget ranks each day and keeps its top k, which no SOC tool does: a detector is
 deployed with a threshold, and the number of alerts it raises then varies from day to day.
@@ -416,7 +415,7 @@ In the published runs M1 was the only model that used labels: its weights maximi
 on the validation partition (200 Dirichlet draws, seeded), while every other model kept its
 default hyperparameters. That favoured M1.
 
-**Equal budgets (S6-11, 22 October 2026).** `pipeline.tuning` gives every model with
+**Equal budgets (22 October 2026).** `pipeline.tuning` gives every model with
 something to choose the same number of candidates, `eval.tuning.n_configs` (20), its default
 among them, and keeps the one with the highest validation AUC-PR, validation being scored by
 day like the test split: M1's rule weights (uniform plus Dirichlet draws), PCA's retained

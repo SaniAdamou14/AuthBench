@@ -1,4 +1,4 @@
-"""Cleaning and typing of raw LANL auth/redteam events (US-104).
+"""Cleaning and typing of raw LANL auth/redteam events.
 
 Every decision here is explicit and counted, never silent:
 - machine accounts (`$` suffix) are flagged, not dropped or coerced to humans.
@@ -85,7 +85,7 @@ def clean_auth(raw: pl.LazyFrame, *, id_offset: int = 0) -> tuple[pl.LazyFrame, 
     `id_offset` lets a streaming caller assign globally-unique, deterministic
     `event_id`s across batches (row index within the batch is otherwise always
     zero-based) without keeping any other cross-batch state — required for
-    bit-identical reruns (NFR-02).
+    bit-identical reruns.
     """
     counts = DropCounts()
 
@@ -113,7 +113,7 @@ def clean_auth(raw: pl.LazyFrame, *, id_offset: int = 0) -> tuple[pl.LazyFrame, 
     # would then double-count it and could drive `malformed_user_domain`
     # negative — so `null_time` is claimed first and `malformed_user_domain`
     # is whatever is left, which keeps `total` equal to `n_dropped` by
-    # construction (US-102's row-count reconciliation depends on that).
+    # construction (the row-count reconciliation depends on that).
     counts.null_time = min(
         raw.filter(pl.col("time").is_null()).select(pl.len()).collect().item(), n_dropped
     )
@@ -151,7 +151,7 @@ def clean_redteam(raw: pl.LazyFrame) -> tuple[pl.LazyFrame, int]:
     Returns the typed frame and the number of exact-duplicate rows removed.
     Measured on the real file: 749 raw rows, **34** exact duplicates, 715
     distinct. Widely-repeated secondary figures of 12 duplicates / 737 unique
-    do not match the file, which is exactly why US-105 requires this count be
+    do not match the file, which is exactly why this count is
     logged rather than silently absorbed — a hard-coded 737 would have made a
     real discrepancy invisible.
     """
@@ -181,10 +181,10 @@ def clean_redteam(raw: pl.LazyFrame) -> tuple[pl.LazyFrame, int]:
 
 
 def data_quality_report(typed: pl.LazyFrame, drop_counts: DropCounts) -> dict[str, object]:
-    """Compute the per-column null rate, cardinality and duplicate counts (US-104).
+    """Compute the per-column null rate, cardinality and duplicate counts.
 
     Runs as lazy aggregations so it scales to the full out-of-core dataset —
-    the frame is never fully materialized in memory (NFR-01).
+    the frame is never fully materialized in memory.
     """
     schema_cols = list(TYPED_AUTH_SCHEMA.keys())
     categorical_cols = [c for c in schema_cols if TYPED_AUTH_SCHEMA[c] == pl.Categorical]
