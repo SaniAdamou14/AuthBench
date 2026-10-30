@@ -283,7 +283,7 @@ Candidates found, all left unverified:
 - **tuor2017**: arXiv API record 1710.00811 (five authors, published 2017-10-02; comment "Proceedings of AI for Cyber Security Workshop at AAAI 2017"). Workshop proceedings record not retrieved, so cited as the arXiv version with the comment as addendum.
 - **amin2019cadence**: Crossref record 10.1145/3338501.3357368 (title "CADENCE", subtitle "Conditional Anomaly Detection for Events Using Noise-Contrastive Estimation", AISec '19, pp. 71-82, 2019-11-11).
 
-## Additions for the second half of sprint S6 (2026-10-22)
+## Additions of 22 October 2026
 
 - **efron1987**: Crossref record 10.1080/01621459.1987.10478410 (Bradley Efron, "Better Bootstrap Confidence Intervals", Journal of the American Statistical Association 82(397), 171-185, 1987). Cited for the BCa intervals.
 - **vectra2023**: vectra.ai resource page, read 2026-10-22: "SOC teams receive 4,484 alerts each day on average"; "security analysts are unable to deal with over two-thirds (67%) of the daily alerts they receive"; "83% of these alerts are false positives"; "Analysts spend nearly 3 hours (2.7) each day manually triaging alerts"; "a March-April 2023 study commissioned by Vectra and carried out by Sapio Research"; "Sapio surveyed 2,000 IT security analysts working at organizations with more than 1,000 employees". Vendor-commissioned and self-reported; the report's own subtitle not checked against the PDF.

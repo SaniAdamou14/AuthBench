@@ -1,4 +1,4 @@
-"""US-101: the failure modes of a multi-GB download nobody watches.
+"""The failure modes of a multi-GB download nobody watches.
 
 Every test here corresponds to a way the LANL fetch has to fail *loudly and
 early* rather than after two hours: no disk, a gate that stopped returning

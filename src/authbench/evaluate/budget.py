@@ -1,10 +1,9 @@
-"""Recall under a realistic per-day alert budget (US-126) — the project's central metric.
+"""Recall under a realistic per-day alert budget — the project's central metric.
 
 Alerts are the top-k scored events **per day**, never the top-k over the
 whole test period — a SOC analyst has a daily capacity, not a period-long
 one, and taking a global top-k would let a model "spend" its whole budget on
-one easy day and ignore the rest (spec section 6.3 / US-126 acceptance
-criteria).
+one easy day and ignore the rest.
 
 **Ties are part of the metric, not an implementation detail.** A budget of 10
 asks which ten events an analyst sees, and a model whose score takes few
@@ -117,8 +116,8 @@ def campaign_recall_at_budget(
     frame: pl.DataFrame, score_col: str, k: int, *, tie_break: TieBreak = "queue"
 ) -> float:
     """Fraction of campaigns with at least one event captured by the daily
-    top-k alerts — the metric that reflects a defender's actual objective
-    (US-106): detecting the attack, not every one of its events.
+    top-k alerts — the metric that reflects a defender's actual objective:
+    detecting the attack, not every one of its events.
     """
     total_campaigns = frame.filter(pl.col("campaign_id").is_not_null())["campaign_id"].n_unique()
     if total_campaigns == 0:
@@ -276,7 +275,7 @@ def compute_budget_curve(
 ) -> BudgetCurve:
     """Event- and campaign-recall at every budget in `budgets` — this is what
     the report's principal figure (campaign recall vs. budget, one curve per
-    model) is built from (US-126).
+    model) is built from.
 
     Also carries what the curve alone cannot say: how much of each point the
     tie-break decided, and the budget at which this model first detects

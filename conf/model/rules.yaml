@@ -1,4 +1,4 @@
-# M1 — heuristic rule engine (section 5.1). The real competitor, not a strawman.
+# M1 — heuristic rule engine. The real competitor, not a strawman.
 #
 # Descriptive only: `train_eval` builds M1 from `models.rules.RulesScorer` and tunes its
 # weights in `pipeline.tuning`; nothing here is read. It is kept to match the code.

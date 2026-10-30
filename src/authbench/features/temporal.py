@@ -1,9 +1,9 @@
-"""F4 — temporal features (US-112).
+"""F4 — temporal features.
 
 LANL time has no timezone or calendar date: it is a raw second counter
 starting at epoch 1. "Hour of day" only exists modulo 86 400, and the
 day/night boundary is not assumed — it is calibrated empirically from the
-activity trough (spec section 2.1), and that calibration must be fit on the
+activity trough, and that calibration must be fit on the
 training split only, never on the full dataset, or it silently leaks the
 val/test distribution into a "fixed" feature.
 """
@@ -40,9 +40,9 @@ def calibrate_night_window(
     train_events: pl.LazyFrame, *, width_hours: int = 6, n_buckets: int = 96
 ) -> NightWindow:
     """Find the contiguous `width_hours` window of lowest event volume,
-    calibrated on `train_events` only (US-112 / spec 2.1). Never call this on
+    calibrated on `train_events` only. Never call this on
     val or test data — that would be exactly the kind of "assumed, not
-    calibrated" leakage the spec calls out explicitly.
+    calibrated" leakage this module exists to prevent.
     """
     bucket_seconds = SECONDS_PER_DAY // n_buckets
     counts = (

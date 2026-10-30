@@ -1,4 +1,4 @@
-"""The single contract every model in the catalog must satisfy (spec section 3.5).
+"""The single contract every model in the catalog must satisfy.
 
 A model that does not conform does not enter the results table. Evaluation
 depends only on the **rank** of `score()`'s output, never its absolute scale

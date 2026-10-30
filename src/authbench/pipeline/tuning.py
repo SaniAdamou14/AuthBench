@@ -1,4 +1,4 @@
-"""Equal hyperparameter budgets, chosen on validation by one criterion for every model (S6-11).
+"""Equal hyperparameter budgets, chosen on validation by one criterion for every model.
 
 The published runs tuned one model: M1's rule weights, by 200 draws scored on validation
 labels, while every other model kept its library defaults. That asymmetry favoured M1.
@@ -219,7 +219,7 @@ def fit_variance(
     seeds: list[int],
     budgets: list[int],
 ) -> dict[str, dict[str, Any]]:
-    """Each seeded model refitted with every seed, its configuration fixed, and scored on test (S6-24).
+    """Each seeded model refitted with every seed, its configuration fixed, and scored on test.
 
     The spread is the variance the fit itself adds, which no bootstrap over the test split sees:
     a forest grown again, another fitting sample, another normalisation sample for M1.

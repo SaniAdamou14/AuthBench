@@ -41,7 +41,7 @@ f2_history:
 
 f3_novelty:
   enabled: true
-  new_pair_sentinel_days: .inf  # documented sentinel; never imputed as 0 (US-111)
+  new_pair_sentinel_days: .inf  # documented sentinel; never imputed as 0
 
 f4_temporal:
   enabled: true

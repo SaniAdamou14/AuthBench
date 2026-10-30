@@ -1,4 +1,4 @@
-"""How many analysts a daily alert budget stands for (S6-29).
+"""How many analysts a daily alert budget stands for.
 
 A budget is only meaningful against the people who would work it. The model is deliberately
 small and every input is published with its source and its weakness:

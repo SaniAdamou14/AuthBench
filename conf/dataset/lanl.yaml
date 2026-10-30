@@ -13,7 +13,7 @@ fence:
 
 # Recorded from the first verified download's own SHA-256 (LANL does not
 # publish per-file checksums) — a mismatch on any later run aborts the
-# pipeline (US-101), catching a corrupted or silently-changed file. Filled in
+# pipeline, catching a corrupted or silently-changed file. Filled in
 # by `authbench data download` after the first successful, size-verified run.
 sha256:
   auth: 9c6b0cc261b0edd19324f6fd1839743224938a7f644ed202ca70bd70a89bf672
@@ -31,8 +31,8 @@ expected_rows:
 # The days on which the red team was active, measured from redteam.txt.gz.
 #
 # This is the single most consequential fact about the dataset for this
-# benchmark, and it is not in the spec: **red-team activity stops at day 29.**
-# The protocol's own published split (section 6.1: train 1-30, val 31-40, test
+# benchmark, and it was not in the initial design: **red-team activity stops at day 29.**
+# The split first planned (train 1-30, val 31-40, test
 # 41-58, i.e. 0-29 / 30-39 / 40-57 here) therefore puts every one of the 749
 # events in train and leaves val and test with none at all. Every ranking
 # metric would be undefined, M1's weight calibration would have nothing to

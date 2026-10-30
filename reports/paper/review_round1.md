@@ -21,7 +21,7 @@ case study was not placed next to published budgeted results on almost the
 same days, which detect a non-zero share of the red-team activity.
 
 Status: **addressed** in the revised text below; **run** needs a new LANL run
-and is scheduled in `docs/sprints/S6_decembre_2026.md` (ticket in brackets).
+and is scheduled for a later run.
 
 ## Claims and framing
 
@@ -40,38 +40,38 @@ and is scheduled in `docs/sprints/S6_decembre_2026.md` (ticket in brackets).
 | Point | Raised by | Status |
 |---|---|---|
 | b* compared with one random draw; "worse than random" unsupported | R1 W3, R2 M3, R3 M4 | Addressed: exact random-ranking null derived and implemented (`random_first_detection_survival`, tested against exhaustive enumeration); every b* reported as a null probability; figure shows the null band |
-| b* is an extreme statistic without uncertainty; full b(c) not published | R1 W3, R2 M3, R3 M2 | Run [S6-05, S6-06]: publish b(c) per campaign, quantiles, curves with intervals |
-| Floor p-values called upper bounds; R = 2000 does not certify Holm at 0.05 | R2 M5 | Addressed in text (Monte Carlo bound 0.063, 2,515 resamples needed); run [S6-23]: R = 10,000 |
-| Significance under one operation; benign clustering; fitting variance | R1 W10, R2 M4, R3 M9 | Addressed in text (reframed as stability under resampling of accounts); run [S6-23, S6-24]: benign-clustered bootstrap, multi-seed fits |
-| Percentile-inversion test, not a null-resampling test | R1 W10, R2 M5 | Addressed in text; studentised or BCa intervals in [S6-23] |
-| Event-weighted AUC-PR against campaign-weighted operation | R2 M6 | Run [S6-06]: campaign-weighted AP |
-| Bootstrap described as "stratified" in code | R2 m2 | Code docstrings to correct in [S6-23] |
+| b* is an extreme statistic without uncertainty; full b(c) not published | R1 W3, R2 M3, R3 M2 | Run: publish b(c) per campaign, quantiles, curves with intervals |
+| Floor p-values called upper bounds; R = 2000 does not certify Holm at 0.05 | R2 M5 | Addressed in text (Monte Carlo bound 0.063, 2,515 resamples needed); run: R = 10,000 |
+| Significance under one operation; benign clustering; fitting variance | R1 W10, R2 M4, R3 M9 | Addressed in text (reframed as stability under resampling of accounts); run: benign-clustered bootstrap, multi-seed fits |
+| Percentile-inversion test, not a null-resampling test | R1 W10, R2 M5 | Addressed in text; studentised or BCa intervals planned |
+| Event-weighted AUC-PR against campaign-weighted operation | R2 M6 | Run: campaign-weighted AP |
+| Bootstrap described as "stratified" in code | R2 m2 | Code docstrings to correct |
 | Zero-recall bound; single-day change not significant | R2 m7, m8 | Addressed: Clopper-Pearson bound with its caveat; Fisher p = 0.18, "not reproduced" |
-| Accounts with two campaigns resampled separately | R2 m5 | Run [S6-23]: resample by account |
+| Accounts with two campaigns resampled separately | R2 m5 | Run: resample by account |
 
 ## Protocol and leakage
 
 | Point | Raised by | Status |
 |---|---|---|
-| Daily top-k is retrospective within a day | R1 W6a | Addressed in text; run [S6-25]: fixed-threshold variant calibrated on validation |
-| M1 normalisation spans the three test days (look-ahead) | R1 W6b | Addressed in text; code [S6-20]: training-fitted normalisation |
+| Daily top-k is retrospective within a day | R1 W6a | Addressed in text; run: fixed-threshold variant calibrated on validation |
+| M1 normalisation spans the three test days (look-ahead) | R1 W6b | Addressed in text; code: training-fitted normalisation |
 | Abstract claimed warm-up for training | R1 W6d | Addressed: training starts cold, stated; covariate shift listed |
 | Architecture test is static | R1 W6e | Addressed: described as static |
-| Split argued against a straw man; Larroche's 41-hour split | R3 M8 | Addressed in text; run [S6-26]: harmonised split as primary, test on all activity after 41 hours |
-| M1 calibrated on the same operation; Larroche advises unsupervised use only | R1 W2, R3 M8 | Addressed in text; run [S6-11, S6-20]: label-free M1, equal tuning budgets |
+| Split argued against a straw man; Larroche's 41-hour split | R3 M8 | Addressed in text; run: harmonised split as primary, test on all activity after 41 hours |
+| M1 calibrated on the same operation; Larroche advises unsupervised use only | R1 W2, R3 M8 | Addressed in text; run: label-free M1, equal tuning budgets |
 
 ## Features, universe and baselines
 
 | Point | Raised by | Status |
 |---|---|---|
-| M2a ranks by novelty tier, then latest first | R1 W4 | Addressed: diagnostics section with measured new pairs per day (76,194 on day 12) and the tier argument; run [S6-27]: time-invariant rarity |
-| No source-side feature although 97.5% of positives share a source host | R1 W8, R3 M7 | Addressed in text; run [S6-28]: (user, source) and (source, destination) novelty, known-source-PC rule, Bowman's UA rule |
-| Event universe and unit differ from prior work (61.7% machine-account events) | R3 M5, R1 W5 | Addressed in text (measured share, comparison table); run [S6-29]: LogOn-only universe, edge and user-day units |
+| M2a ranks by novelty tier, then latest first | R1 W4 | Addressed: diagnostics section with measured new pairs per day (76,194 on day 12) and the tier argument; run: time-invariant rarity |
+| No source-side feature although 97.5% of positives share a source host | R1 W8, R3 M7 | Addressed in text; run: (user, source) and (source, destination) novelty, known-source-PC rule, Bowman's UA rule |
+| Event universe and unit differ from prior work (61.7% machine-account events) | R3 M5, R1 W5 | Addressed in text (measured share, comparison table); run: LogOn-only universe, edge and user-day units |
 | Published budgeted results not used | R3 M6 | Addressed: comparison table with DECADES, ADSAGE, UltraLMD++ (numbers checked in the sources) |
-| No deep or graph detector | R1 W8, R3 M10 | Addressed in framing; run [S6-09]: Euler-style temporal link prediction |
-| Budget range not derived from a staffing model | R1 W5, R3 M11 | Addressed as a threat; Hopper cited as reference point; staffing model in [S6-29] |
-| Unused red-team activity of days 14 to 29 | R1 W7 | Run [S6-26] |
-| Campaign gap g not analysed | R1 W7, R3 M9 | Run [S6-07] |
+| No deep or graph detector | R1 W8, R3 M10 | Addressed in framing; run: Euler-style temporal link prediction |
+| Budget range not derived from a staffing model | R1 W5, R3 M11 | Addressed as a threat; Hopper cited as reference point; staffing model planned |
+| Unused red-team activity of days 14 to 29 | R1 W7 | Run planned |
+| Campaign gap g not analysed | R1 W7, R3 M9 | Run planned |
 
 ## Factual and presentation fixes (all addressed)
 

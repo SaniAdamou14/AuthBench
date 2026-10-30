@@ -1,4 +1,4 @@
-"""M2 — single-parameter statistical baselines (US-119)."""
+"""M2 — single-parameter statistical baselines."""
 
 from __future__ import annotations
 

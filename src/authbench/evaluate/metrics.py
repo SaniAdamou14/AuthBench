@@ -1,9 +1,9 @@
-"""Core, rank-only metrics (US-125).
+"""Core, rank-only metrics.
 
 Every function here depends only on the *rank* of the scores, never their
 absolute scale — matching the `AnomalyScorer` contract. ROC-AUC is computed
 and exposed, but always paired with a warning: at LANL's ~1e-7 positive
-rate it stays high even for operationally useless models (spec section 6.3).
+rate it stays high even for operationally useless models.
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ def recall_at_fixed_fpr(y_true: np.ndarray, scores: np.ndarray, target_fpr: floa
 
 
 def degenerate_case_checks() -> dict[str, bool]:
-    """US-125: each metric validated against an analytically-known degenerate
+    """Each metric validated against an analytically-known degenerate
     case (all positive, all negative, perfect ranking, inverted ranking).
     Returns a dict of check-name -> passed, used by the test suite.
     """

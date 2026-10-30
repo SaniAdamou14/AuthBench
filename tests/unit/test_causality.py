@@ -1,4 +1,4 @@
-"""US-108: for every claimed-causal feature (F2, F3, F4), build a synthetic
+"""For every claimed-causal feature (F2, F3, F4), build a synthetic
 event whose feature value would change if a future event were visible, and
 assert the computed value matches the causal (past-only) expectation.
 """

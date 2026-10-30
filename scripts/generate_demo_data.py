@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-"""Deterministic synthetic demo dataset generator (US-103).
+"""Deterministic synthetic demo dataset generator.
 
 Produces a small, LANL-shaped `auth.txt`/`redteam.txt` pair under
 `data/demo/`, small enough to run the entire pipeline in well under five
-minutes (NFR-04), while preserving the properties that make the pipeline
+minutes, while preserving the properties that make the pipeline
 meaningful to demo:
 
 - normal per-user behavior (a small set of "home" machines, a preferred
@@ -17,8 +17,7 @@ meaningful to demo:
   `_CAMPAIGNS_PER_PARTITION` — with every campaign event's quadruplet
   duplicated verbatim into the redteam file, and the full history of the
   users/machines involved preserved: a naive random event sample would
-  destroy exactly the historical features this benchmark is about (US-103
-  acceptance criteria).
+  destroy exactly the historical features this benchmark is about.
 
 Deterministic: same seed, same output, byte for byte.
 """

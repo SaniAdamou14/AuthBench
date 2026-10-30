@@ -1,4 +1,4 @@
-"""F3: novelty and rarity of the user-destination, user-source and source-destination relations (US-111).
+"""F3: novelty and rarity of the user-destination, user-source and source-destination relations.
 
 `*_is_new` marks the first occurrence of a relation within the window a
 partition reads. `*_rarity` is -log((k + 1) / (n + 1)), with k the earlier
@@ -76,7 +76,7 @@ def compute_f3(events: pl.LazyFrame) -> pl.LazyFrame:
     """Add `NOVELTY_COLUMNS`, `user_new_host_count_24h` and `host_new_user_count_24h`.
 
     Every quantity depends only on events strictly before the current one in
-    (time, event_id) order, or on days strictly before the current day (US-108).
+    (time, event_id) order, or on days strictly before the current day.
     """
     # Seven branches read `events`; without the cache each re-executes the whole upstream plan.
     events = events.cache()
@@ -110,7 +110,7 @@ def compute_f3(events: pl.LazyFrame) -> pl.LazyFrame:
         (pl.col("_user_auth_k") == 0).alias("user_auth_is_new"),
     )
 
-    # Rolling sums each need their own [entity, time] sort (US-108), joined back by event_id.
+    # Rolling sums each need their own [entity, time] sort, joined back by event_id.
     flagged = events.select("event_id", "src_user", "dst_computer", "time").join(
         novelty.select("event_id", pl.col("pair_is_new").cast(pl.Int32).alias("_new")),
         on="event_id",

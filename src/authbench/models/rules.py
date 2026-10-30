@@ -1,4 +1,4 @@
-"""M1 — the heuristic rule engine (US-118, spec section 5.1).
+"""M1 — the heuristic rule engine.
 
 This is deliberately not a strawman: it is the real competitor to the deep
 models, and the project loses its point if M1 is under-optimized. Each rule
@@ -10,7 +10,7 @@ weighted sum. M1's weights are chosen on the validation period by
 model's hyperparameters; M1u keeps uniform weights and reads no label.
 
 Every rule carries a MITRE ATT&CK mapping as metadata — the bridge between
-the ML and security framings of the project (spec section 5.1).
+the ML and security framings of the project.
 """
 
 from __future__ import annotations
@@ -155,7 +155,7 @@ class RulesScorer(BaseAnomalyScorer):
         )
 
     def rule_scores(self, features: pl.LazyFrame) -> pl.DataFrame:
-        """Per-rule scores on the training-fitted empirical CDF of each rule (US-118)."""
+        """Per-rule scores on the training-fitted empirical CDF of each rule."""
         if not self._reference:
             raise RuntimeError("RulesScorer.fit() must run before rule_scores().")
         raw = self._raw_rule_scores(features).collect()
@@ -193,7 +193,7 @@ def rule_discrimination(model: RulesScorer, features: pl.DataFrame) -> pl.DataFr
     """Per-rule mean score on benign vs malicious events, next to the weight M1
     actually gave that rule.
 
-    US-118 asks for individual rule performance *before* aggregation, because
+    Individual rule performance is reported *before* aggregation, because
     that is what a security audience reads first. It is also the only honest
     way to read M1's headline number: a rule separating the classes by orders
     of magnitude is either a good rule or a rule that was handed the answer,

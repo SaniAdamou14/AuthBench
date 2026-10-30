@@ -176,7 +176,7 @@ Table 11 places published numbers beside the case study and correctly says they 
 - M2c is essentially Garchery and Granitzer's "known source pc" rule. Run it under their split (days 1 to 8 / 9 to 13, system accounts removed, user-day budgets) and check whether CR-1000 of about 0.254 is reproduced.
 - DECADES or UltraLMD++ could be run under Larroche's own protocol.
 
-Round 1 also promised Bowman's rule (S6-28), and it is not in the catalogue.
+Round 1 also promised Bowman's rule, and it is not in the catalogue.
 
 **Fix:** reproduce at least one published budgeted number with the harness. This validates the harness and gives Table 11 a comparable row.
 
@@ -312,7 +312,7 @@ All files are under `reports/runs/20261022T102638Z/` unless stated otherwise.
 | Budget range and staffing model | Partly | Model given; inputs weak (m11). |
 | Unused red-team days 14 to 29 | Resolved | Harmonised test covers them. |
 | Campaign gap g | Mostly resolved | Campaign counts reported; recall under each gap is in the JSON, not the paper. |
-| Bowman's UA rule (S6-28) | Not resolved | Not in the catalogue. |
+| Bowman's UA rule | Not resolved | Not in the catalogue. |
 
 ## 12. The three changes that would most raise acceptance odds
 

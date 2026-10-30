@@ -152,7 +152,7 @@ R2 = "r2_semi_supervised"
 
 
 def regime_train(train: pl.LazyFrame, regime: str) -> pl.LazyFrame:
-    """The training rows of a regime (spec section 6.2).
+    """The training rows of a regime.
 
     R1 keeps the red-team events inside the training window, as a defender who does not
     know they are compromised would; R2 removes them, as most published work does
@@ -265,7 +265,7 @@ def score_split(
 def calibrate_alert_thresholds(
     models: list[AnomalyScorer], calibration: pl.LazyFrame, budgets: list[int]
 ) -> dict[str, np.ndarray]:
-    """Per model, the thresholds giving each budget's alerts a day on `calibration` (S6-25).
+    """Per model, the thresholds giving each budget's alerts a day on `calibration`.
 
     Volume, not labels: the thresholds read no label, so the training partition serves when
     there is no validation one.

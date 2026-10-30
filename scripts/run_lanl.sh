@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# One reproducible LANL run on a rented machine (S6-15), from a clean checkout to an archive.
+# One reproducible LANL run on a rented machine, from a clean checkout to an archive.
 #
 # Prerequisites on the machine: git, curl, and uv (https://docs.astral.sh/uv/). The download
 # happens on the machine itself. Required unless data/raw already holds both files:
 # AUTHBENCH_LANL_EMAIL, the address LANL's data-use form asks for. RAW_SOURCE describes where
 # pre-placed raw files came from, for the log. Optional: HOURLY_EUR, the machine's price per
-# hour, for the cost line (default 0.4431, Hetzner CCX43 as quoted in
-# docs/sprints/S6_decembre_2026.md).
+# hour, for the cost line (default 0.4431, the Hetzner CCX43 price quoted when the run was
+# planned).
 #
 #   AUTHBENCH_LANL_EMAIL=you@example.org bash scripts/run_lanl.sh
 #

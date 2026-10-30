@@ -16,7 +16,7 @@ never rewritten.
 - `run_lanl.sh` will exit 1 at the end: its first Euler fidelity check was OOM-killed (see
   below), so `run.json` and the archive are written by hand.
 
-## Euler fidelity (S6-09)
+## Euler fidelity
 
 Attempts, in order (`run.log`, `euler_fidelity*.log`):
 

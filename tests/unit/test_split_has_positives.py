@@ -1,6 +1,6 @@
 """Every partition of a configured split must be able to contain positives.
 
-The spec's own published split for LANL — section 6.1, train days 1–30,
+The split first planned for LANL, train days 1–30,
 validation 31–40, test 41–58 — puts **all 749 red-team events in train and
 none at all in validation or test**. The red team stopped operating on day 29;
 the split was written as thirds of the calendar without checking where the
@@ -50,29 +50,29 @@ def test_each_lanl_partition_overlaps_the_red_teams_active_days(partition: str) 
     assert low <= last_active and high >= first_active, (
         f"split.{partition} = [{low}, {high}] does not overlap the red team's active window "
         f"[{first_active}, {last_active}], so that partition would contain zero positives. "
-        "This is what the spec's published 0-29 / 30-39 / 40-57 split does to validation "
+        "This is what the first planned 0-29 / 30-39 / 40-57 split does to validation "
         "and test. Pick a window inside the active range — see docs/scaling.md."
     )
 
 
-def test_the_spec_original_split_is_recorded_as_unusable() -> None:
-    """A named regression, so nobody restores those bounds from the spec.
+def test_the_first_planned_split_is_recorded_as_unusable() -> None:
+    """A named regression, so nobody restores those bounds.
 
     Keeping the failing configuration in a test rather than only in prose is
-    what stops it coming back the next time someone reads section 6.1 and
+    what stops it coming back the next time someone
     "corrects" conf/split/temporal.yaml to match it.
     """
     first_active, last_active = _active_days("lanl")
-    spec_split = {"train_days": (0, 29), "val_days": (30, 39), "test_days": (40, 57)}
+    planned_split = {"train_days": (0, 29), "val_days": (30, 39), "test_days": (40, 57)}
 
     empty = [
         name
-        for name, (low, high) in spec_split.items()
+        for name, (low, high) in planned_split.items()
         if not (low <= last_active and high >= first_active)
     ]
 
     assert empty == ["val_days", "test_days"], (
-        "The spec's split leaves validation and test with no red-team events. If this "
+        "The first planned split leaves validation and test with no red-team events. If this "
         "assertion changes, the dataset's measured active window did — recheck "
         "conf/dataset/lanl.yaml against redteam.txt.gz before trusting any result."
     )

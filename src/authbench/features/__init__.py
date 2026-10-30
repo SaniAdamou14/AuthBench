@@ -41,7 +41,7 @@ _F2_COLUMNS: list[str] = [
 ]
 
 # F3 — pair novelty and rarity. `days_since_pair_last_seen` is excluded on
-# purpose: its documented sentinel for a first-ever pair is +inf (US-111),
+# purpose: its documented sentinel for a first-ever pair is +inf,
 # which is not a number any of these estimators can standardize, and
 # `pair_is_new` already carries exactly that information as a boolean.
 _F3_COLUMNS: list[str] = [

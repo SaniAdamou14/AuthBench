@@ -1,4 +1,4 @@
-"""M0 — comparison floors (US-117). Every other model must beat these, or it
+"""M0 — comparison floors. Every other model must beat these, or it
 contributes nothing to the benchmark's conclusions.
 """
 

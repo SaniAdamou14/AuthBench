@@ -1,4 +1,4 @@
-"""F1 — event-level features: zero cost, available immediately, no history needed (US-109).
+"""F1 — event-level features: zero cost, available immediately, no history needed.
 
 The only F1 features that are not pure row-local transforms are the three
 frequency encodings. A frequency is a property of a *distribution*, so it has
@@ -6,7 +6,7 @@ to be fitted somewhere — and fitting it on the frame being encoded is a
 leak: it lets each event's encoding depend on events that come after it, and
 it gives the same category a different numeric value in train and in test.
 `fit_frequency_encoding` therefore learns the tables on the training split
-only (US-107), and `compute_f1` applies those fixed tables to every split.
+only, and `compute_f1` applies those fixed tables to every split.
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""F6: the N most recent strictly-prior events of the same user, as fixed-length token sequences (US-114).
+"""F6: the N most recent strictly-prior events of the same user, as fixed-length token sequences.
 
 Every sequence is left-padded with `PAD_ID`, and no reserved token shares a
 code with a real outcome: identifiers come from a train-fitted vocabulary

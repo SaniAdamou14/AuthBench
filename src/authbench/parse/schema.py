@@ -79,7 +79,7 @@ TYPED_REDTEAM_SCHEMA: dict[str, type[pl.DataType]] = {
 # Nullable string sentinel LANL uses for missing auth_type / logon_type.
 LANL_NULL_TOKEN = "?"
 
-# Join key for exact label attribution (US-105) — the quadruplet, never time alone.
+# Join key for exact label attribution — the quadruplet, never time alone.
 LABEL_JOIN_KEYS: list[str] = ["time", "user_at_domain", "src_computer", "dst_computer"]
 
 SECONDS_PER_DAY = 86_400

@@ -1,4 +1,4 @@
-"""US-102: the conversion that will run once, for hours, on 1.05 billion rows.
+"""The conversion that will run once, for hours, on 1.05 billion rows.
 
 Until this file existed the module had zero test coverage — the stage that
 touches the most data was the least verified thing in the project.
@@ -84,7 +84,7 @@ def test_gzip_and_plain_sources_produce_identical_datasets(tmp_path: Path, gzipp
 
 def test_a_malformed_timestamp_is_counted_not_fatal(tmp_path: Path) -> None:
     """One bad row in 1.05 billion must not abort a multi-hour conversion, and
-    must not vanish either — US-102's reconciliation has to stay exact."""
+    must not vanish either: the row-count reconciliation has to stay exact."""
     lines = [*ROWS, "not-a-timestamp,U9@DOM1,U9@DOM1,C1,C2,Negotiate,Batch,LogOn,Success"]
     src = _write(tmp_path / "bad", lines)
 

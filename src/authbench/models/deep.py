@@ -1,9 +1,9 @@
-"""M4a dense autoencoder and M4b variational autoencoder over the shared design matrix (US-121).
+"""M4a dense autoencoder and M4b variational autoencoder over the shared design matrix.
 
 Both are fitted on standardized `MODEL_FEATURE_COLUMNS` and scored by the
 quantity they were trained to minimise, evaluated deterministically: the
 squared reconstruction error for M4a, the negative ELBO at the posterior mean
-for M4b. Only the rank of a score is ever used (spec section 3.5).
+for M4b. Only the rank of a score is ever used.
 
 Scoring runs the trained network in float64 `models.rowwise` arithmetic rather
 than in batched float32 torch, whose results moved by up to 1e-6 with the batch

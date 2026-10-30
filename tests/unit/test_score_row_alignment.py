@@ -71,7 +71,7 @@ def test_model_names_are_unique_within_a_catalog(catalog_name: str, catalog: lis
 @pytest.mark.parametrize("model", _catalog(), ids=lambda m: str(m.name))
 def test_every_catalog_model_satisfies_the_scorer_contract(model: object) -> None:
     """`AnomalyScorer` is the one contract a model must meet to enter the
-    results table (spec 3.5). Checked structurally rather than by inheritance,
+    results table. Checked structurally rather than by inheritance,
     because the protocol is deliberately structural.
     """
     assert isinstance(getattr(model, "name", None), str) and model.name, (  # type: ignore[attr-defined]
@@ -111,7 +111,7 @@ def test_the_random_floor_scores_an_event_not_a_position() -> None:
 
 @pytest.mark.parametrize("model", _catalog(), ids=lambda m: str(m.name))
 def test_scoring_is_repeatable_for_a_fixed_frame(model: object) -> None:
-    """Same model, same frame, twice: NFR-02 at the smallest scale there is."""
+    """Same model, same frame, twice: bit-identical reruns at the smallest scale there is."""
     frame = _featurized()
     model.fit(frame.lazy())  # type: ignore[attr-defined]
 

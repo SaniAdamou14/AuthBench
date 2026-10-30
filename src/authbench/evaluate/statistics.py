@@ -28,7 +28,7 @@ from authbench.evaluate.campaign import TimeToDetectionResult
 
 POSITIVE_KEYS = ["event_id", "campaign_id", "day", "time"]
 RANK_COLUMNS = ["rank", "rank_best", "rank_worst", "rank_against", "rank_for"]
-#: Alert units coarser than an event (S6-29): what an analyst triages once.
+#: Alert units coarser than an event: what an analyst triages once.
 UNITS = {
     "edge_hour": ["src_computer", "dst_computer", "hour"],
     "user_day": ["src_user"],
@@ -58,10 +58,10 @@ class ModelStatistics:
     min_distinct_scores_in_a_day: int
     largest_tie_fraction_in_a_day: float
     #: Fixed alert thresholds, one per budget, and the events at or above each, per day in
-    #: `day_sizes` order (S6-25). Empty when no threshold was given.
+    #: `day_sizes` order. Empty when no threshold was given.
     alert_thresholds: np.ndarray = field(default_factory=lambda: np.empty(0))
     alerts_per_day: np.ndarray = field(default_factory=lambda: np.empty((0, 0), dtype=np.int64))
-    #: With a cluster column (S6-24): each positive's cluster, and the benign events per
+    #: With a cluster column: each positive's cluster, and the benign events per
     #: (cluster, benign bin) as parallel arrays; bins as in `stats_tests.benign_bins`.
     n_clusters: int = 0
     positive_cluster: np.ndarray = field(default_factory=lambda: np.empty(0, dtype=np.int64))
@@ -621,7 +621,7 @@ def alert_thresholds(stats: ModelStatistics, budgets: list[int]) -> np.ndarray:
 
 
 def fixed_threshold(stats: ModelStatistics, budgets: list[int]) -> list[dict[str, object]]:
-    """Alert volume and recall on this split at thresholds fixed elsewhere for each budget (S6-25)."""
+    """Alert volume and recall on this split at thresholds fixed elsewhere for each budget."""
     positives = stats.positives
     n_campaigns = positives["campaign_id"].n_unique()
     rows: list[dict[str, object]] = []

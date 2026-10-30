@@ -1,9 +1,9 @@
-"""F5: authentication-graph features (US-113, `authbench[graph]` extra).
+"""F5: authentication-graph features (`authbench[graph]` extra).
 
 The bipartite user-machine graph is rebuilt per day from a strictly trailing
 window of `window_days` days, never once over the whole period: an embedding
 fitted on all days leaks every future edge into every past node and makes
-RQ3 unanswerable (spec section 4.1). Day granularity is a cost trade-off;
+RQ3 unanswerable. Day granularity is a cost trade-off;
 no event contributes to its own day's graph.
 
 Because the graph is bipartite, measures built on triangles or on common
@@ -122,7 +122,7 @@ def attach_graph_features(
 ) -> pl.LazyFrame:
     """Join, for each day D of `events`, the features of the graph built from `all_events` on days [D - window_days, D - 1].
 
-    The caller must not point `all_events` beyond the current split's horizon (US-107).
+    The caller must not point `all_events` beyond the current split's horizon.
     Unseen nodes take the values of an isolated node: degree, PageRank, clustering 0, community -1, zero embedding.
     """
     _require_networkx()

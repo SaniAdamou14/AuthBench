@@ -1,4 +1,4 @@
-"""The report's figures (US-126, spec section 6.3).
+"""The report's figures.
 
 Only one figure is load-bearing: campaign recall as a function of the daily
 alert budget, one curve per model. It is the visual form of the project's

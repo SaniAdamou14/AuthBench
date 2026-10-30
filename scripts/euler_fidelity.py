@@ -1,4 +1,4 @@
-"""Euler under its own protocol, to check the reimplementation against the published numbers (S6-09).
+"""Euler under its own protocol, to check the reimplementation against the published numbers.
 
 King and Huang (2022, table VI) report, for GCN + GRU in link prediction on LANL, AUC 0.9906
 and AP 0.0155 over edges: every (30-minute snapshot, source computer, destination computer)

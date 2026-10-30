@@ -1,4 +1,4 @@
-"""M3 — classical ML anomaly detectors via PyOD (US-120, `authbench[classical]` extra)."""
+"""M3 — classical ML anomaly detectors via PyOD (`authbench[classical]` extra)."""
 
 from __future__ import annotations
 
@@ -145,8 +145,7 @@ class HBOSScorer(_PyODScorer):
 class LOFScorer(_PyODScorer):
     """M3c — Local Outlier Factor on a fixed subsample. LOF does not scale to
     LANL volumes, so the subsample size is a first-class, published parameter
-    — its effect on variance is one of the required sensitivity analyses
-    (spec section 6.5).
+    — its effect on variance is one of the required sensitivity analyses.
     """
 
     name = "M3c_lof"

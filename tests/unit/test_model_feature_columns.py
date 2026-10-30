@@ -41,7 +41,7 @@ def test_every_model_in_both_catalogs_uses_it() -> None:
 
 def test_no_column_carries_the_infinite_sentinel() -> None:
     """`days_since_pair_last_seen` and `hours_since_prev_event_same_user` use
-    +inf as a documented "never seen before" sentinel (US-111). A standardizer
+    +inf as a documented "never seen before" sentinel. A standardizer
     turns that into NaN across the whole column, so they stay out of the matrix
     — `pair_is_new` already carries the same information as a boolean.
     """

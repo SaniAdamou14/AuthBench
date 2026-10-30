@@ -1,10 +1,10 @@
-"""F2 — historical per-entity features over 1h / 24h / 7d expanding windows (US-110).
+"""F2 — historical per-entity features over 1h / 24h / 7d expanding windows.
 
 Computed for three entities: the source user, the source machine, and the
 destination machine. Every window is strictly antecedent to the current
 event via `features.causal` — the event itself never contributes to its own
 aggregation, which is the single most common source of leakage in this
-literature (spec section 4.1).
+literature.
 """
 
 from __future__ import annotations
@@ -158,7 +158,7 @@ def _compute_distribution_stats(
     events: pl.LazyFrame, *, entity_col: str, window_seconds: int, prefix: str
 ) -> pl.LazyFrame:
     """Entropy of the partner distribution and distinct auth types seen, over
-    strictly-prior events (US-110).
+    strictly-prior events.
 
     These genuinely need one row per (event, prior event) pair — an entropy is
     not a count. Nothing downstream reads them, so they are opt-in: at LANL
