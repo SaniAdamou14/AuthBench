@@ -1,6 +1,6 @@
 [project]
 name = "authbench"
-version = "2.1.0"
+version = "2.2.0"
 description = "AuthBench — leak-free, alert-budget-constrained benchmark for authentication-log anomaly detection"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
