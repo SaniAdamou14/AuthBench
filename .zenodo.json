@@ -1,8 +1,8 @@
 {
-  "title": "AuthBench v2.1.0: temporally leak-free, alert-budget evaluation of authentication anomaly detectors",
+  "title": "AuthBench v2.2.0: temporally leak-free, alert-budget evaluation of authentication anomaly detectors",
   "upload_type": "software",
-  "version": "2.1.0",
-  "description": "<p>AuthBench is an open harness that evaluates authentication anomaly detectors under a temporally leak-free protocol and daily alert budgets. It checks the temporal order of its partitions, tests that every detector scores an event identically alone or among others, ranks events, edge-hours and user-days within each day, gives every red-team campaign the daily budget at which it is first detected, and sets each result against its exact distribution under a random ranking and against label-free activity rankings of the same units.</p><p>Version 2.1.0 is the code of version 2 of the report (DOI 10.5281/zenodo.23588166). Over 2.0.0 it adds the label-free user-day activity rankings and the aggregation-aware null (<code>scripts/user_day_activity.py</code>, checked by the generator against the run on every day), the temporal-order guard on the LANL training path, integration tests of the entry points that produced the run, refusal of feature settings the pipeline would ignore, a third round of review with its response, and the answer of Euler's first author, with the configuration of the authors'-code runs read into the report. The run outputs of 22 October 2026 are unchanged.</p><p>Behaviour change: <code>build_features</code> refuses feature settings it does not implement, instead of ignoring them.</p>",
+  "version": "2.2.0",
+  "description": "<p>AuthBench is an open harness that evaluates authentication anomaly detectors under a temporally leak-free protocol and daily alert budgets. It checks the temporal order of its partitions, tests that every detector scores an event identically alone or among others, ranks events, edge-hours and user-days within each day, gives every red-team campaign the daily budget at which it is first detected, and sets each result against its exact distribution under a random ranking and against label-free activity rankings of the same units.</p><p>Version 2.2.0 corrects the favourable end of the tie bracket of campaign recall: it is now the exact maximum over tie orders, computed as a matching of campaigns to the places in contention and checked against every tie order on small cases. Two values of report version 2 (DOI 10.5281/zenodo.23687498) change: the favourable bracket of pair rarity (M2a) at 10 alerts per day moves from 32.1% to 34.0% in the harmonised protocol and from 32.7% to 38.5% in the temporal protocol. The values at 500 alerts per day, the demo tables and the run outputs of 22 October 2026 are unchanged. The methodology note no longer says that <code>get_test_split</code> is the only path to the test partition, and the account-grouped bootstrap test can now fail.</p><p>Version 2.1.0 (DOI 10.5281/zenodo.23623196) is the code of report version 2.</p>",
   "creators": [
     {
       "name": "Adamou Mahamane, Mahamane Sani",
@@ -28,7 +28,7 @@
       "scheme": "doi"
     },
     {
-      "identifier": "https://github.com/SaniAdamou14/AuthBench/tree/v2.1.0",
+      "identifier": "https://github.com/SaniAdamou14/AuthBench/tree/v2.2.0",
       "relation": "isSupplementTo",
       "resource_type": "software",
       "scheme": "url"

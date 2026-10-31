@@ -8,8 +8,8 @@ abstract: >-
   detected, and sets each result against its exact distribution under a random ranking and
   against label-free activity rankings of the same units.
 type: software
-version: 2.1.0
-date-released: 2026-10-24
+version: 2.2.0
+date-released: 2026-10-31
 url: https://github.com/SaniAdamou14/AuthBench
 repository-code: https://github.com/SaniAdamou14/AuthBench
 license: Apache-2.0
