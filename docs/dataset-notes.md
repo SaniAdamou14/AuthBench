@@ -30,4 +30,5 @@ threshold must be reported, not treated as a fixed constant (see `docs/limitatio
 Published figures for r4.2's malicious user count disagree across papers (70/1000 vs. 30 × 3
 scenarios). Whichever labeling procedure is used here should be documented precisely and the
 resulting count reconciled against both published figures — a small but genuine reproducibility
-contribution.
+contribution. Not done yet: no CERT labelling has been run, so this note records an open task,
+not a result.

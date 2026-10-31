@@ -1,8 +1,8 @@
 """Sufficient statistics of a scored split, accumulated one day at a time.
 
 Every metric this benchmark reports depends on the scores only through the
-positives: each positive's rank in its own day's alert queue (and under the two
-tie-breaks that bracket it), how many benign events of the whole split score
+positives: each positive's rank in its own day's alert queue (with its tie bounds
+and its rank with ties broken against the model), how many benign events of the whole split score
 above it and level with it, and, per day, the tie at each budget and the
 best-ranked events. `SplitAccumulator` computes these from one day of scores at
 a time, so evaluating a split needs the memory of its largest day rather than of
@@ -23,11 +23,11 @@ from dataclasses import dataclass, field
 import numpy as np
 import polars as pl
 
-from authbench.evaluate.budget import BudgetCurve, TieExposure
+from authbench.evaluate.budget import BudgetCurve, TieExposure, best_tie_campaign_recall
 from authbench.evaluate.campaign import TimeToDetectionResult
 
 POSITIVE_KEYS = ["event_id", "campaign_id", "day", "time"]
-RANK_COLUMNS = ["rank", "rank_best", "rank_worst", "rank_against", "rank_for"]
+RANK_COLUMNS = ["rank", "rank_best", "rank_worst", "rank_against"]
 #: Alert units coarser than an event: what an analyst triages once.
 UNITS = {
     "edge_hour": ["src_computer", "dst_computer", "hour"],
@@ -41,8 +41,8 @@ class ModelStatistics:
 
     model_name: str
     #: One row per positive in (day, time, event_id) order: `POSITIVE_KEYS`, `score`, the queue
-    #: `rank` in its day, the tie bounds `rank_best` and `rank_worst`, and the ranks with ties
-    #: broken against the model (`rank_against`) and for it (`rank_for`).
+    #: `rank` in its day, the tie bounds `rank_best` and `rank_worst`, and the rank with ties
+    #: broken against the model (`rank_against`).
     positives: pl.DataFrame
     #: Distinct positive scores, descending, and the benign events of the split strictly above
     #: and exactly level with each.
@@ -147,13 +147,8 @@ class SplitAccumulator:
                 "A malicious event has no campaign_id. Labelling and campaign attachment join "
                 "on the same red-team key, so this is a labelling bug, not a result."
             )
-        self._positives = (
-            positives.sort("campaign_id", "time", "event_id")
-            .with_columns(pl.int_range(pl.len()).over("campaign_id").alias("_campaign_event_index"))
-            .sort("day", "time", "event_id")
-        )
+        self._positives = positives.sort("day", "time", "event_id")
         self._row = {int(e): i for i, e in enumerate(self._positives["event_id"].to_list())}
-        self._campaign_event_index = self._positives["_campaign_event_index"].to_numpy()
         self._expected_per_day = {
             int(day): int(count) for day, count in self._positives.group_by("day").len().iter_rows()
         }
@@ -317,10 +312,6 @@ class SplitAccumulator:
         # Benign events first inside a tie: the fewest positives any tie-break admits.
         state.ranks["rank_against"][index] = (
             above + benign_level + _position_among_ties(ps, *arrival_keys) + 1
-        )
-        # Positives first, a campaign's earliest event before any campaign's next.
-        state.ranks["rank_for"][index] = (
-            above + _position_among_ties(ps, self._campaign_event_index[index], *arrival_keys) + 1
         )
 
         left = np.searchsorted(benign_negated, -state.thresholds, side="left")
@@ -579,7 +570,7 @@ def budget_curve(stats: ModelStatistics, budgets: list[int]) -> BudgetCurve:
         ],
         campaign_recall=[_campaign_recall(positives, "rank", k) for k in budgets],
         campaign_recall_min=[_campaign_recall(positives, "rank_against", k) for k in budgets],
-        campaign_recall_max=[_campaign_recall(positives, "rank_for", k) for k in budgets],
+        campaign_recall_max=[best_tie_campaign_recall(positives, k) for k in budgets],
         tie_exposure=[e for e in stats.tie_exposure if e.budget in budgets],
         budget_for_first_detection=int(positives["rank"].min()) if n else None,  # type: ignore[arg-type]
     )

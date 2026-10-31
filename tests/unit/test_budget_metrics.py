@@ -9,6 +9,9 @@ from one which missed by nine million.
 
 from __future__ import annotations
 
+from itertools import permutations, product
+
+import numpy as np
 import polars as pl
 import pytest
 
@@ -114,6 +117,62 @@ def test_the_best_case_tie_break_spends_one_slot_per_campaign() -> None:
     low, high = campaign_recall_bracket(frame, "score", 2)
     assert low == 0.0  # both benign events go first
     assert high == 1.0  # one event of each campaign
+
+
+def test_the_upper_end_does_not_spend_a_place_on_a_campaign_already_alerted() -> None:
+    frame = pl.DataFrame(
+        {
+            "event_id": [0, 1, 2, 3],
+            "day": [0] * 4,
+            "time": [5, 1, 2, 9],
+            "score": [2.0, 1.0, 1.0, 0.0],
+            "is_malicious": [True, True, True, False],
+            "campaign_id": [1, 1, 2, None],
+        },
+        schema_overrides={"campaign_id": pl.Int64},
+    )
+
+    assert campaign_recall_bracket(frame, "score", 2)[1] == 1.0
+
+
+def _recall_under_every_tie_order(frame: pl.DataFrame, k: int) -> list[float]:
+    """Campaign recall of every combination of per-day event orders, by enumeration."""
+    alerted_by_day = []
+    for _, day in frame.group_by("day", maintain_order=True):
+        rows = day.rows(named=True)
+        alerted = set()
+        for order in permutations(rows):
+            top = sorted(order, key=lambda row: -row["score"])[:k]
+            alerted.add(frozenset(r["campaign_id"] for r in top if r["campaign_id"] is not None))
+        alerted_by_day.append(alerted)
+    n_campaigns = frame["campaign_id"].drop_nulls().n_unique()
+    return [len(frozenset().union(*sets)) / n_campaigns for sets in product(*alerted_by_day)]
+
+
+@pytest.mark.parametrize("seed", range(40))
+@pytest.mark.parametrize("k", [1, 2, 3])
+def test_the_bracket_holds_against_every_tie_order(seed: int, k: int) -> None:
+    rng = np.random.default_rng(seed)
+    campaign = rng.integers(0, 4, 8)
+    frame = pl.DataFrame(
+        {
+            "event_id": np.arange(8),
+            "day": [0] * 4 + [1] * 4,
+            "time": np.arange(8),
+            "score": rng.integers(0, 3, 8).astype(float),
+            "is_malicious": campaign > 0,
+            "campaign_id": [int(c) if c else None for c in campaign],
+        },
+        schema_overrides={"campaign_id": pl.Int64},
+    )
+    if frame["campaign_id"].null_count() == 8:
+        pytest.skip("no campaign in this draw")
+
+    recalls = _recall_under_every_tie_order(frame, k)
+    low, high = campaign_recall_bracket(frame, "score", k)
+
+    assert high == max(recalls)
+    assert min(recalls) <= low <= campaign_recall_at_budget(frame, "score", k) <= high
 
 
 def test_tie_exposure_counts_the_slots_and_the_contenders() -> None:

@@ -45,41 +45,27 @@ ALERT_ORDER_TIE_BREAK: list[str] = ["time", "event_id"]
 
 #: How a tie is resolved when measuring what the tie could cost or buy.
 #:
-#: `queue` is the reported operating point. The other two are measurement
-#: devices and do read `is_malicious`: they exist to bracket the number, never
+#: `queue` is the reported operating point. `against_model` is a measurement
+#: device and does read `is_malicious`: it exists to bracket the number, never
 #: to produce it.
-TieBreak = Literal["queue", "against_model", "for_model"]
+TieBreak = Literal["queue", "against_model"]
 
 _RANK = "_rank_in_day"
 _ORDER = "_alert_order"
-_CAMPAIGN_EVENT_INDEX = "_campaign_event_index"
 
 
 def _sort_keys(tie_break: TieBreak) -> tuple[list[str], list[bool]]:
     if tie_break == "queue":
         return ([*ALERT_ORDER_TIE_BREAK], [False, False])
-    if tie_break == "against_model":
-        # Benign first inside a tie group: the fewest malicious events any
-        # tie-break can admit.
-        return (["is_malicious", *ALERT_ORDER_TIE_BREAK], [False, False, False])
-    # Malicious first, and one event per campaign before a second from any —
-    # spending a slot on a campaign already covered buys no recall.
-    return (
-        ["is_malicious", _CAMPAIGN_EVENT_INDEX, *ALERT_ORDER_TIE_BREAK],
-        [True, False, False, False],
-    )
+    # Benign first inside a tie group: the fewest malicious events any
+    # tie-break can admit.
+    return (["is_malicious", *ALERT_ORDER_TIE_BREAK], [False, False, False])
 
 
 def _ranked(frame: pl.DataFrame, score_col: str, tie_break: TieBreak = "queue") -> pl.DataFrame:
     """`frame` plus each event's 1-based position in its own day's alert queue."""
-    prepared = frame
-    if tie_break == "for_model":
-        prepared = frame.sort(["campaign_id", *ALERT_ORDER_TIE_BREAK]).with_columns(
-            pl.int_range(0, pl.len()).over("campaign_id").alias(_CAMPAIGN_EVENT_INDEX)
-        )
-
     tie_keys, tie_descending = _sort_keys(tie_break)
-    ordered = prepared.sort([score_col, *tie_keys], descending=[True, *tie_descending])
+    ordered = frame.sort([score_col, *tie_keys], descending=[True, *tie_descending])
 
     # Ranked off a unique global position rather than off the score, so the
     # rank means "place in the queue" and cannot itself be ambiguous.
@@ -129,27 +115,68 @@ def campaign_recall_at_budget(
     return detected_campaigns / total_campaigns
 
 
+def best_tie_campaign_recall(positives: pl.DataFrame, k: int) -> float:
+    """The highest campaign recall any tie order gives at daily budget `k`.
+
+    `positives` holds `campaign_id`, `day`, `rank_best` and `rank_worst`. A
+    campaign is detected under every order when a positive has `rank_worst <= k`.
+    Each day has at most one tie group across the budget, with
+    `k - rank_best + 1` places; giving them to the other campaigns is a bipartite
+    matching, solved exactly by augmenting paths.
+    """
+    n_campaigns = positives["campaign_id"].n_unique()
+    if not n_campaigns:
+        return 0.0
+    certain = set(positives.filter(pl.col("rank_worst") <= k)["campaign_id"].to_list())
+    contested = positives.filter((pl.col("rank_best") <= k) & (pl.col("rank_worst") > k))
+    places: dict[int, int] = {}
+    days_of: dict[int, set[int]] = {}
+    for campaign, day, best in contested.select("campaign_id", "day", "rank_best").iter_rows():
+        places[day] = k - best + 1
+        if campaign not in certain:
+            days_of.setdefault(campaign, set()).add(day)
+    taken: dict[int, list[int]] = {day: [] for day in places}
+
+    def place(campaign: int, seen: set[int]) -> bool:
+        for day in days_of[campaign]:
+            if day in seen:
+                continue
+            seen.add(day)
+            if len(taken[day]) < places[day]:
+                taken[day].append(campaign)
+                return True
+            for i, other in enumerate(taken[day]):
+                if place(other, seen):
+                    taken[day][i] = campaign
+                    return True
+        return False
+
+    matched = sum(place(campaign, set()) for campaign in days_of)
+    return (len(certain) + matched) / n_campaigns
+
+
 def campaign_recall_bracket(frame: pl.DataFrame, score_col: str, k: int) -> tuple[float, float]:
     """Campaign recall with every tie broken against the model, and for it.
 
-    The low end is **exact**: putting benign events first inside every tie
-    group admits the fewest malicious events any ordering can, and campaign
-    detection only grows with the set of malicious events alerted.
+    The low end puts benign events first inside every tie group. It is the
+    lowest recall any order gives when those benign events fill the places left;
+    otherwise it is one achievable order.
 
-    The high end is **achievable rather than provably maximal**: it is what one
-    concrete ordering delivers — malicious first, and a campaign's first event
-    before any campaign's second, so no slot is spent on a campaign already
-    covered. That is optimal within a day; across days a cleverer assignment of
-    slots to campaigns could in principle do better, so read this as "at least
-    this much", not "at most".
+    The high end is the highest recall any order gives
+    (`best_tie_campaign_recall`).
 
-    A bracket of zero width means the reported number does not depend on the
-    tie-break at all, which is the common case for a model with a continuous
-    score. A wide one means the number is mostly a property of the ordering.
+    A wide bracket means the number is mostly a property of the ordering. A
+    model with a continuous score has no ties, so its bracket has zero width.
     """
+    ranks = frame.select(
+        "campaign_id",
+        "day",
+        pl.col(score_col).rank("min", descending=True).over("day").alias("rank_best"),
+        pl.col(score_col).rank("max", descending=True).over("day").alias("rank_worst"),
+    ).filter(pl.col("campaign_id").is_not_null())
     return (
         campaign_recall_at_budget(frame, score_col, k, tie_break="against_model"),
-        campaign_recall_at_budget(frame, score_col, k, tie_break="for_model"),
+        best_tie_campaign_recall(ranks, k),
     )
 
 

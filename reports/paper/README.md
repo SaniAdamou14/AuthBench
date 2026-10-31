@@ -9,6 +9,13 @@ compared in an appendix on the same temporal partitions.
 Version 1 (single-day run) is archived on Zenodo,
 [10.5281/zenodo.23159768](https://doi.org/10.5281/zenodo.23159768); its two
 errors are listed in the correction notice at the top of the repository README.
+Version 2 is archived as
+[10.5281/zenodo.23687498](https://doi.org/10.5281/zenodo.23687498). Since then,
+`main.tex` carries one correction that the archived PDF does not: the favourable
+end of the tie bracket is now the exact maximum over tie orders, so pair rarity
+(M2a) at 10 alerts per day reads 34.0% instead of 32.1% (harmonised) and 38.5%
+instead of 32.7% (temporal). Nothing else in the report changes; cite the
+archived version 2 until a new version is archived.
 
 ## Where every number comes from
 

@@ -15,8 +15,9 @@ Stated here deliberately, ahead of any reviewer.
    red-team may still be an undetected real compromise from 2015. This means a "false positive"
    in this benchmark may in fact be an unlabeled true positive; precision figures should be read
    with that caveat.
-5. **CERT's synthetic nature.** Useful to test generalization, insufficient on its own to
-   support any claim about real insider behavior.
+5. **No second dataset is evaluated.** The harness downloads and configures CERT r4.2, but no
+   result on it is reported. Being synthetic, CERT could test whether the protocol generalises;
+   it could not support any claim about real insider behavior.
 6. **Campaign-grouping sensitivity.** Campaign-level recall depends on the grouping gap
    threshold (`campaign_gap_hours`). The sensitivity of campaign count to this threshold is a
    required, non-decorative analysis. Since 22 October 2026 every run writes

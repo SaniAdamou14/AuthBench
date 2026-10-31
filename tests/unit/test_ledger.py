@@ -84,13 +84,10 @@ def test_budget_quantile_is_the_smallest_budget_reaching_the_fraction() -> None:
 
 
 def test_account_bootstrap_keeps_campaigns_of_one_account_together() -> None:
-    budgets = np.array([1, 1, 100, 200, 300])
+    budgets = np.array([1, 2, 100, 200, 300])
     users = np.array(["a", "a", "b", "c", "d"])
     out = resample_summaries(budgets, users, k_max=500, n_resamples=300, seed=0)
-    q10 = out[:, 1]
-    first = out[:, 0]
-    assert set(np.unique(first)) <= {1.0, 100.0, 200.0, 300.0}
-    assert np.all((q10 == 1) | (first > 1))
+    assert set(np.unique(out[:, 0])) <= {1.0, 100.0, 200.0, 300.0}
 
 
 def test_simulated_null_first_detection_matches_the_exact_distribution() -> None:

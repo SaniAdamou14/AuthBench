@@ -9,9 +9,10 @@ ingest -> parse/clean -> label -> split -> features -> models -> evaluate -> rep
 ```
 
 Each stage is a pure function over Polars `LazyFrame`s (see `authbench.models.base.AnomalyScorer`
-for the model contract). No stage re-reads raw data more than once, and no stage after
-`split` can reach the test partition except through `authbench.split.temporal.get_test_split` —
-enforced by `tests/unit/test_no_test_leakage.py`.
+for the model contract). No stage re-reads raw data more than once. No module under `models/`
+or `features/` may import `authbench.split.temporal.get_test_split`, enforced by
+`tests/unit/test_no_test_leakage.py`. `pipeline.train_eval` does not use that function: it reads
+the written partitions and runs `verify_temporal_order` on them before fitting any model.
 
 ## Temporal split
 
@@ -143,10 +144,11 @@ reporting different things. Metrics stay in two registers, kept under separate k
   `(time, event_id)` — arrival order, label-free and total (`ALERT_ORDER_TIE_BREAK`).
   Before this was explicit, ties fell to the frame's row order, which after `compute_f4`
   is `(src_user, time)`; the published floor row was the failures of the alphabetically
-  earliest users. `campaign_recall_bracket` now reports what the tie could cost (exact)
-  and buy (achievable), and `tie_exposure` the slots and contenders behind the width. A
-  zero-width bracket certifies that the tie-break decided nothing, which is every model
-  whose score is continuous.
+  earliest users. `campaign_recall_bracket` now reports what the tie could cost (benign
+  events first, the minimum when they fill the places left, which holds in every published
+  run) and buy (the maximum over tie orders, an exact matching of campaigns to contested
+  places), and `tie_exposure` the slots and contenders behind the width. A model whose score
+  is continuous has no ties, so its bracket has zero width.
 - **Budget for first detection** (`budget_for_first_detection`) — the smallest daily
   budget at which the model catches any campaign. Recall at a fixed budget saturates at
   zero exactly in the regime this benchmark studies, ranking every failed model as equally

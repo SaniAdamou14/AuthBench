@@ -12,7 +12,9 @@ defenses, or interact with live systems.
   (see `README.md`). No real usernames, hostnames, or organizational identity are exposed —
   all identifiers in the public release are already anonymized/synthetic tokens.
 - **CERT Insider Threat** (SEI/CMU): fully **synthetic** data, generated for research use under
-  the SEI's terms; used only for a generalization check, never as a primary result.
+  the SEI's terms. The harness can download it and has a dataset configuration for it
+  (`conf/dataset/cert.yaml`), but no CERT result is reported: version 2 of the report uses
+  LANL only.
 - Neither dataset is redistributed by this repository — only the download scripts
   (`authbench.ingest.download`) are, per each dataset's own license (Apache 2.0 covers this
   repository's code only, see `LICENSE`).
